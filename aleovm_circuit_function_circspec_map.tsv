@@ -8,13 +8,31 @@ environment	TestnetCircuit	Environment	enforce	1	1	0	1	1	fun-circuits/environmen
 network	AleoCanaryV0	Environment	enforce	1	1	0	1	1	fun-circuits/environment-pfcs.lisp (env_enforce); AleoV0::enforce is E::enforce
 network	AleoTestnetV0	Environment	enforce	1	1	0	1	1	fun-circuits/environment-pfcs.lisp (env_enforce); AleoV0::enforce is E::enforce
 network	AleoV0	Environment	enforce	1	1	0	1	1	fun-circuits/environment-pfcs.lisp (env_enforce); AleoV0::enforce is E::enforce
-types/boolean	Boolean	Adder	adder	1	0	1	1	1	fun-circuits/boolean-adder-r1cs.lisp (boolean-adder-gadget, sound+complete); sample checked by aleovm_sample_circuits.py
-types/boolean	Boolean	Subtractor	subtractor	1	0	1	1	1	fun-circuits/boolean-adder-r1cs.lisp (boolean-subtractor-gadget, sound+complete); sample checked by aleovm_sample_circuits.py
-types/field	Field	From	from	1	0	0	1	1	fun-circuits/field-zero-r1cs.lisp (empty field-from-gadget, sound+complete)
-types/field	Field	FromBoolean	from_boolean	1	0	0	1	1	fun-circuits/field-zero-r1cs.lisp (empty field-from-boolean-gadget, sound+complete)
-types/field	Field	Zero	is_zero	1	0	1	1	1	fun-circuits/field-zero-r1cs.lisp (field-is-zero-gadget, sound+complete); sample checked by aleovm_sample_circuits.py
-types/field	Field	One	is_one	1	0	1	1	1	fun-circuits/field-zero-r1cs.lisp (field-is-one-gadget, sound+complete); sample checked by aleovm_sample_circuits.py
-types/field	Field	Compare	is_greater_than	1	0	0	1	0	fun-circuits/field-compare-r1cs.lisp reuses field-lt-gadget-soundness; completeness not claimed
-types/field	Field	Compare	is_greater_than_or_equal	1	0	0	1	0	fun-circuits/field-compare-r1cs.lisp reuses field-lt-gadget-soundness; completeness not claimed
-types/field	Field	Compare	is_less_than_or_equal	1	0	0	1	0	fun-circuits/field-compare-r1cs.lisp reuses field-lt-gadget-soundness; completeness not claimed
-program	Literal	Inject	new	1	1	1	0	0	fun-circuits/literal-new-pfcs.lisp and identifier-list-sound.lisp and literal-new-r1cs.lisp and scalar-new-r1cs.lisp and group-inject-sound.lisp; needs snarkVM-scalar-new-range-check.patch because unpatched Scalar::new accepts a wire in [r p) (scalar-new-unpatched-accepts-non-scalar); samples checked by aleovm_sample_circuits.py; R1CS-SOUND for group/address/signature is conditional on edwards-bls12-cofactor-clears; R1CS-COMPLETE open for the cofactor and comparison-chain witnesses and the string host halt (fun-specs README)
+types/boolean	Boolean	Adder	adder	1	1	1	1	1	fun-circuits/boolean-adder-r1cs.lisp (boolean-adder-gadget, sound+complete); sample checked by aleovm_sample_circuits.py; fun-circuits/fb-boolean-adder.lisp (reuses boolean-adder-gadget sound+complete; pfcs+sample)
+types/boolean	Boolean	Subtractor	subtractor	1	1	1	1	1	fun-circuits/boolean-adder-r1cs.lisp (boolean-subtractor-gadget, sound+complete); sample checked by aleovm_sample_circuits.py; fun-circuits/fb-boolean-adder.lisp (reuses boolean-subtractor-gadget sound+complete; pfcs inlines negation; sample)
+types/field	Field	From	from	1	1	1	1	1	fun-circuits/field-zero-r1cs.lisp (empty field-from-gadget, sound+complete); fun-circuits/fb-field-from.lisp (empty gadget from field-zero-r1cs sound+complete; pfcs+sample)
+types/field	Field	FromBoolean	from_boolean	1	1	1	1	1	fun-circuits/field-zero-r1cs.lisp (empty field-from-boolean-gadget, sound+complete); fun-circuits/fb-field-from.lisp (empty gadget from field-zero-r1cs sound+complete; pfcs+sample)
+types/field	Field	Zero	is_zero	1	1	1	1	1	fun-circuits/field-zero-r1cs.lisp (field-is-zero-gadget, sound+complete); sample checked by aleovm_sample_circuits.py; fun-circuits/fb-field-zero.lisp (gadget from field-zero-r1cs sound+complete; pfcs+sample)
+types/field	Field	One	is_one	1	1	1	1	1	fun-circuits/field-zero-r1cs.lisp (field-is-one-gadget, sound+complete); sample checked by aleovm_sample_circuits.py; fun-circuits/fb-field-zero.lisp (gadget from field-zero-r1cs sound+complete; pfcs+sample)
+types/field	Field	Compare	is_greater_than	1	0	0	1	0	fun-circuits/field-compare-r1cs.lisp reuses field-lt-gadget-soundness; completeness not claimed; fun-circuits/field-compare-r1cs.lisp (existing soundness); completeness, PFCS, and a defrule sample were not proved
+types/field	Field	Compare	is_greater_than_or_equal	1	0	0	1	0	fun-circuits/field-compare-r1cs.lisp reuses field-lt-gadget-soundness; completeness not claimed; fun-circuits/field-compare-r1cs.lisp (existing soundness); completeness, PFCS, and a defrule sample were not proved
+types/field	Field	Compare	is_less_than_or_equal	1	0	0	1	0	fun-circuits/field-compare-r1cs.lisp reuses field-lt-gadget-soundness; completeness not claimed; fun-circuits/field-compare-r1cs.lisp (existing soundness); completeness, PFCS, and a defrule sample were not proved
+types/boolean	Boolean		assert_bits_are_zero	1	1	1	1	1	fun-circuits/fb-boolean-bits.lisp (sum assert_eq gadget, sound+complete+pfcs+sample; pfcs is the two-bit instance of the same constraint)
+types/boolean	Boolean		assert_less_than_or_equal_constant	1	1	1	1	0	fun-circuits/fb-boolean-bits.lisp (bits-lte-const-check, sound+sample; pfcs for constant bits (0 1); completeness witnesses not constructed)
+types/boolean	Boolean		is_less_than_or_equal_constant	1	1	1	1	0	fun-circuits/fb-boolean-bits.lisp (bits-lte-const, output 1-r, sound+sample; pfcs for constant bits (0 1); completeness witnesses not constructed)
+types/field	Field		even_square_root	1	0	1	0	0	fun-circuits/fb-field-sqrt.lisp (square + to-bits + assert LSB 0, sample at p=5; funspec uniqueness not proved)
+types/field	Field		square_roots_flagged_nondeterministic	1	0	0	0	0	fun-circuits/fb-field-sqrt.lisp (pow-const + is_one + ternary + square + is_zero + and; ordering not enforced, witnesses not proved)
+types/field	Field		to_non_unique_bits_le	1	0	1	0	1	fun-circuits/fb-field-bits.lisp (boolean checks + pow2sum, complete for canonical bits, sample; soundness false, see bugs)
+types/field	Field	Compare	is_less_than	1	0	0	1	0	fun-circuits/fb-field-compare.lisp (field-lt-gadget, sound to funspec when the result bit is boolean); completeness and PFCS not proved
+types/field	Field	DivUnchecked	div_unchecked	1	1	1	1	1	fun-circuits/fb-field-div-unchecked.lisp (existing gadget and pfcs, sound when y≠0, complete for the snarkVM witness including 0/0, sample); 0/0 is not unique, see bugs
+types/field	Field	Equal	is_equal	1	1	1	1	1	fun-circuits/fb-field-eq.lisp (two snarkVM enforces, output 1-r, sound+complete+pfcs+sample)
+types/field	Field	FromBits	from_bits_be	1	0	1	0	0	fun-circuits/fb-field-bits.lisp (le gadget on the reversed list; short lists sound; full-width bridge not proved; sample of a short list)
+types/field	Field	FromBits	from_bits_le	1	0	1	0	0	fun-circuits/fb-field-bits.lisp (excess sum-to-zero and bits-lte-const-check, no pow2sum constraint; short lists sound; sample of a short list)
+types/field	Field	Pow	pow	1	0	1	1	0	fun-circuits/fb-field-pow.lisp (field-pow-gadget, sound to funspec, sample 3^2=4 at p=5); completeness and PFCS not proved
+types/field	Field	SquareRoot	square_root	1	0	0	0	0	fun-circuits/fb-field-sqrt.lisp (reuses field-square-root-gadget; bound theorem only, not equality with the funspec)
+types/field	Field	ToBits	write_bits_be	1	0	1	1	0	fun-circuits/fb-field-bits.lisp (write_bits_le gadget, output reversed, sound+sample); completeness not proved
+types/field	Field	ToBits	write_bits_le	1	0	1	1	0	fun-circuits/fb-field-bits.lisp (field-to-bits-gadget, sound+sample); completeness not proved
+types/field	Field	ToLowerBits	to_lower_bits_be	1	0	1	1	1	fun-circuits/fb-field-bits.lisp (same constraints as le, sound under 2^k<p, complete, sample)
+types/field	Field	ToLowerBits	to_lower_bits_le	1	1	1	1	1	fun-circuits/fb-field-bits.lisp (boolean checks + pow2sum, sound under 2^k<p and k<=252, complete, pfcs k=2, sample); k=253 aliases, see bugs
+types/field	Field	ToUpperBits	to_upper_bits_be	1	0	1	0	0	fun-circuits/fb-field-bits.lisp (boolean checks + shifted pow2sum, modular spec, sample); funspec bridge not proved
+types/field	Field	ToUpperBits	to_upper_bits_le	1	0	1	0	0	fun-circuits/fb-field-bits.lisp (be gadget on the reversed bits, sample); funspec bridge not proved
