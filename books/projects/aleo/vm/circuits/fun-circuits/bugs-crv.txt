@@ -23,27 +23,30 @@ or that assume a component result instead of deriving it, are not counted.
    points; those circuits are not expanded here.
 
 2. Group addition, subtraction, doubling, enforce_double, and mul_by_cofactor.
-   The variable/variable gadgets are the constraints snarkVM emits:
-   add is the four products (u, v0, v1, v0*v1) and the two division enforces,
-   with a = -1 inlined so U = (x1+y1)*(x2+y2) and a*v0 = -v0;
-   sub is that system with x2 negated (negation is a coefficient);
-   double / enforce_double are xy, x^2, y^2 and the two doubling enforces;
-   mul_by_cofactor is two doublings.
-   crv-group-add-gadget-to-products and
-   crv-group-enforce-on-curve-gadget-to-equation rewrite those constraints
-   to the field products.  They do not prove equality with
-   ecurve::edwards-bls12-add (group-add-funspec, group-sub-funspec,
-   group-double-funspec, group-mul-by-cofactor-funspec) or with
-   point-on-twisted-edwards-p (group-enforce-on-curve-funspec).
-   The missing steps are the y-numerator rearrangement
-   U + a*v0 - v1 = y1*y2 - a*x1*x2, the dedicated-doubling identity
-   with edwards-bls12-add of a point with itself, and the rearrangement of
-   y^2*(d*x^2-1) = a*x^2-1 into a*x^2 + y^2 = 1 + d*x^2*y^2.
-   On this complete curve the denominators are nonzero for curve points;
-   that fact is part of the guard of twisted-edwards-add and is not
-   re-exported as a hypothesis-free rewrite used here.
-   R1CS-SOUND and R1CS-COMPLETE are 0.  add_assign and sub_assign are the
-   same gadgets as add and sub.
+   Add and add_assign are proved equal to ecurve::edwards-bls12-add for
+   curve points: crv-group-add-y-numerator is
+   U + a*v0 - v1 = y1*y2 - a*x1*x2 with a = -1, and
+   crv-group-add-from-equations / crv-group-add-gadget-sound /
+   crv-group-add-assign-gadget-sound connect the four products and the two
+   division enforces to that sum.  Denominators are nonzero on curve points
+   (crv-add-dens-nonzero).  A sample of the identity point is
+   crv-group-add-sample-holds.  Completeness is not a theorem: the
+   canonical witnesses satisfy the constraints only once
+   (mul (div num den) den) = num is tied to the v01 product, and that
+   direction was not proved.  R1CS-COMPLETE stays 0 for add and add_assign.
+   enforce_on_curve is proved sound and complete
+   (crv-group-enforce-on-curve-gadget-sound / -complete): with a = -1,
+   y^2*(d*x^2-1) = a*x^2-1 is the twisted Edwards equation.
+   Subtraction negates x2 by a coefficient.  crv-neg-point-coordinates
+   and crv-group-sub-gadget-to-products are proved, and
+   crv-group-sub-sample-holds is a sample, but equality with
+   edwards-bls12-add of the negated point is not a theorem, so
+   R1CS-SOUND is 0 for sub and sub_assign.
+   Doubling and enforce_double are not identified with add(P,P).
+   crv-group-double-sample-holds is only a sample, so R1CS-SOUND is 0.
+   mul_by_cofactor is two doublings; 4P = double(double(P)) needs the
+   unproved associativity of edwards-bls12-add, so that soundness is not
+   claimed.
 
 3. Group scalar multiplication (Group::mul, Group::mul_assign, and every
    caller of A::g_scalar_multiply).
@@ -102,9 +105,11 @@ or that assume a component result instead of deriving it, are not counted.
    is_greater_than_or_equal uses the less-than gadget and reads 1 - bit;
    is_less_than_or_equal swaps and then negates.  For scalars, 2*(a-b) mod p
    is odd iff a < b, because 2r < p: the representative is 2*(a-b) when
-   a >= b and p + 2*(a-b) when a < b.  That parity lemma is not proved, so
-   R1CS-SOUND and R1CS-COMPLETE are 0.  The decomposition is not a lifted
-   PFCS definition, and there is no sample assignment.
+   a >= b and p + 2*(a-b) when a < b.  That parity lemma is
+   crv-scalar-is-less-than-gadget-sound, and the swapped and negated
+   variants are the other three crv-scalar-is-*-gadget-sound theorems, so
+   R1CS-SOUND is 1.  There is no completeness theorem, the decomposition
+   is not a lifted PFCS definition, and there is no sample assignment.
 
 7. Scalar addition and casts.
    AddAssign converts both scalars to the base field (no constraint), adds

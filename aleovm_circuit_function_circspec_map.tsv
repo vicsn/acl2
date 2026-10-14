@@ -440,15 +440,15 @@ types/address	Address	ToBits	write_bits_le	1	0	0	1	0	crv-bits.lisp
 types/address	Field	From	from	1	1	1	1	1	crv-project.lisp
 types/group	Group		enforce_double	1	0	0	0	0	crv-curve.lisp
 types/group	Group		enforce_in_group	0	0	0	0	0	
-types/group	Group		enforce_on_curve	1	0	1	0	0	crv-curve.lisp
+types/group	Group		enforce_on_curve	1	0	1	1	1	crv-curve.lisp
 types/group	Group		from_x_coordinate	0	0	0	0	0	
 types/group	Group		from_x_coordinate_flagged	0	0	0	0	0	
 types/group	Group		from_xy_coordinates	0	0	0	0	0	
 types/group	Group		is_in_group	0	0	0	0	0	
 types/group	Group		mul_by_cofactor	1	0	0	0	0	crv-curve.lisp
-types/group	Group	Add	add	1	0	0	0	0	crv-curve.lisp
-types/group	Group	AddAssign	add_assign	1	0	0	0	0	crv-curve.lisp
-types/group	Group	Double	double	1	0	0	0	0	crv-curve.lisp
+types/group	Group	Add	add	1	0	1	1	0	crv-curve.lisp
+types/group	Group	AddAssign	add_assign	1	0	0	1	0	crv-curve.lisp
+types/group	Group	Double	double	1	0	1	0	0	crv-curve.lisp
 types/group	Group	Equal	is_equal	1	1	1	1	1	crv-equal.lisp
 types/group	Group	Equal	is_not_equal	1	1	1	1	1	crv-equal.lisp
 types/group	Group	FromBits	from_bits_be	0	0	0	0	0	
@@ -456,7 +456,7 @@ types/group	Group	FromBits	from_bits_le	0	0	0	0	0
 types/group	Group	Inject	new	0	0	0	0	0	
 types/group	Group	Mul	mul	1	0	0	0	0	crv-curve.lisp
 types/group	Group	MulAssign	mul_assign	1	0	0	0	0	crv-curve.lisp
-types/group	Group	Sub	sub	1	0	0	0	0	crv-curve.lisp
+types/group	Group	Sub	sub	1	0	1	0	0	crv-curve.lisp
 types/group	Group	SubAssign	sub_assign	1	0	0	0	0	crv-curve.lisp
 types/group	Group	Ternary	ternary	1	1	1	1	1	crv-ternary.lisp
 types/group	Group	ToBits	write_bits_be	1	0	0	1	0	crv-bits.lisp
@@ -465,10 +465,10 @@ types/group	Group	Zero	is_zero	1	1	1	1	1	crv-equal.lisp
 types/scalar	Scalar		from_field_lossy	0	0	0	0	0	
 types/scalar	Scalar	Add	add	0	0	0	0	0	
 types/scalar	Scalar	AddAssign	add_assign	0	0	0	0	0	
-types/scalar	Scalar	Compare	is_greater_than	1	0	0	0	0	crv-scalar.lisp
-types/scalar	Scalar	Compare	is_greater_than_or_equal	1	0	0	0	0	crv-scalar.lisp
-types/scalar	Scalar	Compare	is_less_than	1	0	0	0	0	crv-scalar.lisp
-types/scalar	Scalar	Compare	is_less_than_or_equal	1	0	0	0	0	crv-scalar.lisp
+types/scalar	Scalar	Compare	is_greater_than	1	0	0	1	0	crv-scalar.lisp
+types/scalar	Scalar	Compare	is_greater_than_or_equal	1	0	0	1	0	crv-scalar.lisp
+types/scalar	Scalar	Compare	is_less_than	1	0	0	1	0	crv-scalar.lisp
+types/scalar	Scalar	Compare	is_less_than_or_equal	1	0	0	1	0	crv-scalar.lisp
 types/scalar	Scalar	Equal	is_equal	1	1	1	1	1	crv-equal.lisp
 types/scalar	Scalar	Equal	is_not_equal	1	1	1	1	1	crv-equal.lisp
 types/scalar	Scalar	FromBits	from_bits_be	0	0	0	0	0	

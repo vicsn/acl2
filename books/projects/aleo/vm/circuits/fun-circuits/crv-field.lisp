@@ -89,7 +89,7 @@
                                     (pfield::sub 1 r p)
                                     p)
                        0))
-           (and (equal r (field-is-not-equal-funspec x y))
+           (and (equal (field-is-not-equal-funspec x y) r)
                 (equal (pfield::sub 1 r p)
                        (field-is-equal-funspec x y))))
   :hints (("Goal"
@@ -134,8 +134,12 @@
                        (field-is-equal-funspec (lookup-equal x asg)
                                                (lookup-equal y asg)))))
   :hints (("Goal"
+           :use (:instance crv-field-is-not-equal-when-constraints
+                           (x (lookup-equal x asg))
+                           (y (lookup-equal y asg))
+                           (m (lookup-equal m asg))
+                           (r (lookup-equal r asg)))
            :in-theory (e/d (crv-field-is-not-equal-gadget-to-spec
-                            crv-field-is-not-equal-when-constraints
                             fieldp
                             bitp
                             r1cs::fep-of-lookup-equal)
@@ -156,7 +160,7 @@
                                     (pfield::sub 1 r p)
                                     p)
                        0)
-                (equal r (field-is-not-equal-funspec x y))
+                (equal (field-is-not-equal-funspec x y) r)
                 (equal (pfield::sub 1 r p)
                        (field-is-equal-funspec x y))))
   :hints (("Goal"
@@ -209,12 +213,17 @@
                        (field-is-equal-funspec (lookup-equal x asg)
                                                (lookup-equal y asg)))))
   :hints (("Goal"
+           :use (:instance crv-field-is-not-equal-constraints-when-witness
+                           (x (lookup-equal x asg))
+                           (y (lookup-equal y asg))
+                           (m (lookup-equal m asg))
+                           (r (lookup-equal r asg)))
            :in-theory (e/d (crv-field-is-not-equal-gadget-to-spec
-                            crv-field-is-not-equal-constraints-when-witness
                             fieldp)
                            ((:definition pfield::sub)
                             pfield::mul-of-sub-arg1
-                            pfield::mul-of-sub-arg2)))))
+                            pfield::mul-of-sub-arg2
+                            crv-field-is-not-equal-constraints-when-witness)))))
 
 (defconst *crv-field-is-not-equal-sample*
   '((x . 1) (y . 1) (m . 0) (r . 0)))
@@ -283,12 +292,15 @@
                 (bitp r)
                 (pfield::fep m prime)
                 (crv-field-is-not-equal-pred x y m r prime))
-           (and (equal r (field-is-not-equal-funspec x y))
+           (and (equal (field-is-not-equal-funspec x y) r)
                 (equal (pfield::sub 1 r prime)
                        (field-is-equal-funspec x y))))
-  :enable (crv-field-is-not-equal-pred-to-mul
-           crv-field-is-not-equal-when-constraints
-           fieldp))
+  :hints (("Goal"
+           :use (:instance crv-field-is-not-equal-when-constraints
+                           (p prime))
+           :in-theory (e/d (crv-field-is-not-equal-pred-to-mul
+                            fieldp)
+                           (crv-field-is-not-equal-when-constraints)))))
 
 (defruled crv-field-is-not-equal-pred-complete
   (implies (and (equal prime (base-prime))
@@ -299,9 +311,12 @@
                              0
                            (pfield::inv (pfield::sub x y prime) prime))))
            (crv-field-is-not-equal-pred x y m r prime))
-  :enable (crv-field-is-not-equal-pred-to-mul
-           crv-field-is-not-equal-constraints-when-witness
-           fieldp))
+  :hints (("Goal"
+           :use (:instance crv-field-is-not-equal-constraints-when-witness
+                           (p prime))
+           :in-theory (e/d (crv-field-is-not-equal-pred-to-mul
+                            fieldp)
+                           (crv-field-is-not-equal-constraints-when-witness)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -417,7 +432,7 @@
                 (bitp c)
                 (fieldp a)
                 (fieldp b)
-                (equal r (field-ternary-funspec c a b)))
+                (equal (field-ternary-funspec c a b) r))
            (equal (pfield::mul c (pfield::sub a b p) p)
                   (pfield::sub r b p)))
   :hints (("Goal"
@@ -520,7 +535,7 @@
                 (fieldp r)
                 (equal (pfield::mul c (pfield::sub a b p) p)
                        (pfield::sub r b p)))
-           (equal r (field-ternary-funspec c a b)))
+           (equal (field-ternary-funspec c a b) r))
   :hints (("Goal"
            :cases ((equal c 0))
            :in-theory (e/d (field-ternary-funspec fieldp bitp)
@@ -534,21 +549,31 @@
                 (fieldp b)
                 (fieldp r)
                 (crv-field-ternary-pred c a b r prime))
-           (equal r (field-ternary-funspec c a b)))
-  :enable (crv-field-ternary-pred-to-mul
-           crv-field-ternary-when-bit
-           fieldp))
+           (equal (field-ternary-funspec c a b) r))
+  :hints (("Goal"
+           :use (:instance crv-field-ternary-when-bit (p prime))
+           :in-theory (e/d (crv-field-ternary-pred-to-mul
+                            field-ternary-funspec
+                            fieldp
+                            bitp)
+                           (crv-field-ternary-when-bit)))))
 
 (defruled crv-field-ternary-pred-complete
   (implies (and (equal prime (base-prime))
                 (bitp c)
                 (fieldp a)
                 (fieldp b)
-                (equal r (field-ternary-funspec c a b)))
+                (equal (field-ternary-funspec c a b) r))
            (crv-field-ternary-pred c a b r prime))
-  :enable (crv-field-ternary-pred-to-mul
-           crv-field-ternary-constraints-when-witness
-           fieldp))
+  :hints (("Goal"
+           :cases ((equal c 1))
+           :use (:instance crv-field-ternary-constraints-when-witness
+                           (p prime))
+           :in-theory (e/d (crv-field-ternary-pred-to-mul
+                            field-ternary-funspec
+                            fieldp
+                            bitp)
+                           (crv-field-ternary-constraints-when-witness)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -596,7 +621,7 @@
                            ((:definition pfield::mul)))
            :use ((:instance pfield::mul-of-0-arg1 (y b))
                  (:instance pfield::mul-of-0-arg2 (x a))
-                 (:instance pfield::mul-of-1-arg1 (y b))
+                 (:instance pfield::mul-of-1-arg1 (x b))
                  (:instance pfield::mul-of-1-arg2 (x a))))))
 
 (defruled crv-and-not-is-and-of-equals
@@ -607,9 +632,9 @@
                                     (pfield::sub 1 ry p)
                                     p)
                        out))
-           (equal out
-                  (boolean-and-funspec (boolean-not-funspec rx)
-                                       (boolean-not-funspec ry))))
+           (equal (boolean-and-funspec (boolean-not-funspec rx)
+                                       (boolean-not-funspec ry))
+                  out))
   :hints (("Goal"
            :in-theory (e/d (boolean-not-funspec bitp)
                            ((:definition pfield::sub)
@@ -655,8 +680,10 @@
                 (bitp ry)
                 (pfield::fep out prime)
                 (crv-and-not-pred rx ry out prime))
-           (equal out
-                  (boolean-and-funspec (boolean-not-funspec rx)
-                                       (boolean-not-funspec ry))))
-  :enable (crv-and-not-pred-to-mul
-           crv-and-not-is-and-of-equals))
+           (equal (boolean-and-funspec (boolean-not-funspec rx)
+                                       (boolean-not-funspec ry))
+                  out))
+  :hints (("Goal"
+           :use (:instance crv-and-not-is-and-of-equals (p prime))
+           :in-theory (e/d (crv-and-not-pred-to-mul)
+                           (crv-and-not-is-and-of-equals)))))

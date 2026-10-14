@@ -66,40 +66,131 @@
           (boolean-and-gadget pkout prout t1)
           (crv-and-var-not-gadget t1 sr out p)))
 
+(defruled crv-equal-of-three-element-lists
+  (implies (and (true-listp x)
+                (true-listp y)
+                (equal (len x) 3)
+                (equal (len y) 3))
+           (equal (equal x y)
+                  (and (equal (first x) (first y))
+                       (equal (second x) (second y))
+                       (equal (third x) (third y)))))
+  :hints (("Goal"
+           :in-theory (enable len true-listp)
+           :expand ((len x) (len (cdr x)) (len (cddr x))
+                    (len y) (len (cdr y)) (len (cddr y))
+                    (true-listp x) (true-listp (cdr x)) (true-listp (cddr x))
+                    (true-listp y) (true-listp (cdr y)) (true-listp (cddr y))))))
+
+(defruled crv-compute-key-equal-iff-components
+  (implies (and (curve-compute-keyp ck1)
+                (curve-compute-keyp ck2))
+           (equal (equal ck1 ck2)
+                  (and (equal (first ck1) (first ck2))
+                       (equal (second ck1) (second ck2))
+                       (equal (third ck1) (third ck2)))))
+  :enable (curve-compute-keyp crv-equal-of-three-element-lists))
+
 (defruled crv-compute-key-is-equal-gadget-sound
-  (implies (and (equal p (base-prime))
+  (implies (and (symbolp pk1x) (symbolp pk1y) (symbolp pk2x) (symbolp pk2y)
+                (symbolp pkmx) (symbolp pkrx) (symbolp pkmy) (symbolp pkry)
+                (symbolp pkout)
+                (symbolp pr1x) (symbolp pr1y) (symbolp pr2x) (symbolp pr2y)
+                (symbolp prmx) (symbolp prrx) (symbolp prmy) (symbolp prry)
+                (symbolp prout)
+                (symbolp s1) (symbolp s2) (symbolp sm) (symbolp sr)
+                (symbolp t1) (symbolp out)
+                (equal p (base-prime))
                 (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg pk1x)
+                (r1cs::valuation-bindsp asg pk1y)
+                (r1cs::valuation-bindsp asg pk2x)
+                (r1cs::valuation-bindsp asg pk2y)
+                (r1cs::valuation-bindsp asg pkmx)
+                (r1cs::valuation-bindsp asg pkrx)
+                (r1cs::valuation-bindsp asg pkmy)
+                (r1cs::valuation-bindsp asg pkry)
+                (r1cs::valuation-bindsp asg pkout)
+                (r1cs::valuation-bindsp asg pr1x)
+                (r1cs::valuation-bindsp asg pr1y)
+                (r1cs::valuation-bindsp asg pr2x)
+                (r1cs::valuation-bindsp asg pr2y)
+                (r1cs::valuation-bindsp asg prmx)
+                (r1cs::valuation-bindsp asg prrx)
+                (r1cs::valuation-bindsp asg prmy)
+                (r1cs::valuation-bindsp asg prry)
+                (r1cs::valuation-bindsp asg prout)
+                (r1cs::valuation-bindsp asg s1)
+                (r1cs::valuation-bindsp asg s2)
+                (r1cs::valuation-bindsp asg sm)
+                (r1cs::valuation-bindsp asg sr)
+                (r1cs::valuation-bindsp asg t1)
+                (r1cs::valuation-bindsp asg out)
                 (curve-compute-keyp ck1)
                 (curve-compute-keyp ck2)
-                (bitp (lookup-equal 'pkrx asg))
-                (bitp (lookup-equal 'pkry asg))
-                (bitp (lookup-equal 'prrx asg))
-                (bitp (lookup-equal 'prry asg))
-                (bitp (lookup-equal 'sr asg))
-                (bitp (lookup-equal 'pkout asg))
-                (bitp (lookup-equal 'prout asg))
-                (bitp (lookup-equal 't1 asg))
+                (equal (lookup-equal pk1x asg)
+                       (ecurve::point-finite->x (first ck1)))
+                (equal (lookup-equal pk1y asg)
+                       (ecurve::point-finite->y (first ck1)))
+                (equal (lookup-equal pk2x asg)
+                       (ecurve::point-finite->x (first ck2)))
+                (equal (lookup-equal pk2y asg)
+                       (ecurve::point-finite->y (first ck2)))
+                (equal (lookup-equal pr1x asg)
+                       (ecurve::point-finite->x (second ck1)))
+                (equal (lookup-equal pr1y asg)
+                       (ecurve::point-finite->y (second ck1)))
+                (equal (lookup-equal pr2x asg)
+                       (ecurve::point-finite->x (second ck2)))
+                (equal (lookup-equal pr2y asg)
+                       (ecurve::point-finite->y (second ck2)))
+                (equal (lookup-equal s1 asg) (third ck1))
+                (equal (lookup-equal s2 asg) (third ck2))
+                (bitp (lookup-equal pkrx asg))
+                (bitp (lookup-equal pkry asg))
+                (bitp (lookup-equal prrx asg))
+                (bitp (lookup-equal prry asg))
+                (bitp (lookup-equal sr asg))
+                (bitp (lookup-equal pkout asg))
+                (bitp (lookup-equal prout asg))
+                (bitp (lookup-equal t1 asg))
                 (r1cs::r1cs-constraints-holdp
                  (crv-compute-key-is-equal-gadget
-                  'pk1x 'pk1y 'pk2x 'pk2y 'pkmx 'pkrx 'pkmy 'pkry 'pkout
-                  'pr1x 'pr1y 'pr2x 'pr2y 'prmx 'prrx 'prmy 'prry 'prout
-                  's1 's2 'sm 'sr 't1 'out p)
-                 asg p)
-                (equal (lookup-equal 'pkout asg)
-                       (group-is-equal-funspec (first ck1) (first ck2)))
-                (equal (lookup-equal 'prout asg)
-                       (group-is-equal-funspec (second ck1) (second ck2)))
-                (equal (pfield::sub 1 (lookup-equal 'sr asg) p)
-                       (scalar-is-equal-funspec (third ck1) (third ck2))))
-           (equal (lookup-equal 'out asg)
+                  pk1x pk1y pk2x pk2y pkmx pkrx pkmy pkry pkout
+                  pr1x pr1y pr2x pr2y prmx prrx prmy prry prout
+                  s1 s2 sm sr t1 out p)
+                 asg p))
+           (equal (lookup-equal out asg)
                   (compute-key-is-equal-funspec ck1 ck2)))
-  :enable (compute-key-is-equal-funspec
-           boolean-and-funspec
-           crv-bitand-is-boolean-and-funspec
-           crv-and-var-not-gadget-to-mul
-           crv-mul-of-bits-is-and
-           boolean-not-funspec
-           curve-compute-keyp))
+  :hints (("Goal"
+           :in-theory (e/d (crv-compute-key-is-equal-gadget
+                            r1cs::r1cs-constraints-holdp-of-append
+                            boolean-and-gadget-to-bitand
+                            crv-and-var-not-gadget-to-mul
+                            crv-bitand-is-boolean-and-funspec
+                            crv-mul-of-bits-is-and
+                            boolean-and-funspec
+                            boolean-not-funspec
+                            compute-key-is-equal-funspec
+                            group-is-equal-funspec
+                            scalar-is-equal-funspec
+                            crv-compute-key-equal-iff-components
+                            crv-not-of-equal-bit)
+                           ((:definition pfield::sub)
+                            pfield::mul-of-sub-arg1
+                            pfield::mul-of-sub-arg2))
+           :use ((:instance crv-group-is-equal-gadget-sound
+                            (x1 pk1x) (y1 pk1y) (x2 pk2x) (y2 pk2y)
+                            (mx pkmx) (rx pkrx) (my pkmy) (ry pkry)
+                            (out pkout)
+                            (p1 (first ck1)) (p2 (first ck2)))
+                 (:instance crv-group-is-equal-gadget-sound
+                            (x1 pr1x) (y1 pr1y) (x2 pr2x) (y2 pr2y)
+                            (mx prmx) (rx prrx) (my prmy) (ry prry)
+                            (out prout)
+                            (p1 (second ck1)) (p2 (second ck2)))
+                 (:instance crv-scalar-is-equal-gadget-sound
+                            (a s1) (b s2) (m sm) (r sr))))))
 
 (defconst *crv-compute-key-is-equal-sample*
   '((pk1x . 0) (pk1y . 1) (pk2x . 0) (pk2y . 1)
@@ -177,13 +268,79 @@
    s1 s2 sm sr t1 out p))
 
 (defruled crv-compute-key-is-not-equal-gadget-sound
-  (implies (and (equal p (base-prime))
-                (bitp (lookup-equal 'out asg))
-                (equal (lookup-equal 'out asg)
-                       (compute-key-is-equal-funspec ck1 ck2)))
-           (equal (pfield::sub 1 (lookup-equal 'out asg) p)
+  (implies (and (symbolp pk1x) (symbolp pk1y) (symbolp pk2x) (symbolp pk2y)
+                (symbolp pkmx) (symbolp pkrx) (symbolp pkmy) (symbolp pkry)
+                (symbolp pkout)
+                (symbolp pr1x) (symbolp pr1y) (symbolp pr2x) (symbolp pr2y)
+                (symbolp prmx) (symbolp prrx) (symbolp prmy) (symbolp prry)
+                (symbolp prout)
+                (symbolp s1) (symbolp s2) (symbolp sm) (symbolp sr)
+                (symbolp t1) (symbolp out)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg pk1x)
+                (r1cs::valuation-bindsp asg pk1y)
+                (r1cs::valuation-bindsp asg pk2x)
+                (r1cs::valuation-bindsp asg pk2y)
+                (r1cs::valuation-bindsp asg pkmx)
+                (r1cs::valuation-bindsp asg pkrx)
+                (r1cs::valuation-bindsp asg pkmy)
+                (r1cs::valuation-bindsp asg pkry)
+                (r1cs::valuation-bindsp asg pkout)
+                (r1cs::valuation-bindsp asg pr1x)
+                (r1cs::valuation-bindsp asg pr1y)
+                (r1cs::valuation-bindsp asg pr2x)
+                (r1cs::valuation-bindsp asg pr2y)
+                (r1cs::valuation-bindsp asg prmx)
+                (r1cs::valuation-bindsp asg prrx)
+                (r1cs::valuation-bindsp asg prmy)
+                (r1cs::valuation-bindsp asg prry)
+                (r1cs::valuation-bindsp asg prout)
+                (r1cs::valuation-bindsp asg s1)
+                (r1cs::valuation-bindsp asg s2)
+                (r1cs::valuation-bindsp asg sm)
+                (r1cs::valuation-bindsp asg sr)
+                (r1cs::valuation-bindsp asg t1)
+                (r1cs::valuation-bindsp asg out)
+                (curve-compute-keyp ck1)
+                (curve-compute-keyp ck2)
+                (equal (lookup-equal pk1x asg)
+                       (ecurve::point-finite->x (first ck1)))
+                (equal (lookup-equal pk1y asg)
+                       (ecurve::point-finite->y (first ck1)))
+                (equal (lookup-equal pk2x asg)
+                       (ecurve::point-finite->x (first ck2)))
+                (equal (lookup-equal pk2y asg)
+                       (ecurve::point-finite->y (first ck2)))
+                (equal (lookup-equal pr1x asg)
+                       (ecurve::point-finite->x (second ck1)))
+                (equal (lookup-equal pr1y asg)
+                       (ecurve::point-finite->y (second ck1)))
+                (equal (lookup-equal pr2x asg)
+                       (ecurve::point-finite->x (second ck2)))
+                (equal (lookup-equal pr2y asg)
+                       (ecurve::point-finite->y (second ck2)))
+                (equal (lookup-equal s1 asg) (third ck1))
+                (equal (lookup-equal s2 asg) (third ck2))
+                (bitp (lookup-equal pkrx asg))
+                (bitp (lookup-equal pkry asg))
+                (bitp (lookup-equal prrx asg))
+                (bitp (lookup-equal prry asg))
+                (bitp (lookup-equal sr asg))
+                (bitp (lookup-equal pkout asg))
+                (bitp (lookup-equal prout asg))
+                (bitp (lookup-equal t1 asg))
+                (r1cs::r1cs-constraints-holdp
+                 (crv-compute-key-is-not-equal-gadget
+                  pk1x pk1y pk2x pk2y pkmx pkrx pkmy pkry pkout
+                  pr1x pr1y pr2x pr2y prmx prrx prmy prry prout
+                  s1 s2 sm sr t1 out p)
+                 asg p))
+           (equal (pfield::sub 1 (lookup-equal out asg) p)
                   (compute-key-is-not-equal-funspec ck1 ck2)))
-  :enable (compute-key-is-not-equal-funspec
+  :enable (crv-compute-key-is-not-equal-gadget
+           crv-compute-key-is-equal-gadget-sound
+           compute-key-is-not-equal-funspec
            compute-key-is-equal-funspec
            crv-not-of-equal-bit))
 
@@ -226,28 +383,134 @@
           (crv-and-not-gadget cr rr ts p)
           (boolean-and-gadget ts ckout out)))
 
+(defruled crv-signature-equal-iff-components
+  (implies (and (curve-signaturep sig1)
+                (curve-signaturep sig2))
+           (equal (equal sig1 sig2)
+                  (and (equal (first sig1) (first sig2))
+                       (equal (second sig1) (second sig2))
+                       (equal (third sig1) (third sig2)))))
+  :enable (curve-signaturep crv-equal-of-three-element-lists))
+
 (defruled crv-signature-is-equal-gadget-sound
-  (implies (and (equal p (base-prime))
+  (implies (and (symbolp c1) (symbolp c2) (symbolp cm) (symbolp cr)
+                (symbolp r1) (symbolp r2) (symbolp rm) (symbolp rr)
+                (symbolp pk1x) (symbolp pk1y) (symbolp pk2x) (symbolp pk2y)
+                (symbolp pkmx) (symbolp pkrx) (symbolp pkmy) (symbolp pkry)
+                (symbolp pkout)
+                (symbolp pr1x) (symbolp pr1y) (symbolp pr2x) (symbolp pr2y)
+                (symbolp prmx) (symbolp prrx) (symbolp prmy) (symbolp prry)
+                (symbolp prout)
+                (symbolp s1) (symbolp s2) (symbolp sm) (symbolp sr)
+                (symbolp tck) (symbolp ckout)
+                (symbolp ts) (symbolp out)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg c1)
+                (r1cs::valuation-bindsp asg c2)
+                (r1cs::valuation-bindsp asg cm)
+                (r1cs::valuation-bindsp asg cr)
+                (r1cs::valuation-bindsp asg r1)
+                (r1cs::valuation-bindsp asg r2)
+                (r1cs::valuation-bindsp asg rm)
+                (r1cs::valuation-bindsp asg rr)
+                (r1cs::valuation-bindsp asg pk1x)
+                (r1cs::valuation-bindsp asg pk1y)
+                (r1cs::valuation-bindsp asg pk2x)
+                (r1cs::valuation-bindsp asg pk2y)
+                (r1cs::valuation-bindsp asg pkmx)
+                (r1cs::valuation-bindsp asg pkrx)
+                (r1cs::valuation-bindsp asg pkmy)
+                (r1cs::valuation-bindsp asg pkry)
+                (r1cs::valuation-bindsp asg pkout)
+                (r1cs::valuation-bindsp asg pr1x)
+                (r1cs::valuation-bindsp asg pr1y)
+                (r1cs::valuation-bindsp asg pr2x)
+                (r1cs::valuation-bindsp asg pr2y)
+                (r1cs::valuation-bindsp asg prmx)
+                (r1cs::valuation-bindsp asg prrx)
+                (r1cs::valuation-bindsp asg prmy)
+                (r1cs::valuation-bindsp asg prry)
+                (r1cs::valuation-bindsp asg prout)
+                (r1cs::valuation-bindsp asg s1)
+                (r1cs::valuation-bindsp asg s2)
+                (r1cs::valuation-bindsp asg sm)
+                (r1cs::valuation-bindsp asg sr)
+                (r1cs::valuation-bindsp asg tck)
+                (r1cs::valuation-bindsp asg ckout)
+                (r1cs::valuation-bindsp asg ts)
+                (r1cs::valuation-bindsp asg out)
                 (curve-signaturep sig1)
                 (curve-signaturep sig2)
-                (bitp (lookup-equal 'out asg))
-                (equal (pfield::sub 1 (lookup-equal 'cr asg) p)
-                       (scalar-is-equal-funspec (first sig1) (first sig2)))
-                (equal (pfield::sub 1 (lookup-equal 'rr asg) p)
-                       (scalar-is-equal-funspec (second sig1) (second sig2)))
-                (equal (lookup-equal 'ckout asg)
-                       (compute-key-is-equal-funspec (third sig1) (third sig2)))
-                (equal (lookup-equal 'out asg)
-                       (boolean-and-funspec
-                        (boolean-and-funspec
-                         (pfield::sub 1 (lookup-equal 'cr asg) p)
-                         (pfield::sub 1 (lookup-equal 'rr asg) p))
-                        (lookup-equal 'ckout asg))))
-           (equal (lookup-equal 'out asg)
+                (equal (lookup-equal c1 asg) (first sig1))
+                (equal (lookup-equal c2 asg) (first sig2))
+                (equal (lookup-equal r1 asg) (second sig1))
+                (equal (lookup-equal r2 asg) (second sig2))
+                (equal (lookup-equal pk1x asg)
+                       (ecurve::point-finite->x (first (third sig1))))
+                (equal (lookup-equal pk1y asg)
+                       (ecurve::point-finite->y (first (third sig1))))
+                (equal (lookup-equal pk2x asg)
+                       (ecurve::point-finite->x (first (third sig2))))
+                (equal (lookup-equal pk2y asg)
+                       (ecurve::point-finite->y (first (third sig2))))
+                (equal (lookup-equal pr1x asg)
+                       (ecurve::point-finite->x (second (third sig1))))
+                (equal (lookup-equal pr1y asg)
+                       (ecurve::point-finite->y (second (third sig1))))
+                (equal (lookup-equal pr2x asg)
+                       (ecurve::point-finite->x (second (third sig2))))
+                (equal (lookup-equal pr2y asg)
+                       (ecurve::point-finite->y (second (third sig2))))
+                (equal (lookup-equal s1 asg) (third (third sig1)))
+                (equal (lookup-equal s2 asg) (third (third sig2)))
+                (bitp (lookup-equal cr asg))
+                (bitp (lookup-equal rr asg))
+                (bitp (lookup-equal pkrx asg))
+                (bitp (lookup-equal pkry asg))
+                (bitp (lookup-equal prrx asg))
+                (bitp (lookup-equal prry asg))
+                (bitp (lookup-equal sr asg))
+                (bitp (lookup-equal pkout asg))
+                (bitp (lookup-equal prout asg))
+                (bitp (lookup-equal tck asg))
+                (bitp (lookup-equal ckout asg))
+                (bitp (lookup-equal ts asg))
+                (r1cs::r1cs-constraints-holdp
+                 (crv-signature-is-equal-gadget
+                  c1 c2 cm cr r1 r2 rm rr
+                  pk1x pk1y pk2x pk2y pkmx pkrx pkmy pkry pkout
+                  pr1x pr1y pr2x pr2y prmx prrx prmy prry prout
+                  s1 s2 sm sr tck ckout ts out p)
+                 asg p))
+           (equal (lookup-equal out asg)
                   (signature-is-equal-funspec sig1 sig2)))
-  :enable (signature-is-equal-funspec
-           boolean-and-funspec
-           curve-signaturep))
+  :hints (("Goal"
+           :in-theory (e/d (crv-signature-is-equal-gadget
+                            r1cs::r1cs-constraints-holdp-of-append
+                            crv-and-not-gadget-to-mul
+                            crv-and-not-is-and-of-equals
+                            boolean-and-gadget-to-bitand
+                            crv-bitand-is-boolean-and-funspec
+                            crv-mul-of-bits-is-and
+                            boolean-and-funspec
+                            boolean-not-funspec
+                            signature-is-equal-funspec
+                            scalar-is-equal-funspec
+                            compute-key-is-equal-funspec
+                            crv-signature-equal-iff-components
+                            curve-signaturep
+                            crv-not-of-equal-bit)
+                           ((:definition pfield::sub)
+                            pfield::mul-of-sub-arg1
+                            pfield::mul-of-sub-arg2))
+           :use ((:instance crv-scalar-is-equal-gadget-sound
+                            (a c1) (b c2) (m cm) (r cr))
+                 (:instance crv-scalar-is-equal-gadget-sound
+                            (a r1) (b r2) (m rm) (r rr))
+                 (:instance crv-compute-key-is-equal-gadget-sound
+                            (t1 tck) (out ckout)
+                            (ck1 (third sig1)) (ck2 (third sig2)))))))
 
 (define crv-signature-is-not-equal-gadget
   ((c1 symbolp) (c2 symbolp) (cm symbolp) (cr symbolp)
@@ -268,11 +531,100 @@
    s1 s2 sm sr tck ckout ts out p))
 
 (defruled crv-signature-is-not-equal-gadget-sound
-  (implies (and (equal p (base-prime))
-                (bitp out)
-                (equal out (signature-is-equal-funspec sig1 sig2)))
-           (equal (pfield::sub 1 out p)
+  (implies (and (symbolp c1) (symbolp c2) (symbolp cm) (symbolp cr)
+                (symbolp r1) (symbolp r2) (symbolp rm) (symbolp rr)
+                (symbolp pk1x) (symbolp pk1y) (symbolp pk2x) (symbolp pk2y)
+                (symbolp pkmx) (symbolp pkrx) (symbolp pkmy) (symbolp pkry)
+                (symbolp pkout)
+                (symbolp pr1x) (symbolp pr1y) (symbolp pr2x) (symbolp pr2y)
+                (symbolp prmx) (symbolp prrx) (symbolp prmy) (symbolp prry)
+                (symbolp prout)
+                (symbolp s1) (symbolp s2) (symbolp sm) (symbolp sr)
+                (symbolp tck) (symbolp ckout)
+                (symbolp ts) (symbolp out)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg c1)
+                (r1cs::valuation-bindsp asg c2)
+                (r1cs::valuation-bindsp asg cm)
+                (r1cs::valuation-bindsp asg cr)
+                (r1cs::valuation-bindsp asg r1)
+                (r1cs::valuation-bindsp asg r2)
+                (r1cs::valuation-bindsp asg rm)
+                (r1cs::valuation-bindsp asg rr)
+                (r1cs::valuation-bindsp asg pk1x)
+                (r1cs::valuation-bindsp asg pk1y)
+                (r1cs::valuation-bindsp asg pk2x)
+                (r1cs::valuation-bindsp asg pk2y)
+                (r1cs::valuation-bindsp asg pkmx)
+                (r1cs::valuation-bindsp asg pkrx)
+                (r1cs::valuation-bindsp asg pkmy)
+                (r1cs::valuation-bindsp asg pkry)
+                (r1cs::valuation-bindsp asg pkout)
+                (r1cs::valuation-bindsp asg pr1x)
+                (r1cs::valuation-bindsp asg pr1y)
+                (r1cs::valuation-bindsp asg pr2x)
+                (r1cs::valuation-bindsp asg pr2y)
+                (r1cs::valuation-bindsp asg prmx)
+                (r1cs::valuation-bindsp asg prrx)
+                (r1cs::valuation-bindsp asg prmy)
+                (r1cs::valuation-bindsp asg prry)
+                (r1cs::valuation-bindsp asg prout)
+                (r1cs::valuation-bindsp asg s1)
+                (r1cs::valuation-bindsp asg s2)
+                (r1cs::valuation-bindsp asg sm)
+                (r1cs::valuation-bindsp asg sr)
+                (r1cs::valuation-bindsp asg tck)
+                (r1cs::valuation-bindsp asg ckout)
+                (r1cs::valuation-bindsp asg ts)
+                (r1cs::valuation-bindsp asg out)
+                (curve-signaturep sig1)
+                (curve-signaturep sig2)
+                (equal (lookup-equal c1 asg) (first sig1))
+                (equal (lookup-equal c2 asg) (first sig2))
+                (equal (lookup-equal r1 asg) (second sig1))
+                (equal (lookup-equal r2 asg) (second sig2))
+                (equal (lookup-equal pk1x asg)
+                       (ecurve::point-finite->x (first (third sig1))))
+                (equal (lookup-equal pk1y asg)
+                       (ecurve::point-finite->y (first (third sig1))))
+                (equal (lookup-equal pk2x asg)
+                       (ecurve::point-finite->x (first (third sig2))))
+                (equal (lookup-equal pk2y asg)
+                       (ecurve::point-finite->y (first (third sig2))))
+                (equal (lookup-equal pr1x asg)
+                       (ecurve::point-finite->x (second (third sig1))))
+                (equal (lookup-equal pr1y asg)
+                       (ecurve::point-finite->y (second (third sig1))))
+                (equal (lookup-equal pr2x asg)
+                       (ecurve::point-finite->x (second (third sig2))))
+                (equal (lookup-equal pr2y asg)
+                       (ecurve::point-finite->y (second (third sig2))))
+                (equal (lookup-equal s1 asg) (third (third sig1)))
+                (equal (lookup-equal s2 asg) (third (third sig2)))
+                (bitp (lookup-equal cr asg))
+                (bitp (lookup-equal rr asg))
+                (bitp (lookup-equal pkrx asg))
+                (bitp (lookup-equal pkry asg))
+                (bitp (lookup-equal prrx asg))
+                (bitp (lookup-equal prry asg))
+                (bitp (lookup-equal sr asg))
+                (bitp (lookup-equal pkout asg))
+                (bitp (lookup-equal prout asg))
+                (bitp (lookup-equal tck asg))
+                (bitp (lookup-equal ckout asg))
+                (bitp (lookup-equal ts asg))
+                (r1cs::r1cs-constraints-holdp
+                 (crv-signature-is-not-equal-gadget
+                  c1 c2 cm cr r1 r2 rm rr
+                  pk1x pk1y pk2x pk2y pkmx pkrx pkmy pkry pkout
+                  pr1x pr1y pr2x pr2y prmx prrx prmy prry prout
+                  s1 s2 sm sr tck ckout ts out p)
+                 asg p))
+           (equal (pfield::sub 1 (lookup-equal out asg) p)
                   (signature-is-not-equal-funspec sig1 sig2)))
-  :enable (signature-is-not-equal-funspec
+  :enable (crv-signature-is-not-equal-gadget
+           crv-signature-is-equal-gadget-sound
+           signature-is-not-equal-funspec
            signature-is-equal-funspec
            crv-not-of-equal-bit))
