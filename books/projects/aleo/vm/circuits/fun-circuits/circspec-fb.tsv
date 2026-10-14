@@ -4,13 +4,13 @@ types/boolean	Boolean		assert_less_than_or_equal_constant	1	1	1	1	1	fun-circuits
 types/boolean	Boolean		is_less_than_or_equal_constant	1	1	1	1	1	fun-circuits/fb2-boolean-lte.lisp (fold witness, output 1-r, complete) plus fb-boolean-bits.lisp (sound+sample+pfcs for bits (0 1)) | fb2-boolean-lte.lisp completeness witness
 types/boolean	Boolean	Adder	adder	1	1	1	1	1	fun-circuits/fb-boolean-adder.lisp (reuses boolean-adder-gadget sound+complete; pfcs+sample)
 types/boolean	Boolean	Subtractor	subtractor	1	1	1	1	1	fun-circuits/fb-boolean-adder.lisp (reuses boolean-subtractor-gadget sound+complete; pfcs inlines negation; sample)
-types/field	Field		even_square_root	1	0	1	1	0	fun-circuits/fb2-field-sqrt.lisp (sound: unique even root) plus fb-field-sqrt.lisp (gadget+sample); no PFCS or completeness witness
+types/field	Field		even_square_root	1	1	1	1	1	fun-circuits/fb3-field-sqrt.lisp (canonical even root, complete; 3-bit PFCS iff funspec and root <= 4) plus fb2-field-sqrt.lisp sound and fb-field-sqrt.lisp sample
 types/field	Field		square_roots_flagged_nondeterministic	1	0	0	0	0	fun-circuits/fb2-field-sqrt.lisp (fb2-flagged-roots-unordered only; ordered funspec soundness stays 0, see bugs)
 types/field	Field		to_non_unique_bits_le	1	0	1	0	1	fun-circuits/fb-field-bits.lisp (boolean checks + pow2sum, complete for canonical bits, sample; soundness false, see bugs)
-types/field	Field	Compare	is_greater_than	1	0	0	1	0	fun-circuits/field-compare-r1cs.lisp (existing soundness); completeness, PFCS, and a defrule sample were not proved
-types/field	Field	Compare	is_greater_than_or_equal	1	0	0	1	0	fun-circuits/field-compare-r1cs.lisp (existing soundness); completeness, PFCS, and a defrule sample were not proved
-types/field	Field	Compare	is_less_than	1	0	0	1	0	fun-circuits/fb-field-compare.lisp (field-lt-gadget, sound to funspec when the result bit is boolean); completeness and PFCS not proved
-types/field	Field	Compare	is_less_than_or_equal	1	0	0	1	0	fun-circuits/field-compare-r1cs.lisp (existing soundness); completeness, PFCS, and a defrule sample were not proved
+types/field	Field	Compare	is_greater_than	1	1	1	1	1	fun-circuits/fb3-field-compare.lisp (swapped bits-lt witness, complete, sample 2>1 at p=5, 2-bit PFCS iff funspec with both inputs < 4) plus field-compare-r1cs.lisp sound
+types/field	Field	Compare	is_greater_than_or_equal	1	1	1	1	1	fun-circuits/fb3-field-compare.lisp (same witness as is_less_than, result 1-r, complete, sample, 2-bit PFCS) plus field-compare-r1cs.lisp sound
+types/field	Field	Compare	is_less_than	1	1	1	1	1	fun-circuits/fb3-field-compare.lisp (canonical bits and bits-lt fold, complete, sample 1<2 at p=5, 2-bit PFCS iff funspec with both inputs < 4) plus fb-field-compare.lisp sound
+types/field	Field	Compare	is_less_than_or_equal	1	1	1	1	1	fun-circuits/fb3-field-compare.lisp (swapped witness, result 1-r, complete, sample, 2-bit PFCS) plus field-compare-r1cs.lisp sound
 types/field	Field	DivUnchecked	div_unchecked	1	1	1	1	1	fun-circuits/fb-field-div-unchecked.lisp (existing gadget and pfcs, sound when y≠0, complete for the snarkVM witness including 0/0, sample); 0/0 is not unique, see bugs
 types/field	Field	Equal	is_equal	1	1	1	1	1	fun-circuits/fb-field-eq.lisp (two snarkVM enforces, output 1-r, sound+complete+pfcs+sample)
 types/field	Field	From	from	1	1	1	1	1	fun-circuits/fb-field-from.lisp (empty gadget from field-zero-r1cs sound+complete; pfcs+sample)
@@ -18,10 +18,10 @@ types/field	Field	FromBits	from_bits_be	1	1	1	1	1	fun-circuits/fb2-field-bits.li
 types/field	Field	FromBits	from_bits_le	1	1	1	1	1	fun-circuits/fb2-field-bits.lisp (excess sum and bits-lte-const-check, sound+complete; pfcs for two bits; sample in fb-field-bits.lisp) | fb2-field-bits.lisp sound+complete+pfcs of the 2-bit instance
 types/field	Field	FromBoolean	from_boolean	1	1	1	1	1	fun-circuits/fb-field-from.lisp (empty gadget from field-zero-r1cs sound+complete; pfcs+sample)
 types/field	Field	One	is_one	1	1	1	1	1	fun-circuits/fb-field-zero.lisp (gadget from field-zero-r1cs sound+complete; pfcs+sample)
-types/field	Field	Pow	pow	1	0	1	1	0	fun-circuits/fb-field-pow.lisp (field-pow-gadget, sound to funspec, sample 3^2=4 at p=5); completeness and PFCS not proved
-types/field	Field	SquareRoot	square_root	1	0	1	1	0	fun-circuits/fb2-field-sqrt.lisp (unique lesser root, sound+sample at p=5); no PFCS or completeness witness
-types/field	Field	ToBits	write_bits_be	1	0	1	1	1	fun-circuits/fb2-field-bits.lisp (complete for the canonical bits and the fold witness) plus fb-field-bits.lisp (sound+sample); no PFCS | fb2-field-bits.lisp completeness of canonical bits; no PFCS
-types/field	Field	ToBits	write_bits_le	1	0	1	1	1	fun-circuits/fb2-field-bits.lisp (complete for the canonical bits and the fold witness) plus fb-field-bits.lisp (sound+sample); no PFCS | fb2-field-bits.lisp completeness of canonical bits; no PFCS
+types/field	Field	Pow	pow	1	1	1	1	1	fun-circuits/fb3-field-pow.lisp (square-and-multiply witness, complete; 2-bit PFCS iff funspec, exponent < 4, result not free) plus fb-field-pow.lisp sound and sample
+types/field	Field	SquareRoot	square_root	1	1	1	1	1	fun-circuits/fb3-field-sqrt.lisp (canonical lesser root, complete; 3-bit PFCS iff funspec and root <= 2) plus fb2-field-sqrt.lisp sound and sample
+types/field	Field	ToBits	write_bits_be	1	1	1	1	1	fun-circuits/fb3-field-write-bits.lisp (3-bit PFCS, same fold shape, iff the low-group big-endian bits of the funspec for values < 5) plus fb2-field-bits.lisp complete and fb-field-bits.lisp sound+sample
+types/field	Field	ToBits	write_bits_le	1	1	1	1	1	fun-circuits/fb3-field-write-bits.lisp (3-bit PFCS, same fold shape, iff the low 3 bits of the funspec for values < 5) plus fb2-field-bits.lisp complete and fb-field-bits.lisp sound+sample
 types/field	Field	ToLowerBits	to_lower_bits_be	1	1	1	1	1	fun-circuits/fb2-field-bits.lisp (pfcs k=2) plus fb-field-bits.lisp (sound under 2^k<p, complete, sample) | fb2-field-bits.lisp pfcs k=2
 types/field	Field	ToLowerBits	to_lower_bits_le	1	1	1	1	1	fun-circuits/fb-field-bits.lisp (boolean checks + pow2sum, sound under 2^k<p and k<=252, complete, pfcs k=2, sample); k=253 aliases, see bugs
 types/field	Field	ToUpperBits	to_upper_bits_be	1	1	1	1	1	fun-circuits/fb2-field-bits.lisp (sound when the shifted value is below p, complete, pfcs k=1) plus fb-field-bits.lisp sample | fb2-field-bits.lisp sound+complete+pfcs k=1; soundness uses the shifted value < p

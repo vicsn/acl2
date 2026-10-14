@@ -25,3 +25,7 @@
 (include-book "fb2-boolean-lte")
 (include-book "fb2-field-bits")
 (include-book "fb2-field-sqrt")
+(include-book "fb3-field-write-bits")
+(include-book "fb3-field-sqrt")
+(include-book "fb3-field-compare")
+(include-book "fb3-field-pow")
