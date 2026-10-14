@@ -48,3 +48,13 @@ all books.
   - The requirement that `find` indices be constants.
   - snarkVM's constraint and density limits.
   - Console-only optional data of dynamic records and futures.
+
+## Open TODOs
+
+These block a `1` in `aleovm_circuit_function_circspec_map.tsv`. Remove an item only when a certified book discharges it.
+
+- **Abstract hashes inside callers.** `Signature::new` (and therefore the signature arm of `Literal::new`) calls `hash_to_scalar_psd4` on the two x-coordinates. The circuit books use the abstract `values-hash-to-scalar-psd4` equality for that call. The Poseidon constraints are not expanded.
+- **Subgroup witness.** `Group::new`, `Address::new`, and the group elements inside `ComputeKey::new` emit `enforce_in_group`: a private cofactor witness `Q`, `enforce_on_curve` on `Q`, `double`, and `enforce_double` against the input. `fun-circuits/group-inject-r1cs.lisp` is those field equations. It is not proved that every `groupp` point has a `Q` with `4Q = P`, nor that the doubling formulas agree with `edwards-bls12-add`. R1CS-COMPLETE for any caller of `Group::new` stays open until that witness is constructed.
+- **Host halt versus unsatisfiable R1CS.** `StringType::new` halts when the byte length does not fit in `u32`, before emitting constraints. `string-type-new` returns `(spec-error)` in that case. The constraints that would have been emitted (a size `assert_eq` and the byte boolean checks) are satisfiable for that length, so the error is not an unsatisfiable R1CS. The same pattern applies to any other host halt. Do not mark R1CS-COMPLETE for a function whose only failure is a host halt.
+- **Identifier validation soundness.** The identifier arm of `Literal::new` is `fun-circuits/identifier-new-r1cs.lisp`: boolean checks, `validate_byte`, and the trailing-null constraints. `id-byte-gadget-to-equations` and `id-first-extra-gadget-to-equations` read those constraints as field equations, and `id-validate-byte-rest-when-checks` / `id-validate-byte-first-when-checks` turn the integer form of those checks into `validate-byte`. The field equations are not yet composed with that integer step, nor lifted across the byte list, so `identifier-literal-new` is not yet a consequence of the R1CS. R1CS-SOUND for `Literal::new` stays open until it is.
+- **No PFCS for `Literal::new`.** Boolean checks, the string size `assert_eq`, `enforce_in_group`, and the identifier validation constraints have R1CS gadgets only. PFCS-SPEC for this row stays open.

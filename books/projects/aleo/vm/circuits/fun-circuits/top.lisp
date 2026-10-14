@@ -17,3 +17,6 @@
 (include-book "boolean-adder-r1cs")
 (include-book "field-zero-r1cs")
 (include-book "field-compare-r1cs")
+(include-book "group-inject-r1cs")
+(include-book "identifier-new-r1cs")
+(include-book "literal-new-r1cs")

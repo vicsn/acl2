@@ -94,6 +94,43 @@ def is_neq_pair(constraints):
             and len(second["b"]) == 2)
 
 
+def count(pred, constraints):
+    return sum(1 for c in constraints if pred(c))
+
+
+def has_coeff(constraint, coeff):
+    return any(term[1] == coeff
+               for side in (constraint["a"], constraint["b"], constraint["c"])
+               for term in side)
+
+
+def is_group_inject(constraints):
+    """enforce_in_group: 13 constraints, curve constant d = 3021 once."""
+    return (len(constraints) == 13
+            and count(lambda c: has_coeff(c, "3021"), constraints) == 1
+            and count(is_bool_check, constraints) == 0)
+
+
+def is_literal_identifier(constraints):
+    """31 bytes: 248 boolean checks, 31 validate_byte bodies, 30 trailing nulls.
+    809 = 248 + 21 + 30*17 + 30.  The first byte adds the letter assert."""
+    return (len(constraints) == 809
+            and count(is_bool_check, constraints) == 248
+            and count(lambda c: len(c["a"]) == 5, constraints) == 62
+            and count(is_xor, constraints) == 31
+            and count(is_or, constraints) == 62
+            and count(lambda c: len(c["a"]) == 1 and len(c["b"]) == 2 and c["c"] == [],
+                      constraints) == 30
+            and count(is_assert_true, constraints) == 1)
+
+
+def is_literal_signature(constraints):
+    """Two Group::new (26) plus hash_to_scalar_psd4 of the x-coordinates.
+    The hash is excluded; this sample's private-mode count is 847, so 873."""
+    return (len(constraints) == 873
+            and count(lambda c: has_coeff(c, "3021"), constraints) == 2)
+
+
 CHECKS = {
     "sample_enforce": lambda cs: len(cs) == 1 and is_and(cs[0]),
     "sample_assert": lambda cs: len(cs) == 1 and is_assert_true(cs[0]),
@@ -115,6 +152,21 @@ CHECKS = {
     "sample_field_is_one": is_neq_pair,
     "sample_field_is_equal": is_neq_pair,
     "sample_field_is_not_equal": is_neq_pair,
+    "sample_literal_boolean": lambda cs: len(cs) == 1 and is_bool_check(cs[0]),
+    "sample_literal_field": lambda cs: cs == [],
+    "sample_literal_scalar": lambda cs: cs == [],
+    "sample_literal_u8": lambda cs: len(cs) == 8 and all(is_bool_check(c) for c in cs),
+    "sample_literal_string": lambda cs: (
+        len(cs) == 17
+        and cs[0]["a"] == [["ONE", "2"]]
+        and cs[0]["b"] == [["ONE", "1"]]
+        and len(cs[0]["c"]) == 1
+        and all(is_bool_check(c) for c in cs[1:])
+    ),
+    "sample_literal_group": is_group_inject,
+    "sample_literal_address": is_group_inject,
+    "sample_literal_identifier": is_literal_identifier,
+    "sample_literal_signature": is_literal_signature,
 }
 
 
@@ -177,6 +229,7 @@ DEFAULT_PACKAGES = [
     ("snarkvm-circuit-environment", "sample_"),
     ("snarkvm-circuit-types-boolean", "sample_"),
     ("snarkvm-circuit-types-field", "sample_"),
+    ("snarkvm-circuit-program", "sample_literal"),
 ]
 
 
