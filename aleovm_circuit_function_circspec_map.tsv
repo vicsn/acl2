@@ -1,0 +1,19 @@
+crate	type	trait	function	R1CS-SPEC	PFCS-SPEC	R1CS-SAMPLES	R1CS-SOUND	R1CS-COMPLETE	acl2
+environment	<trait default>	Environment	assert	1	1	1	1	1	fun-circuits/environment-r1cs.lisp (assert-gadget, sound+complete); fun-circuits/environment-pfcs.lisp; sample checked by aleovm_sample_circuits.py
+environment	<trait default>	Environment	assert_eq	1	1	1	1	1	fun-circuits/environment-r1cs.lisp (assert-eq-gadget, sound+complete); fun-circuits/environment-pfcs.lisp; sample checked by aleovm_sample_circuits.py
+environment	<trait default>	Environment	assert_neq	1	1	1	1	1	fun-circuits/environment-r1cs.lisp (assert-neq-gadget, sound+complete); fun-circuits/environment-pfcs.lisp; sample checked by aleovm_sample_circuits.py
+environment	CanaryCircuit	Environment	enforce	1	1	0	1	1	fun-circuits/environment-pfcs.lisp (env_enforce); same constraint as Circuit::enforce
+environment	Circuit	Environment	enforce	1	1	1	1	1	fun-circuits/environment-r1cs.lisp (enforce-gadget, sound+complete); fun-circuits/environment-pfcs.lisp; sample checked by aleovm_sample_circuits.py
+environment	TestnetCircuit	Environment	enforce	1	1	0	1	1	fun-circuits/environment-pfcs.lisp (env_enforce); same constraint as Circuit::enforce
+network	AleoCanaryV0	Environment	enforce	1	1	0	1	1	fun-circuits/environment-pfcs.lisp (env_enforce); AleoV0::enforce is E::enforce
+network	AleoTestnetV0	Environment	enforce	1	1	0	1	1	fun-circuits/environment-pfcs.lisp (env_enforce); AleoV0::enforce is E::enforce
+network	AleoV0	Environment	enforce	1	1	0	1	1	fun-circuits/environment-pfcs.lisp (env_enforce); AleoV0::enforce is E::enforce
+types/boolean	Boolean	Adder	adder	1	0	1	1	1	fun-circuits/boolean-adder-r1cs.lisp (boolean-adder-gadget, sound+complete); sample checked by aleovm_sample_circuits.py
+types/boolean	Boolean	Subtractor	subtractor	1	0	1	1	1	fun-circuits/boolean-adder-r1cs.lisp (boolean-subtractor-gadget, sound+complete); sample checked by aleovm_sample_circuits.py
+types/field	Field	From	from	1	0	0	1	1	fun-circuits/field-zero-r1cs.lisp (empty field-from-gadget, sound+complete)
+types/field	Field	FromBoolean	from_boolean	1	0	0	1	1	fun-circuits/field-zero-r1cs.lisp (empty field-from-boolean-gadget, sound+complete)
+types/field	Field	Zero	is_zero	1	0	1	1	1	fun-circuits/field-zero-r1cs.lisp (field-is-zero-gadget, sound+complete); sample checked by aleovm_sample_circuits.py
+types/field	Field	One	is_one	1	0	1	1	1	fun-circuits/field-zero-r1cs.lisp (field-is-one-gadget, sound+complete); sample checked by aleovm_sample_circuits.py
+types/field	Field	Compare	is_greater_than	1	0	0	1	0	fun-circuits/field-compare-r1cs.lisp reuses field-lt-gadget-soundness; completeness not claimed
+types/field	Field	Compare	is_greater_than_or_equal	1	0	0	1	0	fun-circuits/field-compare-r1cs.lisp reuses field-lt-gadget-soundness; completeness not claimed
+types/field	Field	Compare	is_less_than_or_equal	1	0	0	1	0	fun-circuits/field-compare-r1cs.lisp reuses field-lt-gadget-soundness; completeness not claimed

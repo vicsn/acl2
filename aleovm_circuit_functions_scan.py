@@ -39,7 +39,9 @@ NON_GENERATING_TRAITS = {"Eject", "Display", "Debug", "Parser", "FromStr", "Metr
 # Calls with these names never add constraints (constants are evaluated natively by the environment).
 NON_GENERATING_NAMES = {"eject_value", "eject_mode", "eject", "is_constant", "is_public", "is_private", "constant",
                         "fmt", "parse", "clone", "type_name", "size_in_bits", "size_in_data_bits", "count",
-                        "output_mode", "mode", "halt", "scope", "new_variable", "new_witness"}
+                        "output_mode", "mode", "halt", "scope", "new_variable", "new_witness",
+                        "json_escape", "sample_file_component", "lc_sample_json",
+                        "scope_sample_json", "maybe_write_scope_sample"}
 # Environment-crate infrastructure: builds linear combinations / R1CS bookkeeping, but only the
 # Environment primitives themselves add constraints.
 ENV_INFRA_TYPES = {"LinearCombination", "Variable", "R1CS", "Assignment", "AssignmentLC", "AssignmentVariable",
@@ -364,6 +366,8 @@ def crate_of(rel):
 
 
 FUN_SPEC_MAP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aleovm_circuit_function_funspec_map.tsv")
+CIRC_SPEC_MAP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aleovm_circuit_function_circspec_map.tsv")
+CIRC_FLAG_COLS = ["R1CS-SPEC", "PFCS-SPEC", "R1CS-SAMPLES", "R1CS-SOUND", "R1CS-COMPLETE"]
 
 
 def load_fun_specs():
@@ -371,6 +375,15 @@ def load_fun_specs():
     if not os.path.exists(FUN_SPEC_MAP):
         return {}
     with open(FUN_SPEC_MAP, newline="") as f:
+        return {(r["crate"], r["type"], r["trait"], r["function"]): r
+                for r in csv.DictReader(f, delimiter="\t")}
+
+
+def load_circ_specs():
+    """Circuit-task map. A 1 sets that flag; it does not clear a 1 already recorded in ACL2_MODELS."""
+    if not os.path.exists(CIRC_SPEC_MAP):
+        return {}
+    with open(CIRC_SPEC_MAP, newline="") as f:
         return {(r["crate"], r["type"], r["trait"], r["function"]): r
                 for r in csv.DictReader(f, delimiter="\t")}
 
@@ -474,6 +487,7 @@ def main(root, out):
         return "indirect (calls)"
 
     fun_specs = load_fun_specs()
+    circ_specs = load_circ_specs()
     with open(out, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["crate", "type", "trait", "function", "file", "line", "merged_impls",
@@ -493,6 +507,13 @@ def main(root, out):
             elif spec and spec["status"] == "excluded-hash":
                 flags[0] = "excluded"
                 fun_spec = "hash internals, abstract in fun-specs/base.lisp"
+            circ = circ_specs.get(key)
+            if circ and flags[0] != "excluded":
+                for i, col in enumerate(CIRC_FLAG_COLS, start=1):
+                    if circ.get(col) == "1":
+                        flags[i] = "1"
+                if circ.get("acl2"):
+                    model = (model + "; " + circ["acl2"]).strip("; ")
             w.writerow([key[0], key[1], key[2], key[3], "circuit/" + ds[0]["path"], ds[0]["line"], len(ds),
                         evidence(ds), " ".join(prims), " ".join(rs[:8]) + (" ..." if len(rs) > 8 else "")]
                        + flags + [model, fun_spec])

@@ -1,0 +1,366 @@
+diff --git a/circuit/environment/src/canary_circuit.rs b/circuit/environment/src/canary_circuit.rs
+index f49f60c32..eb06a2948 100644
+--- a/circuit/environment/src/canary_circuit.rs
++++ b/circuit/environment/src/canary_circuit.rs
+@@ -111,6 +111,8 @@ impl Environment for CanaryCircuit {
+                     // Run the logic.
+                     let output = logic();
+ 
++                    circuit.borrow().maybe_write_scope_sample();
++
+                     // Return the entire environment to the previous scope.
+                     if let Err(error) = circuit.borrow_mut().pop_scope(name) {
+                         Self::halt(error)
+diff --git a/circuit/environment/src/circuit.rs b/circuit/environment/src/circuit.rs
+index b4cd25fdf..5225b55ab 100644
+--- a/circuit/environment/src/circuit.rs
++++ b/circuit/environment/src/circuit.rs
+@@ -135,6 +135,8 @@ impl Environment for Circuit {
+                     // Run the logic.
+                     let output = logic();
+ 
++                    circuit.borrow().maybe_write_scope_sample();
++
+                     // Return the entire environment to the previous scope.
+                     if let Err(error) = circuit.borrow_mut().pop_scope(name) {
+                         Self::halt(error)
+@@ -464,4 +466,55 @@ mod tests {
+             assert_eq!(0, Circuit::num_constraints_in_scope());
+         })
+     }
++
++    fn field(value: u64) -> <Circuit as Environment>::BaseField {
++        let mut acc = <Circuit as Environment>::BaseField::zero();
++        let one = <Circuit as Environment>::BaseField::one();
++        for _ in 0..value {
++            acc += one;
++        }
++        acc
++    }
++
++    /// Deterministic samples of the environment constraint primitives.
++    /// `ALEOVM_SAMPLE_DIR` writes one JSON file per scope.
++    #[test]
++    fn sample_enforce() {
++        Circuit::reset();
++        Circuit::scope("sample_enforce", || {
++            let a = Circuit::new_variable(Mode::Private, field(2));
++            let b = Circuit::new_variable(Mode::Private, field(3));
++            let c = Circuit::new_variable(Mode::Private, field(6));
++            Circuit::enforce(|| (a, b, c)).unwrap();
++        });
++    }
++
++    #[test]
++    fn sample_assert() {
++        Circuit::reset();
++        Circuit::scope("sample_assert", || {
++            let b = Circuit::new_variable(Mode::Private, field(1));
++            Circuit::assert(b).unwrap();
++        });
++    }
++
++    #[test]
++    fn sample_assert_eq() {
++        Circuit::reset();
++        Circuit::scope("sample_assert_eq", || {
++            let a = Circuit::new_variable(Mode::Private, field(4));
++            let b = Circuit::new_variable(Mode::Private, field(4));
++            Circuit::assert_eq(a, b).unwrap();
++        });
++    }
++
++    #[test]
++    fn sample_assert_neq() {
++        Circuit::reset();
++        Circuit::scope("sample_assert_neq", || {
++            let a = Circuit::new_variable(Mode::Private, field(4));
++            let b = Circuit::new_variable(Mode::Private, field(5));
++            Circuit::assert_neq(a, b).unwrap();
++        });
++    }
+ }
+diff --git a/circuit/environment/src/helpers/r1cs.rs b/circuit/environment/src/helpers/r1cs.rs
+index 627f2949c..4189bebaf 100644
+--- a/circuit/environment/src/helpers/r1cs.rs
++++ b/circuit/environment/src/helpers/r1cs.rs
+@@ -59,6 +59,46 @@ pub type Scope = String;
+ #[cfg(feature = "save_r1cs_hashes")]
+ pub static R1CS_HASHES: Mutex<Vec<[u8; 32]>> = Mutex::new(Vec::new());
+ 
++fn json_escape(text: &str) -> String {
++    let mut out = String::new();
++    for c in text.chars() {
++        match c {
++            '"' => out.push_str("\\\""),
++            '\\' => out.push_str("\\\\"),
++            '\n' => out.push_str("\\n"),
++            c if c.is_control() => out.push_str(&format!("\\u{:04x}", c as u32)),
++            c => out.push(c),
++        }
++    }
++    out
++}
++
++fn sample_file_component(text: &str) -> String {
++    text.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' }).collect()
++}
++
++fn lc_sample_json<F: PrimeField>(lc: &LinearCombination<F>) -> String {
++    let mut parts = Vec::new();
++    let constant = lc.to_constant();
++    if !constant.is_zero() {
++        parts.push(format!("[\"ONE\",\"{constant}\"]"));
++    }
++    for (var, coeff) in lc.to_terms() {
++        if coeff.is_zero() {
++            continue;
++        }
++        let name = match var {
++            Variable::Constant(_) => continue,
++            Variable::Public(_) => format!("p{}", var.index()),
++            Variable::Private(_) => format!("w{}", var.index()),
++        };
++        parts.push(format!("[\"{name}\",\"{coeff}\"]"));
++    }
++    format!("[{}]", parts.join(","))
++}
++
++static SAMPLE_SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
++
+ #[derive(Debug, Hash)]
+ pub struct R1CS<F: PrimeField> {
+     constants: Vec<Variable<F>>,
+@@ -246,6 +286,114 @@ impl<F: PrimeField> R1CS<F> {
+         &self.constraints
+     }
+ 
++    /// JSON description of every constraint created in the current scope,
++    /// including constraints created in scopes nested under it.
++    ///
++    /// Variable names are `p<index>` for public variables and `w<index>` for
++    /// private variables.  The additive constant of a linear combination is
++    /// the term `ONE`.  Coefficients and assignment values are decimal strings.
++    pub fn scope_sample_json(&self) -> String {
++        let scope = self.counter.scope();
++        let prefix = format!("{scope}.");
++        let selected: Vec<&Constraint<F>> = self
++            .constraints
++            .iter()
++            .filter(|constraint| {
++                let constraint: &Constraint<F> = constraint;
++                let name = &constraint.0;
++                name == &scope || name.starts_with(&prefix)
++            })
++            .map(|constraint| {
++                let constraint: &Constraint<F> = constraint;
++                constraint
++            })
++            .collect();
++
++        let mut assignment: Vec<(String, String)> = Vec::new();
++        let mut seen = std::collections::BTreeSet::new();
++        let remember = |var: &Variable<F>,
++                        assignment: &mut Vec<(String, String)>,
++                        seen: &mut std::collections::BTreeSet<String>| {
++            let name = match var {
++                Variable::Constant(_) => return,
++                Variable::Public(_) => format!("p{}", var.index()),
++                Variable::Private(_) => format!("w{}", var.index()),
++            };
++            if seen.insert(name.clone()) {
++                assignment.push((name, format!("{}", var.value())));
++            }
++        };
++
++        let mut constraints_json = String::from("[");
++        for (i, constraint) in selected.iter().enumerate() {
++            if i > 0 {
++                constraints_json.push(',');
++            }
++            let (a, b, c) = constraint.to_terms();
++            for lc in [a, b, c] {
++                for (var, _) in lc.to_terms() {
++                    remember(var, &mut assignment, &mut seen);
++                }
++            }
++            let _ = std::fmt::Write::write_fmt(
++                &mut constraints_json,
++                format_args!("{{\"a\":{},\"b\":{},\"c\":{}}}", lc_sample_json(a), lc_sample_json(b), lc_sample_json(c)),
++            );
++        }
++        constraints_json.push(']');
++
++        let mut assignment_json = String::from("{");
++        for (i, (name, value)) in assignment.iter().enumerate() {
++            if i > 0 {
++                assignment_json.push(',');
++            }
++            let _ = std::fmt::Write::write_fmt(&mut assignment_json, format_args!("\"{name}\":\"{value}\""));
++        }
++        assignment_json.push('}');
++
++        let satisfied = selected.iter().all(|constraint| constraint.is_satisfied());
++        let thread = std::thread::current();
++        let test = thread.name().unwrap_or("");
++        format!(
++            "{{\"test\":\"{}\",\"scope\":\"{}\",\"num_constants\":{},\"num_public\":{},\"num_private\":{},\"num_constraints\":{},\"is_satisfied\":{},\"constraints\":{},\"assignment\":{}}}",
++            json_escape(test),
++            json_escape(&scope),
++            self.counter.num_constants_in_scope(),
++            self.counter.num_public_in_scope(),
++            self.counter.num_private_in_scope(),
++            selected.len(),
++            if satisfied { "true" } else { "false" },
++            constraints_json,
++            assignment_json,
++        )
++    }
++
++    /// When `ALEOVM_SAMPLE` is set, print the current scope as one JSON line.
++    /// When `ALEOVM_SAMPLE_DIR` is set, also write that JSON to a file in the directory.
++    pub fn maybe_write_scope_sample(&self) {
++        let dump_stdout = std::env::var_os("ALEOVM_SAMPLE").is_some();
++        let dir = std::env::var("ALEOVM_SAMPLE_DIR").ok();
++        if !dump_stdout && dir.is_none() {
++            return;
++        }
++        let json = self.scope_sample_json();
++        if dump_stdout {
++            println!("ALEOVM_SAMPLE {json}");
++        }
++        if let Some(dir) = dir {
++            let _ = std::fs::create_dir_all(&dir);
++            let seq = SAMPLE_SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
++            let thread = std::thread::current();
++            let test = thread.name().unwrap_or("unknown");
++            let file = format!(
++                "{dir}/{}-{}-{seq}.json",
++                sample_file_component(test),
++                sample_file_component(&self.counter.scope())
++            );
++            let _ = std::fs::write(file, json);
++        }
++    }
++
+     /// Register the current hash of the entire R1CS and add
+     /// it to the R1CS_HASHES collection.
+     #[cfg(feature = "save_r1cs_hashes")]
+diff --git a/circuit/environment/src/testnet_circuit.rs b/circuit/environment/src/testnet_circuit.rs
+index 5e309dfcf..1d61acac9 100644
+--- a/circuit/environment/src/testnet_circuit.rs
++++ b/circuit/environment/src/testnet_circuit.rs
+@@ -111,6 +111,8 @@ impl Environment for TestnetCircuit {
+                     // Run the logic.
+                     let output = logic();
+ 
++                    circuit.borrow().maybe_write_scope_sample();
++
+                     // Return the entire environment to the previous scope.
+                     if let Err(error) = circuit.borrow_mut().pop_scope(name) {
+                         Self::halt(error)
+diff --git a/circuit/types/boolean/src/helpers/adder.rs b/circuit/types/boolean/src/helpers/adder.rs
+index 6495d6caa..026607ab2 100644
+--- a/circuit/types/boolean/src/helpers/adder.rs
++++ b/circuit/types/boolean/src/helpers/adder.rs
+@@ -438,4 +438,15 @@ mod tests {
+         check_true_add_true_with_false(Mode::Public, Mode::Private, Mode::Private, 0, 0, 5, 5);
+         check_true_add_true_with_true(Mode::Public, Mode::Private, Mode::Private, 0, 0, 5, 5);
+     }
++
++    #[test]
++    fn sample_adder_private() {
++        Circuit::reset();
++        Circuit::scope("sample_boolean_adder", || {
++            let a = Boolean::<Circuit>::new(Mode::Private, true);
++            let b = Boolean::<Circuit>::new(Mode::Private, false);
++            let c = Boolean::<Circuit>::new(Mode::Private, true);
++            let _ = a.adder(&b, &c);
++        });
++    }
+ }
+diff --git a/circuit/types/boolean/src/helpers/subtractor.rs b/circuit/types/boolean/src/helpers/subtractor.rs
+index dc8af487c..a4ee41773 100644
+--- a/circuit/types/boolean/src/helpers/subtractor.rs
++++ b/circuit/types/boolean/src/helpers/subtractor.rs
+@@ -432,4 +432,15 @@ mod tests {
+         check_true_sub_true_with_false(Mode::Public, Mode::Private, Mode::Private, 0, 0, 5, 5);
+         check_true_sub_true_with_true(Mode::Public, Mode::Private, Mode::Private, 0, 0, 5, 5);
+     }
++
++    #[test]
++    fn sample_subtractor_private() {
++        Circuit::reset();
++        Circuit::scope("sample_boolean_subtractor", || {
++            let a = Boolean::<Circuit>::new(Mode::Private, true);
++            let b = Boolean::<Circuit>::new(Mode::Private, false);
++            let c = Boolean::<Circuit>::new(Mode::Private, true);
++            let _ = a.subtractor(&b, &c);
++        });
++    }
+ }
+diff --git a/circuit/types/field/src/equal.rs b/circuit/types/field/src/equal.rs
+index 14b9421a7..84f3355d2 100644
+--- a/circuit/types/field/src/equal.rs
++++ b/circuit/types/field/src/equal.rs
+@@ -395,4 +395,24 @@ mod tests {
+         assert!(Circuit::is_satisfied());
+         Circuit::reset();
+     }
++
++    #[test]
++    fn sample_is_equal_private() {
++        Circuit::reset();
++        Circuit::scope("sample_field_is_equal", || {
++            let a = Field::<Circuit>::new(Mode::Private, console::Field::one());
++            let b = Field::<Circuit>::new(Mode::Private, console::Field::one() + console::Field::one());
++            let _ = a.is_equal(&b);
++        });
++    }
++
++    #[test]
++    fn sample_is_not_equal_private() {
++        Circuit::reset();
++        Circuit::scope("sample_field_is_not_equal", || {
++            let a = Field::<Circuit>::new(Mode::Private, console::Field::one());
++            let b = Field::<Circuit>::new(Mode::Private, console::Field::one() + console::Field::one());
++            let _ = a.is_not_equal(&b);
++        });
++    }
+ }
+diff --git a/circuit/types/field/src/helpers/one.rs b/circuit/types/field/src/helpers/one.rs
+index 8b002ce36..e18397fe8 100644
+--- a/circuit/types/field/src/helpers/one.rs
++++ b/circuit/types/field/src/helpers/one.rs
+@@ -69,4 +69,13 @@ mod tests {
+         // Should not equal 0.
+         assert!(!candidate.is_zero().eject_value());
+     }
++
++    #[test]
++    fn sample_is_one_private() {
++        Circuit::reset();
++        Circuit::scope("sample_field_is_one", || {
++            let x = Field::<Circuit>::new(Mode::Private, console::Field::one());
++            let _ = x.is_one();
++        });
++    }
+ }
+diff --git a/circuit/types/field/src/helpers/zero.rs b/circuit/types/field/src/helpers/zero.rs
+index b668a5073..62ff84831 100644
+--- a/circuit/types/field/src/helpers/zero.rs
++++ b/circuit/types/field/src/helpers/zero.rs
+@@ -69,4 +69,13 @@ mod tests {
+         // Should not equal 1.
+         assert!(!candidate.is_one().eject_value());
+     }
++
++    #[test]
++    fn sample_is_zero_private() {
++        Circuit::reset();
++        Circuit::scope("sample_field_is_zero", || {
++            let x = Field::<Circuit>::new(Mode::Private, console::Field::one());
++            let _ = x.is_zero();
++        });
++    }
+ }

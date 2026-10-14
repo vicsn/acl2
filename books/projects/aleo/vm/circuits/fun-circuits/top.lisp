@@ -1,0 +1,19 @@
+; AleoVM Library
+;
+; Copyright (C) 2026 Provable Inc.
+;
+; License: See the LICENSE file distributed with this library.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Top book for circuit specifications of snarkVM functions.
+; Each included book is a formal R1CS (and, where present, PFCS)
+; for one family of snarkVM circuit functions.
+
+(in-package "ALEOVM")
+
+(include-book "environment-r1cs")
+(include-book "environment-pfcs")
+(include-book "boolean-adder-r1cs")
+(include-book "field-zero-r1cs")
+(include-book "field-compare-r1cs")
