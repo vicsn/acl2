@@ -10,7 +10,9 @@ Rows are generic over input types: impls that differ only in reference /
 ownership or generic arguments (e.g. Mul<Field> for Field, Mul<&Field> for
 &Field) are merged into one row per (crate, type, trait, function).
 
-The component-level task columns come from the hand-maintained ACL2_MODELS map.
+The component-level task columns come from the hand-maintained ACL2_MODELS map;
+FUN-SPEC is additionally set from aleovm_circuit_function_funspec_map.tsv, which maps
+rows to their specs in books/projects/aleo/vm/circuits/fun-specs.
 
 Usage: python3 aleovm_circuit_functions_scan.py <snarkVM>/circuit aleovm_circuit_function_formalisation_status.csv
 """
@@ -361,6 +363,18 @@ def crate_of(rel):
     return parts[0]
 
 
+FUN_SPEC_MAP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aleovm_circuit_function_funspec_map.tsv")
+
+
+def load_fun_specs():
+    """FUN-SPEC map: (crate, type, trait, function) -> status, ACL2 spec symbol and book under books/."""
+    if not os.path.exists(FUN_SPEC_MAP):
+        return {}
+    with open(FUN_SPEC_MAP, newline="") as f:
+        return {(r["crate"], r["type"], r["trait"], r["function"]): r
+                for r in csv.DictReader(f, delimiter="\t")}
+
+
 def main(root, out):
     defs = []
     for dp, dn, fn in os.walk(root):
@@ -459,22 +473,35 @@ def main(root, out):
             return "indirect (operators only)"
         return "indirect (calls)"
 
+    fun_specs = load_fun_specs()
     with open(out, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["crate", "type", "trait", "function", "file", "line", "merged_impls",
                     "constraint_source", "primitives", "via", "FUN-SPEC", "R1CS-SPEC", "PFCS-SPEC",
-                    "R1CS-SAMPLES", "R1CS-SOUND", "R1CS-COMPLETE", "acl2_counterpart"])
+                    "R1CS-SAMPLES", "R1CS-SOUND", "R1CS-COMPLETE", "acl2_counterpart", "fun_spec"])
         for key in sorted(rows, key=lambda k: (k[0], k[1], k[2], k[3])):
             ds = sorted(rows[key], key=lambda x: (x["path"], x["line"]))
             prims = sorted(set().union(*(set(x["direct"]) for x in ds)))
             rs = sorted(set().union(*(via[id(x)] for x in ds)))
             flags, model = ACL2_MODELS.get((key[1], key[3]), ("000000", ""))
+            flags = list(flags)
+            spec = fun_specs.get(key)
+            fun_spec = ""
+            if spec and spec["status"] == "spec":
+                flags[0] = "1"
+                fun_spec = f'{spec["acl2_spec"]} ({spec["book"]})'
+            elif spec and spec["status"] == "excluded-hash":
+                flags[0] = "excluded"
+                fun_spec = "hash internals, abstract in fun-specs/base.lisp"
             w.writerow([key[0], key[1], key[2], key[3], "circuit/" + ds[0]["path"], ds[0]["line"], len(ds),
                         evidence(ds), " ".join(prims), " ".join(rs[:8]) + (" ..." if len(rs) > 8 else "")]
-                       + list(flags) + [model])
+                       + flags + [model, fun_spec])
     missing = [k for k in ACL2_MODELS if not any((r[1], r[3]) == k for r in rows)]
     if missing:
         print("ACL2 models without a matching constraint-generating function:", missing)
+    unmatched = [k for k in fun_specs if k not in rows]
+    if unmatched:
+        print("FUN-SPEC map entries without a matching constraint-generating function:", unmatched)
     total = len({(d["crate"], d["type"], d["trait"], d["name"]) for d in defs})
     print(f"{len(defs)} fn defs, {total} merged functions, {len(rows)} constraint-generating")
 
