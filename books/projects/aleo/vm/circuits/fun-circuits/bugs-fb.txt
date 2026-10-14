@@ -27,44 +27,34 @@ Field::square_roots_flagged_nondeterministic.
 The square constraint does not order the two roots.  The assignment
 (greater root, its negation, flag 0) satisfies the gadget whenever x is
 a nonzero square, while field-square-roots-flagged-nondeterministic-funspec
-returns the lesser root first.  The Rust source documents this.  R1CS-SOUND
-and R1CS-COMPLETE are 0: the ordered witness was not proved.
+returns the lesser root first.  The Rust source documents this.
+R1CS-SOUND stays 0 for that ordered funspec.
+fb2-flagged-roots-unordered in fb2-field-sqrt.lisp is the separate
+unordered reading: the second output is the negation of the first, the
+first squares to x when the flag is 0, and both are 0 when the flag is 1.
+R1CS-COMPLETE, PFCS, and a sample were not proved.
 
-Not bugs; the proofs were not found in the enable-only style:
+Not bugs; these proofs were not found in the enable-only style:
 
 Field comparisons (is_less_than, is_greater_than, is_greater_than_or_equal,
 is_less_than_or_equal).  Soundness to the funspec is proved.
-Completeness needs the field-to-bits and bitwise-comparison witnesses.
-No PFCS.  No defrule sample (the witness list for (base-prime) is 253 bits,
-and a hand-built p=5 witness for the whole less-than gadget was not checked).
+Completeness needs the field-to-bits witnesses as well as the bitwise
+comparison witnesses.  No PFCS.  No defrule sample.
 
 Field::pow.  Soundness reuses field-pow-soundness.  A sample at prime 5
 is checked.  Completeness (every square, product, and range witness) and
 a PFCS of the 253-bit loop were not proved.
 
-Field::square_root.  field-square-root-soundness gives y*y = x and
-y <= (p-1)/2.  Equality with field-square-root-funspec needs uniqueness
-of that lesser root and was not proved.  No sample, no PFCS, no completeness.
+Field::square_root and Field::even_square_root.  Soundness is the
+uniqueness argument in fb2-field-sqrt.lisp (a root and its negation cannot
+both lie at most (p-1)/2, and exactly one of them is even).  A square-root
+sample at prime 5 is checked, and even_square_root already had a sample.
+The completeness witness (canonical bits plus the range-check fold) and a
+PFCS were not proved.
 
-Field::even_square_root.  The gadget and a prime-5 sample are written.
-Equality with field-even-square-root-funspec was not proved.  No completeness, no PFCS.
+Field::write_bits_le and write_bits_be.  Completeness for the canonical
+bits and the fold witness is in fb2-field-bits.lisp.  A PFCS of the
+253-bit gadget was not written.
 
-Field::from_bits_le and from_bits_be.  The gadget matches snarkVM: the sum
-is a linear combination, excess bits contribute one sum-to-zero constraint,
-and a full-width list contributes bits-lte-const-check.  Soundness is
-proved only for lists shorter than the field.  The full-width case needs
-the range-check witness and was not connected to the funspec.  No PFCS, no completeness.
-
-Field::write_bits_le and write_bits_be.  Soundness reuses
-field-to-bits-soundness.  Completeness of the range-check witnesses and a
-PFCS were not proved.  Samples at prime 5 are checked.
-
-Field::to_upper_bits_be and to_upper_bits_le.  The gadget and a modular
-characterization are written, with a prime-5 sample.  The funspec
-(nthcdr of the canonical bits, and the lower-bits-are-zero error) was
-not proved.  No PFCS, no completeness.
-
-Field::is_less_than_or_equal_constant and assert_less_than_or_equal_constant.
-Soundness reuses bits-lte-const / bits-lte-const-check.  PFCS and samples
-are for the constant bits (0 1) only; the general constraint shape depends
-on the constant.  Completeness for an arbitrary constant was not proved.
+Field::to_non_unique_bits_le.  PFCS equivalence with the canonical funspec
+is false for the same aliasing reason as R1CS-SOUND, so PFCS-SPEC stays 0.

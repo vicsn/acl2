@@ -1,0 +1,157 @@
+Integer circuit formalization gaps and bug check
+================================================
+
+Compared snarkVM circuit/types/integers (under /tmp/snarkvm-src) with
+books/projects/aleo/vm/circuits/fun-specs/integers.lisp.
+
+No soundness bug (constraints accept a wrong output) and no completeness
+bug (a funspec value cannot be witnessed) was established.  The gaps below
+are unfinished proofs or circuits that the existing r1cs/ books do not
+cover for every width.  Flags in circspec-int.tsv are 0 for R1CS-SOUND and
+R1CS-COMPLETE on those rows.  ACL2 was not run.
+
+1. mul_checked, mul, mul_assign, mul_and_check
+   snarkVM uses one field product of the bit-weighted sums when
+   2 * BITS < 252, i.e. widths 8, 16, 32 and 64, unsigned or as the
+   inner step of signed mul after abs_wrapped.  Width 128 uses
+   karatsuba_multiply and then requires the high half of z1 and z2 to be
+   zero.  int-mul-checked-unsigned-small-sound and
+   int-mul-and-check-pred-to-funspec assume (not (equal n 128)) and
+   (not signedp).  The r1cs book unsigned-small-mul-and-check-gadget-soundness
+   is inside a #|| WIP ||# comment, so it is not used.
+   Signed mul_checked (absolute values, positive-overflow and
+   negative-underflow asserts, then ternary on the sign) is not proved.
+
+2. mul_wrapped
+   The Babbage circuit is unsigned-small-mul-wrapped (signed-small-mul-wrapped
+   is the same constraints).  Its soundness needs the n + n/2 + 1 bit
+   window to fit in the base field, which fails for 128.  The theorem
+   int-mul-wrapped-small-sound is unsigned and excludes 128.  There is no
+   sample of the lowlow/highlow/lowhigh witnesses.
+
+3. mul_with_flags
+   For 2 * BITS < 252 the flag is field not-equal of the witnessed product
+   and the field product.  For 128 bits the flag is not-equal of
+   (z1-upper + z2) and zero.  Because those values are below the field
+   prime, that is zero iff both are zero, which matches
+   int-mul-with-flags-spec.  No defrule connects the circuit to the spec,
+   and the PFCS leaves the computed product as a free variable.  All five
+   flags are 0.
+
+4. karatsuba_multiply
+   The Rust decomposition z0 = x0*y0, z2 = x1*y1, z1 = (x1+x0)*(y1+y0)-z2-z0
+   matches int-karatsuba-multiply-spec.  Only the z0 constraint is defined
+   and sampled.  The upper-bit split and z2 are not proved.
+
+5. unsigned_division_via_witness, div, div_assign, div_checked, div_wrapped,
+   rem, rem_assign, rem_checked, rem_wrapped, modulo
+   r1cs/unsigned-small-div proves the Euclidean quotient and remainder when
+   2*n+1 < integer-length(p).  That holds for 8..64 and fails for 128
+   (int-width-div-fits).  snarkVM's 128-bit branch is
+   quotient.mul_checked(divisor).add_checked(remainder), i.e.
+   unsigned-medium-div, and is not connected.
+   Signed div/rem take absolute values, divide, and restore the sign.
+   That composition is not proved.
+   int-div-pred-to-euclid is only the field equation x = q*y + r.  The
+   remainder < divisor constraint is in the R1CS gadget and is not in that
+   PFCS.
+   modulo on a signed integer is a host halt.  int-modulo-signed-is-error
+   matches the funspec.  Unsigned modulo is rem_wrapped and inherits the
+   division gap.  The sample int-div-sample-holds is the Euclidean
+   equation on field elements, not unsigned-small-div-gadget, so
+   R1CS-SAMPLES is 0 on these rows.
+
+6. is_less_than and the other Compare methods
+   Unsigned less-than is unsigned-small-lt.  z = 0 iff x < y, and the
+   boolean snarkVM returns is the linear combination 1 - z.  The
+   hypothesis n+1 < integer-length(p) holds for 128 as well
+   (int-width-add-fits).  int-is-less-than-unsigned-gadget-sound states
+   this for every integer width.
+   Signed less-than in compare.rs is not the library gadget.  The book
+   defines int-is-less-than-signed-gadget: the same high bit, xor of the
+   sign bits, msb(x) AND NOT msb(y), and a ternary whose condition is the
+   linear combination 1 - diff.  int-signed-lt-same-sign-case is the
+   required numeric criterion but does not itself prove the sign-bit
+   facts, so R1CS-SOUND stays 0 for is_less_than rather than claiming
+   every signed width.
+   is_greater_than is less-than with the operands swapped.
+   is_greater_than_or_equal is boolean not of less-than, which for the
+   unsigned gadget is the variable z itself (not a constraint).
+   is_less_than_or_equal is greater-than-or-equal with the operands
+   swapped.  Those three are proved only along the unsigned gadget.
+   Completeness (the low bits of 2^n + x - y) is not a defrule.
+
+7. from_field_lossy
+   This is Field::to_bits_le, then the first n bits.  Soundness is
+   field-to-bits-soundness plus lebits=>nat of the low bits = f mod 2^n.
+   It is not restated as int-from-field-lossy-spec, and there is no
+   completeness theorem: bits-lt-prime's witness is not constructed.
+   No sample of the 253-bit gadget.
+
+8. from_bits_le, from_bits_be
+   Exactly n bits (the path Integer::new uses) adds no constraint; the
+   value is int-wrap of the little-endian number.  That case is
+   int-from-bits-le-gadget-empty-sound.  Extra bits are one
+   assert_bits_are_zero constraint (sum of the excess bits is 0).  The
+   two-zero sample satisfies it.  There is no theorem that a satisfying
+   sum forces every excess bit to be 0 for an arbitrary excess list, so
+   R1CS-SOUND is 0.
+   from_bits_be reverses, then calls from_bits_le.  Reversal is not a
+   constraint.  int-from-bits-be-spec-is-le-of-rev is the funspec agreement.
+
+9. Signed checked addition and subtraction, completeness
+   Soundness of add_checked and sub_checked uses the library gadgets and
+   holds for every width, including 128, because n+1 < 253.
+   Completeness is the other direction of the unsigned IFF theorems only.
+   Signed completeness needs the overflow bit, which the circuit forces
+   to 0, to be shown to be 0 whenever the funspec is not spec-error.
+   That case split is not a defrule, so R1CS-COMPLETE is 0 on add, sub
+   and their assign/checked rows.  add_wrapped is sound for both
+   signednesses and not complete.  sub_wrapped is sound only for unsigned.
+
+10. neg, abs_checked, abs_wrapped
+    Unsigned neg halts.  int-neg-unsigned-spec-error / int-neg-unsigned-complete
+    say the funspec is spec-error, so there is no valid output to witness.
+    Signed neg is signed-small-neg (wrapped subtraction from zero, then
+    both sign bits cannot be 1).  Soundness is int-neg-signed-gadget-sound
+    for every width.  The carry witness is not shown to exist, so
+    completeness is 0.  The sample is only the sign-bit AND constrained
+    to 0, not the subtraction.
+    Unsigned abs is the identity (empty gadget), proved sound and complete.
+    Signed abs_checked / abs_wrapped reuse the library gadgets and are
+    sound, not complete.
+
+11. pow, pow_checked, pow_wrapped, shifts
+    Variable pow_checked is square-and-multiply with mul_with_flags.
+    pow_wrapped uses mul_wrapped.  Both inherit the multiplication gap,
+    and the induction over the exponent bits is not proved.
+    int-pow-checked-zero-exponent and int-pow-wrapped-zero-exponent show
+    x^0 = 1.  The sample is one checked multiplication.
+    shl / shl_assign / shl_checked check that exponent bits at and above
+    log2(n) are zero (int-from-bits-le-gadget) and, for small widths,
+    multiply by a power of two in the field.  Width 128 uses pow_checked.
+    Signed shl_checked also checks sign extension.  Neither is proved.
+    int-shl-checked-errors-when-exponent-wide matches the funspec for
+    e >= n, but that is not a constraint proof.
+    shr_checked is the same exponent bound plus shr_wrapped.
+    int-shr-checked-is-wrapped-when-in-range is the funspec agreement for
+    e < n.  shl_wrapped and shr_wrapped have a field-multiply sample and
+    no named gadget, so R1CS-SPEC is 0.
+
+12. to_fields, to_scalar, is_zero, is_one
+    These are proved sound and complete (empty gadget, or is_equal against
+    a constant bit list).  They have no PFCS of their own, so PFCS-SPEC
+    is 0.  to_field's empty PFCS is int-to-field-pred-to-funspec.
+
+Not constraint bugs
+-------------------
+shr_checked's comment says the upper exponent bits are checked nonzero.
+The code calls Boolean::assert_bits_are_zero.  The comment is wrong; the
+circuit matches int-shr-checked-spec.
+
+Mul's Metrics::count delegates to DivChecked::count.  That mis-reports a
+constraint count.  It does not change the constraints.
+
+Checked operations on two constants are host evaluations (halt on
+overflow) and add no constraint.  The gadgets are the variable case, which
+is the case that emits R1CS.

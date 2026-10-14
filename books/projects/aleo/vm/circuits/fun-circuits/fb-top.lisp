@@ -22,3 +22,6 @@
 (include-book "fb-field-pow")
 (include-book "fb-field-bits")
 (include-book "fb-field-sqrt")
+(include-book "fb2-boolean-lte")
+(include-book "fb2-field-bits")
+(include-book "fb2-field-sqrt")

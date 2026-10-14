@@ -18,3 +18,7 @@
 (include-book "field-zero-r1cs")
 (include-book "field-compare-r1cs")
 (include-book "fb-top")
+(include-book "prog-top")
+(include-book "val-top")
+(include-book "int-top")
+(include-book "crv-top")

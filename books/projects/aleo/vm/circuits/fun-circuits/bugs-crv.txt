@@ -1,0 +1,146 @@
+Curve, scalar, address, and account circuit formalization gaps.
+A flag in circspec-crv.tsv is 1 only when a defruled or defthm (no skip-proofs)
+discharges that obligation.  Theorems that stop at snarkVM's local equations,
+or that assume a component result instead of deriving it, are not counted.
+
+1. Subgroup membership is not a consequence of the arithmetic constraints.
+   group-new-funspec, group-from-xy-coordinates-funspec,
+   group-from-x-coordinate-funspec, group-enforce-in-group-funspec,
+   address-new-funspec, address-from-field-funspec, address-from-funspec,
+   address-from-bits-le-funspec, address-from-bits-be-funspec,
+   compute-key-new-funspec, and signature-new-funspec all require the point
+   to be in the prime-order subgroup (groupp).  snarkVM's enforce_in_group
+   posts a witness Q, enforces the curve equation on Q, and checks P = 4Q
+   by two doublings.  That is the cofactor argument (the image of [4] is the
+   subgroup of order r on a curve of order 4r).  The R1CS does not contain
+   a proof of that group-order fact, and the doublings are the dedicated
+   formulas below, which are not yet identified with ecurve::edwards-bls12-add.
+   Off-curve inputs make curve-raw-double / curve-raw-add return spec-error
+   when a denominator is zero; the funspecs that quantify only over curve
+   points do not record that halt.  R1CS-SOUND and R1CS-COMPLETE are 0 for
+   these functions.  from_x_coordinate_flagged additionally calls
+   square_roots_flagged_nondeterministic and is_in_group on both candidate
+   points; those circuits are not expanded here.
+
+2. Group addition, subtraction, doubling, enforce_double, and mul_by_cofactor.
+   The variable/variable gadgets are the constraints snarkVM emits:
+   add is the four products (u, v0, v1, v0*v1) and the two division enforces,
+   with a = -1 inlined so U = (x1+y1)*(x2+y2) and a*v0 = -v0;
+   sub is that system with x2 negated (negation is a coefficient);
+   double / enforce_double are xy, x^2, y^2 and the two doubling enforces;
+   mul_by_cofactor is two doublings.
+   crv-group-add-gadget-to-products and
+   crv-group-enforce-on-curve-gadget-to-equation rewrite those constraints
+   to the field products.  They do not prove equality with
+   ecurve::edwards-bls12-add (group-add-funspec, group-sub-funspec,
+   group-double-funspec, group-mul-by-cofactor-funspec) or with
+   point-on-twisted-edwards-p (group-enforce-on-curve-funspec).
+   The missing steps are the y-numerator rearrangement
+   U + a*v0 - v1 = y1*y2 - a*x1*x2, the dedicated-doubling identity
+   with edwards-bls12-add of a point with itself, and the rearrangement of
+   y^2*(d*x^2-1) = a*x^2-1 into a*x^2 + y^2 = 1 + d*x^2*y^2.
+   On this complete curve the denominators are nonzero for curve points;
+   that fact is part of the guard of twisted-edwards-add and is not
+   re-exported as a hypothesis-free rewrite used here.
+   R1CS-SOUND and R1CS-COMPLETE are 0.  add_assign and sub_assign are the
+   same gadgets as add and sub.
+
+3. Group scalar multiplication (Group::mul, Group::mul_assign, and every
+   caller of A::g_scalar_multiply).
+   mul_assign walks the 251 big-endian scalar bits.  For each bit it doubles
+   the accumulator and always adds the base (even when the bit is 0), then
+   selects with a field ternary on each coordinate.  The first iteration
+   constant-folds double of the zero point and addition of the zero point.
+   crv-group-mul-step-gadget is one variable step.  There is no theorem that
+   the 251-fold iteration equals ecurve::edwards-bls12-mul, nor that the
+   scalar to_bits_be witness is the canonical 251 bits.  Consequently
+   compute-key-from-private-key, private-key-to-compute-key,
+   compute-key-to-address, view-key-to-address, and signature-verify are
+   not linked to their funspecs.  Hash steps in those functions are abstract:
+   a theorem may assume the hash output equals the funspec hash, but the
+   group operations around the hash are not discharged.
+   ComputeKey::from has no non-hash constraint; its theorems assume
+   sk_prf = aleo-hash-to-scalar-psd4-funspec and are counted.
+   signature-verify's final check is boolean and of challenge is_equal and
+   address is_equal.  Those equality gadgets are formalized, but the
+   candidate challenge (HashToScalar_psd8) and the candidate address
+   (to_address) are not.
+
+4. Address comparisons.
+   is_less_than is field-lt-gadget on the x-coordinates.
+   is_greater_than swaps the addresses.
+   is_greater_than_or_equal and is_less_than_or_equal are the same less-than
+   constraints with result linear combination 1 - r.
+   Soundness is crv-address-is-*-gadget-sound, from field-lt-gadget-soundness.
+   field-lt-gadget has no completeness theorem, so R1CS-COMPLETE is 0.
+   The 253-bit unrolling is not a pfcs::parse-def, so PFCS-SPEC is 0.
+   No concrete satisfying assignment is given, so R1CS-SAMPLES is 0.
+
+5. Group and address write_bits.
+   The constraints are field-to-bits-gadget on the x-coordinate.
+   Soundness (crv-group-write-bits-le-gadget-sound and the address and
+   big-endian variants) uses field-to-bits-soundness and
+   acl2::nat=>lebits-of-lebits=>nat.  Big-endian is the reversal; it adds
+   no constraint.  field-to-bits-gadget has no completeness theorem, and the
+   bit-length check is not a lifted PFCS definition.  R1CS-COMPLETE,
+   PFCS-SPEC, and R1CS-SAMPLES are 0.
+   ComputeKey::write_bits is the concatenation of the two group writings
+   (pk_sig then pr_sig); that concatenation is not a separate theorem.
+   Scalar::write_bits_le is to_lower_bits_le of 251 bits (boolean checks and
+   one power-of-two assert_eq, which forces the value below 2^251) plus
+   Boolean::assert_less_than_or_equal_constant against the bits of r-1.
+   That comparator is a fold of boolean and/or against the constant bits,
+   then an assert.  It is not formalized.  Signature::write_bits is the
+   scalar writings of challenge and response followed by the compute-key
+   writing.
+
+6. Scalar comparison.
+   crv-scalar-is-less-than-gadget is the field decomposition of the linear
+   combination 2*(a-b): boolean checks, the power-of-two constraint whose
+   left side is that combination, and the range check.  The result bit is
+   the first little-endian bit.  is_greater_than swaps a and b.
+   is_greater_than_or_equal uses the less-than gadget and reads 1 - bit;
+   is_less_than_or_equal swaps and then negates.  For scalars, 2*(a-b) mod p
+   is odd iff a < b, because 2r < p: the representative is 2*(a-b) when
+   a >= b and p + 2*(a-b) when a < b.  That parity lemma is not proved, so
+   R1CS-SOUND and R1CS-COMPLETE are 0.  The decomposition is not a lifted
+   PFCS definition, and there is no sample assignment.
+
+7. Scalar addition and casts.
+   AddAssign converts both scalars to the base field (no constraint), adds
+   them (linear combination; 2r < p so the sum does not wrap the base field),
+   takes to_lower_bits_le of 252 bits, rebuilds that value (linear
+   combination), compares it with the scalar modulus, selects with a ternary,
+   then takes to_lower_bits_le of 251 bits and range-checks against r-1.
+   Scalar::add is that AddAssign.  from_bits_le is the same range check
+   (and assert_bits_are_zero on bits past 251).  from_bits_be reverses then
+   calls from_bits_le.  from_field is from_bits_le of the field's 253 bits.
+   from_field_lossy is from_bits_le of the low 250 bits.  None of these
+   range checks or lower-bit decompositions are proved against the funspecs.
+
+8. ComputeKey::is_equal / is_not_equal and Signature::is_equal / is_not_equal.
+   The gadgets are defined (two group equalities, one scalar equality, and
+   the boolean ands; signature adds two scalar equalities around the compute
+   key).  crv-compute-key-is-equal-gadget-sound assumes the three component
+   result bits instead of deriving them from the appended constraints, so
+   R1CS-SOUND is 0.  The disequality theorems only rewrite 1-out once out is
+   assumed equal to the equality funspec.  The compute-key PFCS definition
+   is lifted but not proved equivalent to the funspec.  A sample assignment
+   of two equal zero-ish keys is given for the compute-key gadgets.
+
+9. Signature::ternary.
+   The gadget is seven field ternaries (challenge, response, and the five
+   compute-key coordinates).  The PFCS predicate is proved sound and
+   complete against signature-ternary-funspec.  There is no separate R1CS
+   defruled that opens the appended gadget, so R1CS-SOUND and R1CS-COMPLETE
+   are 0.  The sample checks the constraints for condition 0, which selects
+   the second signature.
+
+10. Empty constraint systems.
+    Address-to-field (Field::from an address), ComputeKey::to_fields,
+    and Signature::to_fields add no constraint.  Their theorems identify
+    the coordinate projections with the funspecs.
+    ComputeKey::from also adds no non-hash constraint, but sk_prf is the
+    Poseidon hash.  crv-compute-key-from-under-hash-assumption assumes that
+    hash output, so R1CS-SOUND and PFCS-SPEC are 0.  Completeness of the
+    empty constraint list is kept.

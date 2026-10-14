@@ -1,0 +1,149 @@
+Soundness and completeness bugs
+=================================
+
+Merkle child order (funspec bug, corrected).
+
+network AleoV0 / AleoCanaryV0 / AleoTestnetV0  verify_merkle_path_bhp
+network AleoV0 / AleoCanaryV0 / AleoTestnetV0  verify_merkle_path_psd
+
+Rust (circuit/collections/src/merkle_tree/verify.rs) sets the level indicator
+to the boolean not of the leaf-index bit and then
+
+  left  = indicator ? current : sibling
+  right = indicator ? sibling : current
+
+so an index bit of 0 puts the running hash on the left.
+Boolean not is the linear combination 1 - bit.
+crypto-merkle-path-loop already matched this order.
+
+curve-merkle-order did not.  Callers pass (1 - index-bit), and the function
+returned (current, sibling) when the indicator was 0, so an index bit of 0
+put the sibling on the left.  Its docstring said the opposite.  A path whose
+children differ would satisfy the circuit and fail the network funspec, and
+the other way around.
+
+curve-merkle-order now returns (current, sibling) when the indicator is 1.
+curve-merkle-order-matches-index-bit records the corrected order.
+The one-level gadget still matches Rust.  R1CS-SOUND and R1CS-COMPLETE stay 0
+until a proof connects that gadget, across the whole path, to
+aleo-verify-merkle-path-*-funspec.  The hash at each level stays abstract.
+
+Flags that were not accepted
+----------------------------
+
+PathHash::hash_children (BHP, Keccak) and PathHash::hash_empty are hash
+functions.  Their gadgets are empty and their soundness theorems only unfold
+the funspec.  Circuit flags stay 0.
+
+Vec, slice, and tuple write_bits / to_bits / Inject::new sequence element
+operations.  The element constraints are not in the gadget, and the
+soundness theorems are one-step expansions of the funspec.  Circuit flags
+stay 0.
+
+MerklePath::verify and KaryMerklePath::verify have a proved one-level
+gadget (ordering plus Field::is_equal).  That is not
+crypto-merkle-path-verify, so R1CS-SOUND and R1CS-COMPLETE are 0.
+
+recursively_replace_self and rename_selfs are proc-macros, not circuits.
+The PFCS predicate is constantly true and is not tied to the rewrite, so
+PFCS-SPEC is 0.  The empty gadget and the rewrite theorem are kept.
+
+No other soundness or completeness bugs were found in this scope.
+StringType::new / inject_size_in_bytes match assert_eq of the constant size
+after the host u32 (and alignment) checks.  validate_byte and
+validate_trailing_nulls match the gates and the enforce chain in
+values-string.lisp.  Boolean not is the linear combination 1 - x throughout.
+g_scalar_multiply is the standard double-and-add of g_powers(); group
+add/ternary are left abstract and the fold is not proved equal to
+edwards-bls12-mul here, which is an unfinished proof, not a mismatch.
+MerkleTree::new's local gadget is empty because every constraint is inside
+an abstract hash; soundness is not claimed for that reason.
+
+skipped-hash
+============
+
+These network functions only call BHP, Pedersen, or Poseidon
+(commit, commit_uncompressed, hash_many, hash_uncompressed, hash_to_group,
+hash_to_scalar).  Hash internals are not formalized.  81 rows, flags 0.
+
+network	AleoCanaryV0	Aleo	commit_bhp1024
+network	AleoCanaryV0	Aleo	commit_bhp256
+network	AleoCanaryV0	Aleo	commit_bhp512
+network	AleoCanaryV0	Aleo	commit_bhp768
+network	AleoCanaryV0	Aleo	commit_ped128
+network	AleoCanaryV0	Aleo	commit_ped64
+network	AleoCanaryV0	Aleo	commit_to_group_bhp1024
+network	AleoCanaryV0	Aleo	commit_to_group_bhp256
+network	AleoCanaryV0	Aleo	commit_to_group_bhp512
+network	AleoCanaryV0	Aleo	commit_to_group_bhp768
+network	AleoCanaryV0	Aleo	commit_to_group_ped128
+network	AleoCanaryV0	Aleo	commit_to_group_ped64
+network	AleoCanaryV0	Aleo	hash_many_psd2
+network	AleoCanaryV0	Aleo	hash_many_psd4
+network	AleoCanaryV0	Aleo	hash_many_psd8
+network	AleoCanaryV0	Aleo	hash_to_group_bhp1024
+network	AleoCanaryV0	Aleo	hash_to_group_bhp256
+network	AleoCanaryV0	Aleo	hash_to_group_bhp512
+network	AleoCanaryV0	Aleo	hash_to_group_bhp768
+network	AleoCanaryV0	Aleo	hash_to_group_ped128
+network	AleoCanaryV0	Aleo	hash_to_group_ped64
+network	AleoCanaryV0	Aleo	hash_to_group_psd2
+network	AleoCanaryV0	Aleo	hash_to_group_psd4
+network	AleoCanaryV0	Aleo	hash_to_group_psd8
+network	AleoCanaryV0	Aleo	hash_to_scalar_psd2
+network	AleoCanaryV0	Aleo	hash_to_scalar_psd4
+network	AleoCanaryV0	Aleo	hash_to_scalar_psd8
+network	AleoTestnetV0	Aleo	commit_bhp1024
+network	AleoTestnetV0	Aleo	commit_bhp256
+network	AleoTestnetV0	Aleo	commit_bhp512
+network	AleoTestnetV0	Aleo	commit_bhp768
+network	AleoTestnetV0	Aleo	commit_ped128
+network	AleoTestnetV0	Aleo	commit_ped64
+network	AleoTestnetV0	Aleo	commit_to_group_bhp1024
+network	AleoTestnetV0	Aleo	commit_to_group_bhp256
+network	AleoTestnetV0	Aleo	commit_to_group_bhp512
+network	AleoTestnetV0	Aleo	commit_to_group_bhp768
+network	AleoTestnetV0	Aleo	commit_to_group_ped128
+network	AleoTestnetV0	Aleo	commit_to_group_ped64
+network	AleoTestnetV0	Aleo	hash_many_psd2
+network	AleoTestnetV0	Aleo	hash_many_psd4
+network	AleoTestnetV0	Aleo	hash_many_psd8
+network	AleoTestnetV0	Aleo	hash_to_group_bhp1024
+network	AleoTestnetV0	Aleo	hash_to_group_bhp256
+network	AleoTestnetV0	Aleo	hash_to_group_bhp512
+network	AleoTestnetV0	Aleo	hash_to_group_bhp768
+network	AleoTestnetV0	Aleo	hash_to_group_ped128
+network	AleoTestnetV0	Aleo	hash_to_group_ped64
+network	AleoTestnetV0	Aleo	hash_to_group_psd2
+network	AleoTestnetV0	Aleo	hash_to_group_psd4
+network	AleoTestnetV0	Aleo	hash_to_group_psd8
+network	AleoTestnetV0	Aleo	hash_to_scalar_psd2
+network	AleoTestnetV0	Aleo	hash_to_scalar_psd4
+network	AleoTestnetV0	Aleo	hash_to_scalar_psd8
+network	AleoV0	Aleo	commit_bhp1024
+network	AleoV0	Aleo	commit_bhp256
+network	AleoV0	Aleo	commit_bhp512
+network	AleoV0	Aleo	commit_bhp768
+network	AleoV0	Aleo	commit_ped128
+network	AleoV0	Aleo	commit_ped64
+network	AleoV0	Aleo	commit_to_group_bhp1024
+network	AleoV0	Aleo	commit_to_group_bhp256
+network	AleoV0	Aleo	commit_to_group_bhp512
+network	AleoV0	Aleo	commit_to_group_bhp768
+network	AleoV0	Aleo	commit_to_group_ped128
+network	AleoV0	Aleo	commit_to_group_ped64
+network	AleoV0	Aleo	hash_many_psd2
+network	AleoV0	Aleo	hash_many_psd4
+network	AleoV0	Aleo	hash_many_psd8
+network	AleoV0	Aleo	hash_to_group_bhp1024
+network	AleoV0	Aleo	hash_to_group_bhp256
+network	AleoV0	Aleo	hash_to_group_bhp512
+network	AleoV0	Aleo	hash_to_group_bhp768
+network	AleoV0	Aleo	hash_to_group_ped128
+network	AleoV0	Aleo	hash_to_group_ped64
+network	AleoV0	Aleo	hash_to_group_psd2
+network	AleoV0	Aleo	hash_to_group_psd4
+network	AleoV0	Aleo	hash_to_group_psd8
+network	AleoV0	Aleo	hash_to_scalar_psd2
+network	AleoV0	Aleo	hash_to_scalar_psd4
+network	AleoV0	Aleo	hash_to_scalar_psd8
