@@ -982,5 +982,5 @@
 ; id-validate-byte-rest-when-checks / id-validate-byte-first-when-checks
 ; are that integer step.  The field-to-integer product lemmas above
 ; (id-diff-prod-when-bits, id-bit-times-small-is-int, id-add-of-bits)
-; are the arithmetic step.  Composing them with the list of bytes and
-; the trailing-null constraints is still open: see the fun-specs README.
+; are the arithmetic step.  The list of bytes and the trailing-null
+; constraints are composed in identifier-list-sound.lisp.

@@ -569,10 +569,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; IdentifierLiteral::new.  The constraint list is identifier-new-gadget.
-; id-byte-gadget-to-equations and id-first-extra-gadget-to-equations are
-; the R1CS reading of validate_byte.  Those field equations are not yet
-; shown to imply identifier-literal-new, so this arm has no R1CS-SOUND
-; theorem here.
+; R1CS-SOUND is identifier-literal-new-sound in identifier-list-sound.lisp.
+; The PFCS for these constraints is literal-new-pfcs.lisp.
 
 (define literal-identifier-new-gadget ((bitrows true-listp)
                                        (witrows true-listp)

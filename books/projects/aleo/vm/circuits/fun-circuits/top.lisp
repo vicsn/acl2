@@ -20,3 +20,5 @@
 (include-book "group-inject-r1cs")
 (include-book "identifier-new-r1cs")
 (include-book "literal-new-r1cs")
+(include-book "identifier-list-sound")
+(include-book "literal-new-pfcs")
