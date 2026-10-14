@@ -823,6 +823,671 @@
   :enable (dynamic-future-is-not-equal-gadget
            dynamic-future-is-equal-sample-holds))
 
+(defruled boolean-not-of-field-neq
+  (implies (and (fieldp x)
+                (fieldp y)
+                (bitp r)
+                (equal r (field-is-not-equal-funspec x y)))
+           (equal (boolean-not-funspec r)
+                  (field-is-equal-funspec x y)))
+  :hints (("Goal"
+           :cases ((equal r 0))
+           :in-theory (enable field-is-equal-funspec
+                              field-is-not-equal-funspec
+                              boolean-not-funspec
+                              bitp))))
+
+(defruled boolean-and-left-assoc-4
+  :short "The circuit ANDs left to right. The funspec nests to the right."
+  (implies (and (bitp a) (bitp b) (bitp c) (bitp d))
+           (equal (boolean-and-funspec
+                   (boolean-and-funspec
+                    (boolean-and-funspec a b)
+                    c)
+                   d)
+                  (boolean-and-funspec
+                   a
+                   (boolean-and-funspec
+                    b
+                    (boolean-and-funspec c d)))))
+  :hints (("Goal"
+           :cases ((equal a 0) (equal b 0) (equal c 0) (equal d 0))
+           :in-theory (enable boolean-and-funspec bitp))))
+
+(defruled dynamic-future-eq-equations-to-funspec
+  :short "Four field-inequality witnesses and the left-associated AND chain
+          are @('DynamicFuture::is_equal')."
+  (implies (and (equal p (base-prime))
+                (fieldp xn) (fieldp yn) (pfield::fep mn p) (bitp rn)
+                (fieldp xw) (fieldp yw) (pfield::fep mw p) (bitp rw)
+                (fieldp xf) (fieldp yf) (pfield::fep mf p) (bitp rf)
+                (fieldp xc) (fieldp yc) (pfield::fep mc p) (bitp rc)
+                (equal (pfield::mul (pfield::sub xn yn p) mn p) rn)
+                (equal (pfield::mul (pfield::sub xn yn p)
+                                    (pfield::sub 1 rn p)
+                                    p)
+                       0)
+                (equal (pfield::mul (pfield::sub xw yw p) mw p) rw)
+                (equal (pfield::mul (pfield::sub xw yw p)
+                                    (pfield::sub 1 rw p)
+                                    p)
+                       0)
+                (equal (pfield::mul (pfield::sub xf yf p) mf p) rf)
+                (equal (pfield::mul (pfield::sub xf yf p)
+                                    (pfield::sub 1 rf p)
+                                    p)
+                       0)
+                (equal (pfield::mul (pfield::sub xc yc p) mc p) rc)
+                (equal (pfield::mul (pfield::sub xc yc p)
+                                    (pfield::sub 1 rc p)
+                                    p)
+                       0)
+                (equal (pfield::mul (pfield::sub 1 rn p)
+                                    (pfield::sub 1 rw p)
+                                    p)
+                       z1)
+                (equal (pfield::mul z1 (pfield::sub 1 rf p) p) z2)
+                (equal (pfield::mul z2 (pfield::sub 1 rc p) p) z)
+                (dynamic-futurep a)
+                (dynamic-futurep b)
+                (equal xn (dynamic-future->program-name a))
+                (equal yn (dynamic-future->program-name b))
+                (equal xw (dynamic-future->program-network a))
+                (equal yw (dynamic-future->program-network b))
+                (equal xf (dynamic-future->function-name a))
+                (equal yf (dynamic-future->function-name b))
+                (equal xc (dynamic-future->checksum a))
+                (equal yc (dynamic-future->checksum b)))
+           (equal z (dynamic-future-is-equal a b)))
+  :hints (("Goal"
+           :in-theory (e/d (prog-field-neq-bit-when-constraints
+                            prog-eq-and-mul-is-and
+                            prog-and-var-eq-mul-is-and
+                            boolean-not-of-field-neq
+                            boolean-and-left-assoc-4
+                            dynamic-future-is-equal-components
+                            bitp-of-boolean-and-funspec
+                            bitp-of-boolean-not-funspec
+                            bitp-of-field-is-equal-funspec
+                            bitp-of-field-is-not-equal-funspec
+                            fieldp)
+                           ((:definition pfield::sub)
+                            pfield::mul-of-sub-arg1
+                            pfield::mul-of-sub-arg2))
+           :use ((:instance prog-eq-and-bit-when-mul
+                            (ra rn) (rb rw) (z z1) (p p))
+                 (:instance prog-and-var-eq-bit-when-mul
+                            (z z1) (r rf) (w z2) (p p))
+                 (:instance prog-and-var-eq-bit-when-mul
+                            (z z2) (r rc) (w z) (p p))))))
+
+(defruled dynamic-future-is-equal-gadget-sound
+  (implies (and (symbolp xn) (symbolp yn) (symbolp mn) (symbolp rn)
+                (symbolp xw) (symbolp yw) (symbolp mw) (symbolp rw)
+                (symbolp xf) (symbolp yf) (symbolp mf) (symbolp rf)
+                (symbolp xc) (symbolp yc) (symbolp mc) (symbolp rc)
+                (symbolp z1) (symbolp z2) (symbolp z)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg xn)
+                (r1cs::valuation-bindsp asg yn)
+                (r1cs::valuation-bindsp asg mn)
+                (r1cs::valuation-bindsp asg rn)
+                (r1cs::valuation-bindsp asg xw)
+                (r1cs::valuation-bindsp asg yw)
+                (r1cs::valuation-bindsp asg mw)
+                (r1cs::valuation-bindsp asg rw)
+                (r1cs::valuation-bindsp asg xf)
+                (r1cs::valuation-bindsp asg yf)
+                (r1cs::valuation-bindsp asg mf)
+                (r1cs::valuation-bindsp asg rf)
+                (r1cs::valuation-bindsp asg xc)
+                (r1cs::valuation-bindsp asg yc)
+                (r1cs::valuation-bindsp asg mc)
+                (r1cs::valuation-bindsp asg rc)
+                (r1cs::valuation-bindsp asg z1)
+                (r1cs::valuation-bindsp asg z2)
+                (r1cs::valuation-bindsp asg z)
+                (dynamic-futurep a)
+                (dynamic-futurep b)
+                (equal (lookup-equal xn asg)
+                       (dynamic-future->program-name a))
+                (equal (lookup-equal yn asg)
+                       (dynamic-future->program-name b))
+                (equal (lookup-equal xw asg)
+                       (dynamic-future->program-network a))
+                (equal (lookup-equal yw asg)
+                       (dynamic-future->program-network b))
+                (equal (lookup-equal xf asg)
+                       (dynamic-future->function-name a))
+                (equal (lookup-equal yf asg)
+                       (dynamic-future->function-name b))
+                (equal (lookup-equal xc asg)
+                       (dynamic-future->checksum a))
+                (equal (lookup-equal yc asg)
+                       (dynamic-future->checksum b))
+                (fieldp (lookup-equal xn asg))
+                (fieldp (lookup-equal yn asg))
+                (fieldp (lookup-equal xw asg))
+                (fieldp (lookup-equal yw asg))
+                (fieldp (lookup-equal xf asg))
+                (fieldp (lookup-equal yf asg))
+                (fieldp (lookup-equal xc asg))
+                (fieldp (lookup-equal yc asg))
+                (bitp (lookup-equal rn asg))
+                (bitp (lookup-equal rw asg))
+                (bitp (lookup-equal rf asg))
+                (bitp (lookup-equal rc asg))
+                (r1cs::r1cs-constraints-holdp
+                 (dynamic-future-is-equal-gadget
+                  xn yn mn rn xw yw mw rw
+                  xf yf mf rf xc yc mc rc
+                  z1 z2 z p)
+                 asg p))
+           (equal (lookup-equal z asg)
+                  (dynamic-future-is-equal a b)))
+  :hints (("Goal"
+           :in-theory (e/d (dynamic-future-is-equal-gadget
+                            prog-field-neq-gadget-to-spec
+                            prog-eq-and-gadget-to-mul
+                            prog-and-var-eq-gadget-to-mul
+                            r1cs::r1cs-constraints-holdp-of-append
+                            r1cs::fep-of-lookup-equal)
+                           ((:definition pfield::sub)
+                            pfield::mul-of-sub-arg1
+                            pfield::mul-of-sub-arg2))
+           :use ((:instance dynamic-future-eq-equations-to-funspec
+                            (p p)
+                            (xn (lookup-equal xn asg))
+                            (yn (lookup-equal yn asg))
+                            (mn (lookup-equal mn asg))
+                            (rn (lookup-equal rn asg))
+                            (xw (lookup-equal xw asg))
+                            (yw (lookup-equal yw asg))
+                            (mw (lookup-equal mw asg))
+                            (rw (lookup-equal rw asg))
+                            (xf (lookup-equal xf asg))
+                            (yf (lookup-equal yf asg))
+                            (mf (lookup-equal mf asg))
+                            (rf (lookup-equal rf asg))
+                            (xc (lookup-equal xc asg))
+                            (yc (lookup-equal yc asg))
+                            (mc (lookup-equal mc asg))
+                            (rc (lookup-equal rc asg))
+                            (z1 (lookup-equal z1 asg))
+                            (z2 (lookup-equal z2 asg))
+                            (z (lookup-equal z asg)))))))
+
+(defruled dynamic-future-is-equal-gadget-complete
+  (implies (and (symbolp xn) (symbolp yn) (symbolp mn) (symbolp rn)
+                (symbolp xw) (symbolp yw) (symbolp mw) (symbolp rw)
+                (symbolp xf) (symbolp yf) (symbolp mf) (symbolp rf)
+                (symbolp xc) (symbolp yc) (symbolp mc) (symbolp rc)
+                (symbolp z1) (symbolp z2) (symbolp z)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg xn)
+                (r1cs::valuation-bindsp asg yn)
+                (r1cs::valuation-bindsp asg mn)
+                (r1cs::valuation-bindsp asg rn)
+                (r1cs::valuation-bindsp asg xw)
+                (r1cs::valuation-bindsp asg yw)
+                (r1cs::valuation-bindsp asg mw)
+                (r1cs::valuation-bindsp asg rw)
+                (r1cs::valuation-bindsp asg xf)
+                (r1cs::valuation-bindsp asg yf)
+                (r1cs::valuation-bindsp asg mf)
+                (r1cs::valuation-bindsp asg rf)
+                (r1cs::valuation-bindsp asg xc)
+                (r1cs::valuation-bindsp asg yc)
+                (r1cs::valuation-bindsp asg mc)
+                (r1cs::valuation-bindsp asg rc)
+                (r1cs::valuation-bindsp asg z1)
+                (r1cs::valuation-bindsp asg z2)
+                (r1cs::valuation-bindsp asg z)
+                (dynamic-futurep a)
+                (dynamic-futurep b)
+                (equal (lookup-equal xn asg)
+                       (dynamic-future->program-name a))
+                (equal (lookup-equal yn asg)
+                       (dynamic-future->program-name b))
+                (equal (lookup-equal xw asg)
+                       (dynamic-future->program-network a))
+                (equal (lookup-equal yw asg)
+                       (dynamic-future->program-network b))
+                (equal (lookup-equal xf asg)
+                       (dynamic-future->function-name a))
+                (equal (lookup-equal yf asg)
+                       (dynamic-future->function-name b))
+                (equal (lookup-equal xc asg)
+                       (dynamic-future->checksum a))
+                (equal (lookup-equal yc asg)
+                       (dynamic-future->checksum b))
+                (fieldp (lookup-equal xn asg))
+                (fieldp (lookup-equal yn asg))
+                (fieldp (lookup-equal xw asg))
+                (fieldp (lookup-equal yw asg))
+                (fieldp (lookup-equal xf asg))
+                (fieldp (lookup-equal yf asg))
+                (fieldp (lookup-equal xc asg))
+                (fieldp (lookup-equal yc asg))
+                (equal (lookup-equal rn asg)
+                       (field-is-not-equal-funspec
+                        (lookup-equal xn asg) (lookup-equal yn asg)))
+                (equal (lookup-equal rw asg)
+                       (field-is-not-equal-funspec
+                        (lookup-equal xw asg) (lookup-equal yw asg)))
+                (equal (lookup-equal rf asg)
+                       (field-is-not-equal-funspec
+                        (lookup-equal xf asg) (lookup-equal yf asg)))
+                (equal (lookup-equal rc asg)
+                       (field-is-not-equal-funspec
+                        (lookup-equal xc asg) (lookup-equal yc asg)))
+                (equal (lookup-equal mn asg)
+                       (if (equal (lookup-equal xn asg)
+                                  (lookup-equal yn asg))
+                           1
+                         (pfield::inv (pfield::sub (lookup-equal xn asg)
+                                                   (lookup-equal yn asg) p)
+                                      p)))
+                (equal (lookup-equal mw asg)
+                       (if (equal (lookup-equal xw asg)
+                                  (lookup-equal yw asg))
+                           1
+                         (pfield::inv (pfield::sub (lookup-equal xw asg)
+                                                   (lookup-equal yw asg) p)
+                                      p)))
+                (equal (lookup-equal mf asg)
+                       (if (equal (lookup-equal xf asg)
+                                  (lookup-equal yf asg))
+                           1
+                         (pfield::inv (pfield::sub (lookup-equal xf asg)
+                                                   (lookup-equal yf asg) p)
+                                      p)))
+                (equal (lookup-equal mc asg)
+                       (if (equal (lookup-equal xc asg)
+                                  (lookup-equal yc asg))
+                           1
+                         (pfield::inv (pfield::sub (lookup-equal xc asg)
+                                                   (lookup-equal yc asg) p)
+                                      p)))
+                (equal (lookup-equal z1 asg)
+                       (boolean-and-funspec
+                        (boolean-not-funspec (lookup-equal rn asg))
+                        (boolean-not-funspec (lookup-equal rw asg))))
+                (equal (lookup-equal z2 asg)
+                       (boolean-and-funspec
+                        (lookup-equal z1 asg)
+                        (boolean-not-funspec (lookup-equal rf asg))))
+                (equal (lookup-equal z asg)
+                       (boolean-and-funspec
+                        (lookup-equal z2 asg)
+                        (boolean-not-funspec (lookup-equal rc asg)))))
+           (and (r1cs::r1cs-constraints-holdp
+                 (dynamic-future-is-equal-gadget
+                  xn yn mn rn xw yw mw rw
+                  xf yf mf rf xc yc mc rc
+                  z1 z2 z p)
+                 asg p)
+                (equal (lookup-equal z asg)
+                       (dynamic-future-is-equal a b))))
+  :hints (("Goal"
+           :use ((:instance prog-field-neq-constraints-when-witness
+                            (x (lookup-equal xn asg))
+                            (y (lookup-equal yn asg))
+                            (m (lookup-equal mn asg))
+                            (r (lookup-equal rn asg))
+                            (p p))
+                 (:instance prog-field-neq-constraints-when-witness
+                            (x (lookup-equal xw asg))
+                            (y (lookup-equal yw asg))
+                            (m (lookup-equal mw asg))
+                            (r (lookup-equal rw asg))
+                            (p p))
+                 (:instance prog-field-neq-constraints-when-witness
+                            (x (lookup-equal xf asg))
+                            (y (lookup-equal yf asg))
+                            (m (lookup-equal mf asg))
+                            (r (lookup-equal rf asg))
+                            (p p))
+                 (:instance prog-field-neq-constraints-when-witness
+                            (x (lookup-equal xc asg))
+                            (y (lookup-equal yc asg))
+                            (m (lookup-equal mc asg))
+                            (r (lookup-equal rc asg))
+                            (p p)))
+           :in-theory (e/d (dynamic-future-is-equal-gadget
+                            prog-field-neq-gadget-to-spec
+                            prog-eq-and-gadget-to-mul
+                            prog-eq-and-mul-is-and
+                            prog-and-var-eq-gadget-to-mul
+                            prog-and-var-eq-mul-is-and
+                            dynamic-future-eq-equations-to-funspec
+                            bitp-of-field-is-not-equal-funspec
+                            bitp-of-boolean-and-funspec
+                            bitp-of-boolean-not-funspec
+                            fieldp
+                            bitp
+                            r1cs::fep-of-lookup-equal
+                            r1cs::r1cs-constraints-holdp-of-append)
+                           ((:definition pfield::sub)
+                            pfield::mul-of-sub-arg1
+                            pfield::mul-of-sub-arg2
+                            prog-field-neq-constraints-when-witness)))))
+
+(defruled dynamic-future-is-not-equal-gadget-sound
+  (implies (and (symbolp xn) (symbolp yn) (symbolp mn) (symbolp rn)
+                (symbolp xw) (symbolp yw) (symbolp mw) (symbolp rw)
+                (symbolp xf) (symbolp yf) (symbolp mf) (symbolp rf)
+                (symbolp xc) (symbolp yc) (symbolp mc) (symbolp rc)
+                (symbolp z1) (symbolp z2) (symbolp z)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg xn)
+                (r1cs::valuation-bindsp asg yn)
+                (r1cs::valuation-bindsp asg mn)
+                (r1cs::valuation-bindsp asg rn)
+                (r1cs::valuation-bindsp asg xw)
+                (r1cs::valuation-bindsp asg yw)
+                (r1cs::valuation-bindsp asg mw)
+                (r1cs::valuation-bindsp asg rw)
+                (r1cs::valuation-bindsp asg xf)
+                (r1cs::valuation-bindsp asg yf)
+                (r1cs::valuation-bindsp asg mf)
+                (r1cs::valuation-bindsp asg rf)
+                (r1cs::valuation-bindsp asg xc)
+                (r1cs::valuation-bindsp asg yc)
+                (r1cs::valuation-bindsp asg mc)
+                (r1cs::valuation-bindsp asg rc)
+                (r1cs::valuation-bindsp asg z1)
+                (r1cs::valuation-bindsp asg z2)
+                (r1cs::valuation-bindsp asg z)
+                (dynamic-futurep a)
+                (dynamic-futurep b)
+                (equal (lookup-equal xn asg)
+                       (dynamic-future->program-name a))
+                (equal (lookup-equal yn asg)
+                       (dynamic-future->program-name b))
+                (equal (lookup-equal xw asg)
+                       (dynamic-future->program-network a))
+                (equal (lookup-equal yw asg)
+                       (dynamic-future->program-network b))
+                (equal (lookup-equal xf asg)
+                       (dynamic-future->function-name a))
+                (equal (lookup-equal yf asg)
+                       (dynamic-future->function-name b))
+                (equal (lookup-equal xc asg)
+                       (dynamic-future->checksum a))
+                (equal (lookup-equal yc asg)
+                       (dynamic-future->checksum b))
+                (fieldp (lookup-equal xn asg))
+                (fieldp (lookup-equal yn asg))
+                (fieldp (lookup-equal xw asg))
+                (fieldp (lookup-equal yw asg))
+                (fieldp (lookup-equal xf asg))
+                (fieldp (lookup-equal yf asg))
+                (fieldp (lookup-equal xc asg))
+                (fieldp (lookup-equal yc asg))
+                (bitp (lookup-equal rn asg))
+                (bitp (lookup-equal rw asg))
+                (bitp (lookup-equal rf asg))
+                (bitp (lookup-equal rc asg))
+                (bitp (lookup-equal z asg))
+                (r1cs::r1cs-constraints-holdp
+                 (dynamic-future-is-not-equal-gadget
+                  xn yn mn rn xw yw mw rw
+                  xf yf mf rf xc yc mc rc
+                  z1 z2 z p)
+                 asg p))
+           (equal (pfield::sub 1 (lookup-equal z asg) p)
+                  (dynamic-future-is-not-equal a b)))
+  :enable (dynamic-future-is-not-equal-gadget
+           dynamic-future-is-equal-gadget-sound
+           dynamic-future-is-not-equal-funspecs-match
+           values-b-not-is-boolean-not
+           prog-bit-not-is-sub
+           bitp-of-dynamic-future-is-equal))
+
+(defruled dynamic-future-is-not-equal-gadget-complete
+  (implies (and (symbolp xn) (symbolp yn) (symbolp mn) (symbolp rn)
+                (symbolp xw) (symbolp yw) (symbolp mw) (symbolp rw)
+                (symbolp xf) (symbolp yf) (symbolp mf) (symbolp rf)
+                (symbolp xc) (symbolp yc) (symbolp mc) (symbolp rc)
+                (symbolp z1) (symbolp z2) (symbolp z)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg xn)
+                (r1cs::valuation-bindsp asg yn)
+                (r1cs::valuation-bindsp asg mn)
+                (r1cs::valuation-bindsp asg rn)
+                (r1cs::valuation-bindsp asg xw)
+                (r1cs::valuation-bindsp asg yw)
+                (r1cs::valuation-bindsp asg mw)
+                (r1cs::valuation-bindsp asg rw)
+                (r1cs::valuation-bindsp asg xf)
+                (r1cs::valuation-bindsp asg yf)
+                (r1cs::valuation-bindsp asg mf)
+                (r1cs::valuation-bindsp asg rf)
+                (r1cs::valuation-bindsp asg xc)
+                (r1cs::valuation-bindsp asg yc)
+                (r1cs::valuation-bindsp asg mc)
+                (r1cs::valuation-bindsp asg rc)
+                (r1cs::valuation-bindsp asg z1)
+                (r1cs::valuation-bindsp asg z2)
+                (r1cs::valuation-bindsp asg z)
+                (dynamic-futurep a)
+                (dynamic-futurep b)
+                (equal (lookup-equal xn asg)
+                       (dynamic-future->program-name a))
+                (equal (lookup-equal yn asg)
+                       (dynamic-future->program-name b))
+                (equal (lookup-equal xw asg)
+                       (dynamic-future->program-network a))
+                (equal (lookup-equal yw asg)
+                       (dynamic-future->program-network b))
+                (equal (lookup-equal xf asg)
+                       (dynamic-future->function-name a))
+                (equal (lookup-equal yf asg)
+                       (dynamic-future->function-name b))
+                (equal (lookup-equal xc asg)
+                       (dynamic-future->checksum a))
+                (equal (lookup-equal yc asg)
+                       (dynamic-future->checksum b))
+                (fieldp (lookup-equal xn asg))
+                (fieldp (lookup-equal yn asg))
+                (fieldp (lookup-equal xw asg))
+                (fieldp (lookup-equal yw asg))
+                (fieldp (lookup-equal xf asg))
+                (fieldp (lookup-equal yf asg))
+                (fieldp (lookup-equal xc asg))
+                (fieldp (lookup-equal yc asg))
+                (equal (lookup-equal rn asg)
+                       (field-is-not-equal-funspec
+                        (lookup-equal xn asg) (lookup-equal yn asg)))
+                (equal (lookup-equal rw asg)
+                       (field-is-not-equal-funspec
+                        (lookup-equal xw asg) (lookup-equal yw asg)))
+                (equal (lookup-equal rf asg)
+                       (field-is-not-equal-funspec
+                        (lookup-equal xf asg) (lookup-equal yf asg)))
+                (equal (lookup-equal rc asg)
+                       (field-is-not-equal-funspec
+                        (lookup-equal xc asg) (lookup-equal yc asg)))
+                (equal (lookup-equal mn asg)
+                       (if (equal (lookup-equal xn asg)
+                                  (lookup-equal yn asg))
+                           1
+                         (pfield::inv (pfield::sub (lookup-equal xn asg)
+                                                   (lookup-equal yn asg) p)
+                                      p)))
+                (equal (lookup-equal mw asg)
+                       (if (equal (lookup-equal xw asg)
+                                  (lookup-equal yw asg))
+                           1
+                         (pfield::inv (pfield::sub (lookup-equal xw asg)
+                                                   (lookup-equal yw asg) p)
+                                      p)))
+                (equal (lookup-equal mf asg)
+                       (if (equal (lookup-equal xf asg)
+                                  (lookup-equal yf asg))
+                           1
+                         (pfield::inv (pfield::sub (lookup-equal xf asg)
+                                                   (lookup-equal yf asg) p)
+                                      p)))
+                (equal (lookup-equal mc asg)
+                       (if (equal (lookup-equal xc asg)
+                                  (lookup-equal yc asg))
+                           1
+                         (pfield::inv (pfield::sub (lookup-equal xc asg)
+                                                   (lookup-equal yc asg) p)
+                                      p)))
+                (equal (lookup-equal z1 asg)
+                       (boolean-and-funspec
+                        (boolean-not-funspec (lookup-equal rn asg))
+                        (boolean-not-funspec (lookup-equal rw asg))))
+                (equal (lookup-equal z2 asg)
+                       (boolean-and-funspec
+                        (lookup-equal z1 asg)
+                        (boolean-not-funspec (lookup-equal rf asg))))
+                (equal (lookup-equal z asg)
+                       (boolean-and-funspec
+                        (lookup-equal z2 asg)
+                        (boolean-not-funspec (lookup-equal rc asg)))))
+           (and (r1cs::r1cs-constraints-holdp
+                 (dynamic-future-is-not-equal-gadget
+                  xn yn mn rn xw yw mw rw
+                  xf yf mf rf xc yc mc rc
+                  z1 z2 z p)
+                 asg p)
+                (equal (pfield::sub 1 (lookup-equal z asg) p)
+                       (dynamic-future-is-not-equal a b))))
+  :hints (("Goal"
+           :use ((:instance dynamic-future-is-equal-gadget-complete
+                            (xn xn) (yn yn) (mn mn) (rn rn)
+                            (xw xw) (yw yw) (mw mw) (rw rw)
+                            (xf xf) (yf yf) (mf mf) (rf rf)
+                            (xc xc) (yc yc) (mc mc) (rc rc)
+                            (z1 z1) (z2 z2) (z z) (p p)
+                            (asg asg) (a a) (b b)))
+           :in-theory (e/d (dynamic-future-is-not-equal-gadget
+                            dynamic-future-is-not-equal-funspecs-match
+                            values-b-not-is-boolean-not
+                            prog-bit-not-is-sub
+                            bitp-of-dynamic-future-is-equal)
+                           (dynamic-future-is-equal-gadget-complete)))))
+
+(define dynamic-future-is-equal-circuit ()
+  :returns (pdef pfcs::definitionp)
+  (pfcs::parse-def
+   "dynamic_future_is_equal(xn, yn, mn, rn, xw, yw, mw, rw, xf, yf, mf, rf, xc, yc, mc, rc, z1, z2, z) := {
+    (xn - yn) * (mn) == (rn),
+    (xn - yn) * (1 - rn) == (0),
+    (xw - yw) * (mw) == (rw),
+    (xw - yw) * (1 - rw) == (0),
+    (xf - yf) * (mf) == (rf),
+    (xf - yf) * (1 - rf) == (0),
+    (xc - yc) * (mc) == (rc),
+    (xc - yc) * (1 - rc) == (0),
+    (1 - rn) * (1 - rw) == (z1),
+    (z1) * (1 - rf) == (z2),
+    (z2) * (1 - rc) == (z)
+    }")
+  ///
+  (more-returns
+   (pdef pfcs::sr1cs-definitionp
+         :hints (("Goal" :in-theory (enable pfcs::sr1cs-definitionp
+                                            pfcs::sr1cs-constraintp
+                                            pfcs::r1cs-constraintp
+                                            pfcs::r1cs-polynomialp
+                                            pfcs::r1cs-monomialp))))))
+
+(pfcs::lift (dynamic-future-is-equal-circuit)
+            :pred dynamic-future-is-equal-pred
+            :prime prime)
+
+(defruled dynamic-future-is-equal-pred-to-funspec
+  (implies (and (equal prime (base-prime))
+                (fieldp xn) (fieldp yn) (pfield::fep mn prime) (bitp rn)
+                (fieldp xw) (fieldp yw) (pfield::fep mw prime) (bitp rw)
+                (fieldp xf) (fieldp yf) (pfield::fep mf prime) (bitp rf)
+                (fieldp xc) (fieldp yc) (pfield::fep mc prime) (bitp rc)
+                (dynamic-futurep a)
+                (dynamic-futurep b)
+                (equal xn (dynamic-future->program-name a))
+                (equal yn (dynamic-future->program-name b))
+                (equal xw (dynamic-future->program-network a))
+                (equal yw (dynamic-future->program-network b))
+                (equal xf (dynamic-future->function-name a))
+                (equal yf (dynamic-future->function-name b))
+                (equal xc (dynamic-future->checksum a))
+                (equal yc (dynamic-future->checksum b))
+                (dynamic-future-is-equal-pred
+                 xn yn mn rn xw yw mw rw
+                 xf yf mf rf xc yc mc rc
+                 z1 z2 z prime))
+           (equal z (dynamic-future-is-equal a b)))
+  :enable (dynamic-future-is-equal-pred
+           dynamic-future-eq-equations-to-funspec))
+
+(define dynamic-future-is-not-equal-circuit ()
+  :returns (pdef pfcs::definitionp)
+  (pfcs::parse-def
+   "dynamic_future_is_not_equal(xn, yn, mn, rn, xw, yw, mw, rw, xf, yf, mf, rf, xc, yc, mc, rc, z1, z2, z) := {
+    (xn - yn) * (mn) == (rn),
+    (xn - yn) * (1 - rn) == (0),
+    (xw - yw) * (mw) == (rw),
+    (xw - yw) * (1 - rw) == (0),
+    (xf - yf) * (mf) == (rf),
+    (xf - yf) * (1 - rf) == (0),
+    (xc - yc) * (mc) == (rc),
+    (xc - yc) * (1 - rc) == (0),
+    (1 - rn) * (1 - rw) == (z1),
+    (z1) * (1 - rf) == (z2),
+    (z2) * (1 - rc) == (z)
+    }")
+  ///
+  (more-returns
+   (pdef pfcs::sr1cs-definitionp
+         :hints (("Goal" :in-theory (enable pfcs::sr1cs-definitionp
+                                            pfcs::sr1cs-constraintp
+                                            pfcs::r1cs-constraintp
+                                            pfcs::r1cs-polynomialp
+                                            pfcs::r1cs-monomialp))))))
+
+(pfcs::lift (dynamic-future-is-not-equal-circuit)
+            :pred dynamic-future-is-not-equal-pred
+            :prime prime)
+
+(defruled dynamic-future-is-not-equal-pred-to-funspec
+  (implies (and (equal prime (base-prime))
+                (fieldp xn) (fieldp yn) (pfield::fep mn prime) (bitp rn)
+                (fieldp xw) (fieldp yw) (pfield::fep mw prime) (bitp rw)
+                (fieldp xf) (fieldp yf) (pfield::fep mf prime) (bitp rf)
+                (fieldp xc) (fieldp yc) (pfield::fep mc prime) (bitp rc)
+                (bitp z)
+                (dynamic-futurep a)
+                (dynamic-futurep b)
+                (equal xn (dynamic-future->program-name a))
+                (equal yn (dynamic-future->program-name b))
+                (equal xw (dynamic-future->program-network a))
+                (equal yw (dynamic-future->program-network b))
+                (equal xf (dynamic-future->function-name a))
+                (equal yf (dynamic-future->function-name b))
+                (equal xc (dynamic-future->checksum a))
+                (equal yc (dynamic-future->checksum b))
+                (dynamic-future-is-not-equal-pred
+                 xn yn mn rn xw yw mw rw
+                 xf yf mf rf xc yc mc rc
+                 z1 z2 z prime))
+           (equal (pfield::sub 1 z prime)
+                  (dynamic-future-is-not-equal a b)))
+  :enable (dynamic-future-is-not-equal-pred
+           dynamic-future-eq-equations-to-funspec
+           dynamic-future-is-not-equal-funspecs-match
+           values-b-not-is-boolean-not
+           prog-bit-not-is-sub
+           bitp-of-dynamic-future-is-equal))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Record::is_hiding is the negation of U8::is_zero, and a non-constant

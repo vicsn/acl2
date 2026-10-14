@@ -174,6 +174,31 @@
                  (:instance pfield::mul-of-0-arg2
                             (x (pfield::sub x y p)))))))
 
+(defruled prog-field-zero-neq-constraints-when-witness
+  :short "snarkVM witness of @('Field::is_not_equal') against constant 0.
+          Subtracting zero adds no constraint, so the checks are
+          @('(x) (m) = (r)') and @('(x) (1 - r) = (0)').
+          @('m') is 1 when @('x') is 0, because the inverse does not exist."
+  (implies (and (equal p (base-prime))
+                (fieldp x)
+                (equal r (if (equal x 0) 0 1))
+                (equal m (if (equal x 0)
+                             1
+                           (pfield::inv x p))))
+           (and (equal (pfield::mul x m p) r)
+                (equal (pfield::mul x (pfield::sub 1 r p) p) 0)
+                (equal r (field-is-not-equal-funspec x 0))))
+  :hints (("Goal"
+           :cases ((equal x 0))
+           :in-theory (e/d (field-is-not-equal-funspec
+                            fieldp)
+                           ((:definition pfield::sub)
+                            pfield::mul-of-sub-arg1
+                            pfield::mul-of-sub-arg2))
+           :use ((:instance pfield::mul-of-inv-arg2 (x x))
+                 (:instance pfield::mul-of-0-arg1 (x x) (y m))
+                 (:instance pfield::mul-of-0-arg2 (x x))))))
+
 (defruled prog-field-neq-gadget-complete
   :short "R1CS-COMPLETE for snarkVM's witness of @('Field::is_not_equal')."
   (implies (and (symbolp x) (symbolp y) (symbolp m) (symbolp r)
@@ -357,6 +382,22 @@
                             pfield::mul)
                            ()))))
 
+(defruled prog-eq-and-mul-is-and
+  :short "The product in @('prog-eq-and-gadget') is the boolean AND."
+  (implies (and (equal p (base-prime))
+                (bitp ra)
+                (bitp rb))
+           (equal (pfield::mul (pfield::sub 1 ra p)
+                               (pfield::sub 1 rb p)
+                               p)
+                  (boolean-and-funspec (boolean-not-funspec ra)
+                                       (boolean-not-funspec rb))))
+  :use ((:instance prog-eq-and-bit-when-mul
+                   (z (pfield::mul (pfield::sub 1 ra p)
+                                   (pfield::sub 1 rb p)
+                                   p))
+                   (p p))))
+
 ; (z) * (1 - r) = (w)   AND of a boolean variable with an is_equal bit.
 
 (define prog-and-var-eq-gadget ((z symbolp)
@@ -402,6 +443,16 @@
                             pfield::sub
                             pfield::mul)
                            ()))))
+
+(defruled prog-and-var-eq-mul-is-and
+  (implies (and (equal p (base-prime))
+                (bitp z)
+                (bitp r))
+           (equal (pfield::mul z (pfield::sub 1 r p) p)
+                  (boolean-and-funspec z (boolean-not-funspec r))))
+  :use ((:instance prog-and-var-eq-bit-when-mul
+                   (w (pfield::mul z (pfield::sub 1 r p) p))
+                   (p p))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -508,6 +559,55 @@
            r1cs::r1cs-constraint-holdsp
            r1cs::dot-product
            lookup-equal))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; (x) * (y) = (1 - z)
+;
+; Boolean OR of (1 - x) and (1 - y).  snarkVM folds those negations into
+; the linear combinations, so the constraint is the product of the
+; is_not_equal bits.
+
+(define prog-demorgan-or-gadget ((x symbolp)
+                                 (y symbolp)
+                                 (z symbolp)
+                                 (p primep))
+  :returns (constrs r1cs::r1cs-constraint-listp :hyp :guard)
+  :short "Constraint @('(x) (y) = (1 - z)'): OR of the negations of @('x') and @('y')."
+  (list (r1cs::make-r1cs-constraint
+         :a (list (list 1 x))
+         :b (list (list 1 y))
+         :c (list (list 1 1)
+                  (list (1- p) z)))))
+
+(defruled prog-demorgan-or-gadget-to-mul
+  (implies (and (symbolp x) (symbolp y) (symbolp z)
+                (primep p)
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg x)
+                (r1cs::valuation-bindsp asg y)
+                (r1cs::valuation-bindsp asg z))
+           (equal (r1cs::r1cs-constraints-holdp
+                   (prog-demorgan-or-gadget x y z p) asg p)
+                  (equal (pfield::mul (lookup-equal x asg)
+                                      (lookup-equal y asg)
+                                      p)
+                         (pfield::sub 1 (lookup-equal z asg) p))))
+  :enable (prog-demorgan-or-gadget
+           r1cs::r1cs-constraint-holdsp
+           r1cs::dot-product))
+
+(defruled prog-demorgan-or-mul-when-zero-factor
+  :short "Honest @('is_equal') makes the first factor 0, so the OR bit is 1."
+  (implies (and (equal p (base-prime))
+                (equal x 0)
+                (equal z 1))
+           (equal (pfield::mul x y p)
+                  (pfield::sub 1 z p)))
+  :hints (("Goal"
+           :in-theory (union-theories
+                       '(pfield::mul-of-0-arg1 pfield::sub-same)
+                       (theory 'minimal-theory)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

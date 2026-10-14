@@ -15,6 +15,7 @@
 
 (include-book "prog-primitives")
 (include-book "prog-equal")
+(include-book "field-zero-r1cs")
 (include-book "../fun-specs/values-literal")
 (include-book "../fun-specs/values-value")
 (include-book "../fun-specs/values-cast")
@@ -23,6 +24,11 @@
 (include-book "../fun-specs/crypto-request")
 (include-book "../fun-specs/crypto-response")
 (include-book "../fun-specs/crypto-state-path")
+
+(include-book "projects/pfcs/convenience-constructors" :dir :system)
+(include-book "projects/pfcs/lifting" :dir :system)
+(include-book "projects/pfcs/parser-interface" :dir :system)
+(include-book "projects/pfcs/r1cs-subset" :dir :system)
 
 (local (include-book "kestrel/prime-fields/prime-fields-rules" :dir :system))
 
@@ -336,9 +342,251 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+; Field::cast to Boolean: is_zero, is_one, OR, assert.
+; The is_one boolean is the result (linear combination 1 - r-o).
+; Other destinations of Field::cast are not this gadget; field-cast-gadget
+; stays nil and the catalog row stays at 0.
+
+(define field-cast-to-boolean-gadget ((x symbolp)
+                                      (m-z symbolp)
+                                      (r-z symbolp)
+                                      (m-o symbolp)
+                                      (r-o symbolp)
+                                      (or-bit symbolp)
+                                      (p primep))
+  :returns (constrs r1cs::r1cs-constraint-listp :hyp :guard)
+  :short "Constraints of @('Field::cast') to @('Boolean'): @('is_zero'),
+          @('is_one'), the OR of those bits, and assert of the OR."
+  (append (field-is-zero-gadget x m-z r-z p)
+          (field-is-one-gadget x m-o r-o p)
+          (prog-demorgan-or-gadget r-z r-o or-bit p)
+          (prog-assert-gadget or-bit)))
+
+(defruled field-cast-boolean-of-bit
+  (implies (and (fieldp x)
+                (bitp x))
+           (equal (field-cast x (literal-type-boolean))
+                  (literal-boolean x)))
+  :hints (("Goal"
+           :in-theory (enable field-cast
+                              values-field-fix-when-fieldp
+                              values-literal-type-integerp
+                              bitp))))
+
+(defruled field-cast-to-boolean-from-checks
+  (implies (and (equal p (base-prime))
+                (fieldp x)
+                (bitp rz)
+                (bitp ro)
+                (bitp orb)
+                (equal (pfield::sub 1 rz p) (field-is-zero-funspec x))
+                (equal (pfield::sub 1 ro p) (field-is-one-funspec x))
+                (equal (pfield::mul rz ro p) (pfield::sub 1 orb p))
+                (equal orb 1))
+           (equal (field-cast x (literal-type-boolean))
+                  (literal-boolean (pfield::sub 1 ro p))))
+  :hints (("Goal"
+           :cases ((equal x 0)
+                   (equal x 1)
+                   (equal rz 0)
+                   (equal ro 0))
+           :in-theory (e/d (field-is-zero-funspec
+                            field-is-one-funspec
+                            field-is-equal-funspec
+                            field-is-not-equal-funspec
+                            boolean-not-funspec
+                            field-cast-boolean-of-bit
+                            bitp
+                            pfield::sub
+                            pfield::mul
+                            crypto-fieldp-of-0
+                            crypto-fieldp-of-1)
+                           ()))))
+
+(defruled field-cast-to-boolean-gadget-sound
+  (implies (and (symbolp x) (symbolp m-z) (symbolp r-z)
+                (symbolp m-o) (symbolp r-o) (symbolp or-bit)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg x)
+                (r1cs::valuation-bindsp asg m-z)
+                (r1cs::valuation-bindsp asg r-z)
+                (r1cs::valuation-bindsp asg m-o)
+                (r1cs::valuation-bindsp asg r-o)
+                (r1cs::valuation-bindsp asg or-bit)
+                (fieldp (lookup-equal x asg))
+                (bitp (lookup-equal r-z asg))
+                (bitp (lookup-equal r-o asg))
+                (bitp (lookup-equal or-bit asg))
+                (r1cs::r1cs-constraints-holdp
+                 (field-cast-to-boolean-gadget
+                  x m-z r-z m-o r-o or-bit p)
+                 asg p))
+           (equal (field-cast (lookup-equal x asg) (literal-type-boolean))
+                  (literal-boolean
+                   (pfield::sub 1 (lookup-equal r-o asg) p))))
+  :hints (("Goal"
+           :in-theory (e/d (field-cast-to-boolean-gadget
+                            field-is-zero-gadget-sound
+                            field-is-one-gadget-sound
+                            prog-demorgan-or-gadget-to-mul
+                            prog-assert-gadget-to-funspec
+                            assert-funspec
+                            enforce-funspec
+                            field-cast-to-boolean-from-checks
+                            r1cs::r1cs-constraints-holdp-of-append
+                            r1cs::fep-of-lookup-equal
+                            bitp)
+                           ((:definition pfield::sub)
+                            pfield::mul-of-sub-arg1
+                            pfield::mul-of-sub-arg2)))))
+
+(defruled field-cast-to-boolean-or-product
+  (implies (and (equal p (base-prime))
+                (bitp x)
+                (equal rz (if (equal x 0) 0 1))
+                (equal ro (if (equal x 1) 0 1))
+                (equal orb 1))
+           (equal (pfield::mul rz ro p)
+                  (pfield::sub 1 orb p)))
+  :hints (("Goal"
+           :cases ((equal x 0))
+           :in-theory (e/d (bitp pfield::mul pfield::sub) ()))))
+
+(defruled field-cast-to-boolean-gadget-complete
+  :short "Completeness for a field that is already 0 or 1.
+          Multipliers are snarkVM's: 1 when the difference has no inverse."
+  (implies (and (symbolp x) (symbolp m-z) (symbolp r-z)
+                (symbolp m-o) (symbolp r-o) (symbolp or-bit)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg x)
+                (r1cs::valuation-bindsp asg m-z)
+                (r1cs::valuation-bindsp asg r-z)
+                (r1cs::valuation-bindsp asg m-o)
+                (r1cs::valuation-bindsp asg r-o)
+                (r1cs::valuation-bindsp asg or-bit)
+                (fieldp (lookup-equal x asg))
+                (bitp (lookup-equal x asg))
+                (equal (lookup-equal r-z asg)
+                       (if (equal (lookup-equal x asg) 0) 0 1))
+                (equal (lookup-equal m-z asg)
+                       (if (equal (lookup-equal x asg) 0)
+                           1
+                         (pfield::inv (lookup-equal x asg) p)))
+                (equal (lookup-equal r-o asg)
+                       (if (equal (lookup-equal x asg) 1) 0 1))
+                (equal (lookup-equal m-o asg)
+                       (if (equal (lookup-equal x asg) 1)
+                           1
+                         (pfield::inv (pfield::sub (lookup-equal x asg) 1 p)
+                                      p)))
+                (equal (lookup-equal or-bit asg) 1))
+           (and (r1cs::r1cs-constraints-holdp
+                 (field-cast-to-boolean-gadget
+                  x m-z r-z m-o r-o or-bit p)
+                 asg p)
+                (equal (field-cast (lookup-equal x asg) (literal-type-boolean))
+                       (literal-boolean (lookup-equal x asg)))))
+  :hints (("Goal"
+           :in-theory (e/d (field-cast-to-boolean-gadget
+                            field-is-zero-gadget-to-spec
+                            field-is-one-gadget-to-spec
+                            prog-demorgan-or-gadget-to-mul
+                            prog-assert-gadget-to-funspec
+                            assert-funspec
+                            enforce-funspec
+                            field-cast-boolean-of-bit
+                            field-is-not-equal-funspec
+                            crypto-fieldp-of-1
+                            bitp
+                            fieldp
+                            r1cs::r1cs-constraints-holdp-of-append)
+                           ((:definition pfield::sub)
+                            pfield::mul-of-sub-arg1
+                            pfield::mul-of-sub-arg2))
+           :use ((:instance prog-field-zero-neq-constraints-when-witness
+                            (x (lookup-equal x asg))
+                            (m (lookup-equal m-z asg))
+                            (r (lookup-equal r-z asg))
+                            (p p))
+                 (:instance prog-field-neq-constraints-when-witness
+                            (x (lookup-equal x asg))
+                            (y 1)
+                            (m (lookup-equal m-o asg))
+                            (r (lookup-equal r-o asg))
+                            (p p))
+                 (:instance field-cast-to-boolean-or-product
+                            (x (lookup-equal x asg))
+                            (rz (lookup-equal r-z asg))
+                            (ro (lookup-equal r-o asg))
+                            (orb (lookup-equal or-bit asg))
+                            (p p))))))
+
+(defconst *field-cast-to-boolean-sample-asg*
+  '((x . 1) (m-z . 1) (r-z . 1) (m-o . 1) (r-o . 0) (or-bit . 1)))
+
+(defruled field-cast-to-boolean-sample-holds
+  :short "Sample cast of @('1') to boolean over the prime 5."
+  (r1cs::r1cs-constraints-holdp
+   (field-cast-to-boolean-gadget 'x 'm-z 'r-z 'm-o 'r-o 'or-bit 5)
+   *field-cast-to-boolean-sample-asg*
+   5)
+  :enable (field-cast-to-boolean-gadget
+           field-is-zero-gadget
+           field-is-one-gadget
+           prog-demorgan-or-gadget
+           prog-assert-gadget
+           r1cs::r1cs-constraint-holdsp
+           r1cs::dot-product
+           lookup-equal))
+
+(define field-cast-to-boolean-circuit ()
+  :returns (pdef pfcs::definitionp)
+  (pfcs::parse-def
+   "field_cast_to_boolean(x, mz, rz, mo, ro, orbit) := {
+    (x) * (mz) == (rz),
+    (x) * (1 - rz) == (0),
+    (x - 1) * (mo) == (ro),
+    (x - 1) * (1 - ro) == (0),
+    (rz) * (ro) == (1 - orbit),
+    (orbit) * (1) == (1)
+    }")
+  ///
+  (more-returns
+   (pdef pfcs::sr1cs-definitionp
+         :hints (("Goal" :in-theory (enable pfcs::sr1cs-definitionp
+                                            pfcs::sr1cs-constraintp
+                                            pfcs::r1cs-constraintp
+                                            pfcs::r1cs-polynomialp
+                                            pfcs::r1cs-monomialp))))))
+
+(pfcs::lift (field-cast-to-boolean-circuit)
+            :pred field-cast-to-boolean-pred
+            :prime prime)
+
+(defruled field-cast-to-boolean-pred-to-funspec
+  (implies (and (equal prime (base-prime))
+                (fieldp x)
+                (pfield::fep mz prime)
+                (bitp rz)
+                (pfield::fep mo prime)
+                (bitp ro)
+                (bitp orbit)
+                (field-cast-to-boolean-pred x mz rz mo ro orbit prime))
+           (equal (field-cast x (literal-type-boolean))
+                  (literal-boolean (pfield::sub 1 ro prime))))
+  :enable (field-cast-to-boolean-pred
+           field-is-zero-bit-when-constraints
+           field-is-one-bit-when-constraints
+           field-cast-to-boolean-from-checks))
+
 (define field-cast-gadget ()
   :returns (constrs r1cs::r1cs-constraint-listp)
-  :short "Field::cast dispatches on the destination. Boolean asserts zero-or-one. Integer and scalar assert a range. Address and group recover the unique subgroup point."
+  :short "Field::cast dispatches on the destination. The Boolean destination
+          is @('field-cast-to-boolean-gadget'). Integer, scalar, address,
+          group, and identifier destinations are not expanded, so this body
+          stays nil and the catalog row stays at 0."
   nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

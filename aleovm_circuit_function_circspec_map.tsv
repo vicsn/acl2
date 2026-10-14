@@ -51,8 +51,8 @@ program	Ciphertext	Equal	is_not_equal	0	0	0	0	0	prog-catalog.lisp: crypto-cipher
 program	Ciphertext	Inject	new	0	0	0	0	0	prog-catalog.lisp: crypto-ciphertext-new-gadget
 program	Ciphertext	ToBits	write_bits_be	0	0	0	0	0	prog-catalog.lisp: crypto-ciphertext-write-bits-be-gadget
 program	Ciphertext	ToBits	write_bits_le	0	0	0	0	0	prog-catalog.lisp: crypto-ciphertext-write-bits-le-gadget
-program	DynamicFuture	Equal	is_equal	1	0	1	0	0	prog-equal.lisp: dynamic-future-is-equal-gadget, dynamic-future-is-equal-components, dynamic-future-is-equal-sample-holds
-program	DynamicFuture	Equal	is_not_equal	1	0	1	0	0	prog-equal.lisp: dynamic-future-is-not-equal-gadget, dynamic-future-is-not-equal-funspecs-match, dynamic-future-is-not-equal-sample-holds
+program	DynamicFuture	Equal	is_equal	1	1	1	1	1	prog-equal.lisp: dynamic-future-is-equal-gadget, dynamic-future-is-equal-components, dynamic-future-is-equal-sample-holds | prog-equal.lisp: dynamic-future-is-equal-gadget, dynamic-future-is-equal-gadget-sound, dynamic-future-is-equal-gadget-complete, dynamic-future-is-equal-pred-to-funspec, dynamic-future-is-equal-sample-holds
+program	DynamicFuture	Equal	is_not_equal	1	1	1	1	1	prog-equal.lisp: dynamic-future-is-not-equal-gadget, dynamic-future-is-not-equal-funspecs-match, dynamic-future-is-not-equal-sample-holds | prog-equal.lisp: dynamic-future-is-not-equal-gadget, dynamic-future-is-not-equal-gadget-sound, dynamic-future-is-not-equal-gadget-complete, dynamic-future-is-not-equal-pred-to-funspec, dynamic-future-is-not-equal-sample-holds, dynamic-future-is-not-equal-funspecs-match
 program	DynamicFuture	Inject	new	0	0	0	0	0	prog-catalog.lisp: dynamic-future-new-gadget
 program	DynamicFuture	ToBits	write_bits_be	0	0	0	0	0	prog-catalog.lisp: dynamic-future-to-bits-be-gadget
 program	DynamicFuture	ToBits	write_bits_le	0	0	0	0	0	prog-catalog.lisp: dynamic-future-to-bits-le-gadget
@@ -76,7 +76,7 @@ program	Entry	Inject	new	0	0	0	0	0	prog-catalog.lisp: entry-new-gadget
 program	Entry	ToBits	write_bits_be	0	0	0	0	0	prog-catalog.lisp: entry-to-bits-be-gadget
 program	Entry	ToBits	write_bits_le	0	0	0	0	0	prog-catalog.lisp: entry-to-bits-le-gadget
 program	Entry	ToFields	to_fields	0	0	0	0	0	prog-catalog.lisp: entry-to-fields-gadget
-program	Field	Cast	cast	0	0	0	0	0	prog-catalog.lisp: field-cast-gadget
+program	Field	Cast	cast	0	0	0	0	0	prog-catalog.lisp: field-cast-gadget | prog-catalog.lisp: field-cast-gadget nil; boolean destination only: field-cast-to-boolean-gadget, field-cast-to-boolean-gadget-sound, field-cast-to-boolean-gadget-complete, field-cast-to-boolean-pred-to-funspec, field-cast-to-boolean-sample-holds; other destinations not expanded
 program	Field	CastLossy	cast_lossy	0	0	0	0	0	prog-catalog.lisp: field-cast-lossy-gadget
 program	Future	Equal	is_equal	0	0	0	0	0	prog-catalog.lisp: future-is-equal-gadget
 program	Future	Equal	is_not_equal	0	0	0	0	0	prog-catalog.lisp: future-is-not-equal-gadget, future-is-not-equal-funspecs-match
@@ -111,7 +111,7 @@ program	OutputID		external_record	1	1	1	1	1	prog-ids.lisp: crypto-make-output-id
 program	OutputID		future	1	1	1	1	1	prog-ids.lisp: crypto-make-output-id-future-gadget, crypto-make-output-id-future-gadget-sound, crypto-make-output-id-future-gadget-complete, crypto-make-output-id-future-pred-to-funspec, crypto-make-output-id-future-sample-holds
 program	OutputID		private	1	1	1	1	1	prog-ids.lisp: crypto-make-output-id-private-gadget, crypto-make-output-id-private-gadget-sound, crypto-make-output-id-private-gadget-complete, crypto-make-output-id-private-pred-to-funspec, crypto-make-output-id-private-sample-holds
 program	OutputID		public	1	1	1	1	1	prog-ids.lisp: crypto-make-output-id-public-gadget, crypto-make-output-id-public-gadget-sound, crypto-make-output-id-public-gadget-complete, crypto-make-output-id-public-pred-to-funspec, crypto-make-output-id-public-sample-holds
-program	OutputID		record	1	0	1	0	0	prog-ids.lisp: crypto-make-output-id-record-gadget, crypto-make-output-id-record-gadget-complete, crypto-make-output-id-record-sample-holds
+program	OutputID		record	1	0	1	0	1	prog-ids.lisp: crypto-make-output-id-record-gadget, crypto-make-output-id-record-gadget-complete, crypto-make-output-id-record-sample-holds
 program	Owner		decrypt	0	0	0	0	0	prog-catalog.lisp: crypto-owner-decrypt-gadget
 program	Owner		encrypt	0	0	0	0	0	prog-catalog.lisp: crypto-owner-encrypt-gadget
 program	Owner		to_entry	0	0	0	0	0	prog-catalog.lisp: crypto-owner-to-entry-gadget

@@ -1,8 +1,9 @@
 Program-crate circuit formalization notes
 =========================================
 
-14 rows are fully flagged 11111. ProgramID::to_address is 10001.
-138 catalog rows stay at 0.
+16 rows are fully flagged 11111. ProgramID::to_address is 10001.
+OutputID::record is 10101 (honest-witness completeness only).
+135 catalog rows stay at 0.
 Flags are 1 only where a real define/defruled is present and the
 statement is the one named by the column. No skip-proofs were used.
 ACL2 was not run.
@@ -56,10 +57,13 @@ Spec gaps (snarkVM circuit vs funspec)
    crypto-make-output-id-record returns the output id of the expected
    ciphertext unconditionally. The circuit also accepts a public sender
    ciphertext of 0 when the expected ciphertext is nonzero, and stores
-   that 0. Soundness against the funspec does not hold for that branch.
-   The honest snarkVM witness sets the public value equal to the expected
-   one; the completeness defruled is written for that witness but is not
-   flagged, because the zero-comparison arithmetic is not discharged.
+   that 0. Soundness against the funspec does not hold for that branch,
+   and there is no PFCS equivalence.
+   The honest snarkVM witness sets the public ciphertext equal to the
+   expected one (the multiplier is 1 when that value is 0, because the
+   inverse does not exist). crypto-make-output-id-record-gadget-complete
+   is that witness, including the zero-comparison arithmetic, and
+   COMPLETE is 1 only for it. SOUND stays 0.
    R1CS-SPEC is 1: the gadget is the two assert_eq constraints, the two
    field inequalities, the product that is the OR via De Morgan, and
    assert of the OR bit.
@@ -88,6 +92,14 @@ Cast ranges.
   are not identifier bytes). No cast row asserts a range the funspec
   omits, or omits a range the funspec asserts.
 
+Zero-test multiplier.
+  Field::is_not_equal's witness uses multiplier 1 when the difference
+  has no inverse (equal.rs). Field::is_zero is is_equal to zero, so the
+  multiplier is 1 when the field is 0. field-is-zero-gadget-complete
+  uses multiplier 0 in that case. Both assignments satisfy
+  (x)*(m)=(r) and (x)*(1-r)=(0). The program-crate completeness
+  theorems use snarkVM's multiplier 1. This is not a spec gap.
+
 Hash abstraction (not a snarkVM bug)
 ------------------------------------
 
@@ -109,19 +121,30 @@ dynamic-record merkleize_data, state-path verify.
 Unproved rows
 -------------
 
-DynamicFuture::is_equal / is_not_equal.
-  The gadget is four Field::is_not_equal constraint pairs and a chain of
-  three ANDs of the equal-bits (is_not_equal negates the final AND bit;
-  negation is not a constraint). A sample assignment is proved, and
-  dynamic-future-is-equal-components relates the funspec to the four
-  field equalities. The R1CS soundness and completeness theorems that
-  chain the ANDs are not discharged, so those flags are 0. There is no
-  PFCS equivalence.
-
 OutputID::record.
   See spec gap 2. Sample constraints hold over the prime 5 for the
-  honest witness (commitment 4, checksum 2, ciphertext 3). Soundness
-  and PFCS equivalence are absent because of the zero branch.
+  honest witness (commitment 4, checksum 2, ciphertext 3). Completeness
+  of that witness is proved. Soundness and PFCS equivalence are absent
+  because of the zero branch.
+
+Field::cast to Boolean is proved as field-cast-to-boolean-gadget
+(is_zero, is_one, De Morgan OR, assert; sample x = 1 over the prime 5).
+The catalog row also casts to address, group, integer, scalar, and
+identifier. Those callees are not proved, and field-cast-gadget stays
+nil, so the row stays 0.
+
+Integer::cast and Scalar::cast to Boolean are the same zero-or-one
+assert. Integer is_zero / is_one are proved in int-equal.lisp, but each
+catalog row also casts through to_bits or from_x_coordinate. Those
+callees are not proved here, so the rows stay 0.
+
+Future, Entry, Argument, Literal, Value, and Plaintext equality walk a
+variable-length collection (or, for Literal, a sum of group, integer,
+and string equality). They are not a fixed handful of field equalities.
+DynamicRecord equality is the AND of two group equalities, one field
+equality, and one integer equality (17 constraints in the
+variable/variable tests). That chain is not discharged. Ciphertext
+equality is the same variable-length field walk.
 
 Every other partial row has a define of a gadget whose body is nil and
 whose :short says the real constraints are not expanded, so R1CS-SPEC
@@ -156,8 +179,8 @@ call from_x_coordinate) are not expanded to the curve formulas.
 Variable-length structural recursion (plaintext, future, record, and
 value equality, find, to_bits, to_fields, encrypt-with-randomizers) is
 a data-dependent chain of the field and boolean gadgets above. The
-fixed-length cases that were discharged are Identifier and ProgramID
-equality and Record::is_hiding. DynamicRecord equality is the AND of
+fixed-length cases that were discharged are Identifier, ProgramID, and
+DynamicFuture equality, and Record::is_hiding. DynamicRecord equality is the AND of
 two group equalities (each an AND of x and y field equalities), one
 field equality, and one integer equality: 17 constraints in the
 variable/variable tests. That chain is not discharged.
@@ -169,4 +192,5 @@ Fully flagged rows (11111)
   ProgramID::public, is_equal, is_not_equal, to_fields
   OutputID::public, private, future, external_record,
            dynamic_record, dynamic_future
+  DynamicFuture::is_equal, is_not_equal
   Record::is_hiding

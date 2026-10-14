@@ -746,11 +746,7 @@
           (prog-assert-eq-gadget ok ek)
           (prog-field-neq-gadget os es m-eq r-eq p)
           (crypto-record-is-hiding-gadget os m-z r-z p)
-          (list (r1cs::make-r1cs-constraint
-                 :a (list (list 1 r-eq))
-                 :b (list (list 1 r-z))
-                 :c (list (list 1 1)
-                          (list (1- p) or-bit))))
+          (prog-demorgan-or-gadget r-eq r-z or-bit p)
           (prog-assert-gadget or-bit)))
 
 (defruled crypto-make-output-id-record-gadget-complete
@@ -802,28 +798,51 @@
                            1
                          (pfield::inv (lookup-equal os asg) p)))
                 (equal (lookup-equal or-bit asg) 1))
-           (r1cs::r1cs-constraints-holdp
-            (crypto-make-output-id-record-gadget
-             oc ec ok ek os es m-eq r-eq m-z r-z or-bit p)
-            asg p))
+           (and (r1cs::r1cs-constraints-holdp
+                 (crypto-make-output-id-record-gadget
+                  oc ec ok ek os es m-eq r-eq m-z r-z or-bit p)
+                 asg p)
+                (equal (crypto-output-id-record
+                        (lookup-equal oc asg)
+                        (lookup-equal ok asg)
+                        (lookup-equal os asg))
+                       (crypto-make-output-id-record
+                        (lookup-equal ec asg)
+                        (lookup-equal ek asg)
+                        (lookup-equal es asg)))))
   :hints (("Goal"
            :in-theory (e/d (crypto-make-output-id-record-gadget
                             prog-assert-eq-gadget-to-equal
                             prog-field-neq-gadget-to-spec
-                            prog-field-neq-constraints-when-witness
                             crypto-record-is-hiding-gadget-to-spec
+                            prog-demorgan-or-gadget-to-mul
                             prog-assert-gadget-to-funspec
                             assert-funspec
                             enforce-funspec
-                            field-is-not-equal-funspec
+                            crypto-make-output-id-record
                             fieldp
                             bitp
                             r1cs::r1cs-constraints-holdp-of-append
-                            r1cs::r1cs-constraint-holdsp
-                            r1cs::dot-product)
+                            r1cs::fep-of-lookup-equal)
                            ((:definition pfield::sub)
                             pfield::mul-of-sub-arg1
-                            pfield::mul-of-sub-arg2)))))
+                            pfield::mul-of-sub-arg2))
+           :use ((:instance prog-field-neq-constraints-when-witness
+                            (x (lookup-equal os asg))
+                            (y (lookup-equal es asg))
+                            (m (lookup-equal m-eq asg))
+                            (r (lookup-equal r-eq asg))
+                            (p p))
+                 (:instance prog-field-zero-neq-constraints-when-witness
+                            (x (lookup-equal os asg))
+                            (m (lookup-equal m-z asg))
+                            (r (lookup-equal r-z asg))
+                            (p p))
+                 (:instance prog-demorgan-or-mul-when-zero-factor
+                            (x (lookup-equal r-eq asg))
+                            (y (lookup-equal r-z asg))
+                            (z (lookup-equal or-bit asg))
+                            (p p))))))
 
 (defconst *crypto-make-output-id-record-sample-asg*
   '((oc . 4) (ec . 4) (ok . 2) (ek . 2)
@@ -840,6 +859,7 @@
            prog-assert-eq-gadget
            prog-field-neq-gadget
            crypto-record-is-hiding-gadget
+           prog-demorgan-or-gadget
            prog-assert-gadget
            r1cs::r1cs-constraint-holdsp
            r1cs::dot-product
