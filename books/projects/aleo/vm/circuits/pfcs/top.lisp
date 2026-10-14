@@ -41,6 +41,8 @@
 (include-book "field-neq")
 (include-book "field-square")
 (include-book "field-sub")
+(include-book "poseidon-pow17")
+(include-book "hash-psd")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -288,4 +290,6 @@
                     field-neq
                     field-assert-eq
                     field-assert-neq
-                    field-if))
+                    field-if
+                    poseidon-pow17
+                    hash-psd))
