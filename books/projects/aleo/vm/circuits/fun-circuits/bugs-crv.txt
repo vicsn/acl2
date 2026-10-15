@@ -81,12 +81,27 @@ or that assume a component result instead of deriving it, are not counted.
 
 5. Group and address write_bits.
    The constraints are field-to-bits-gadget on the x-coordinate.
-   Soundness (crv-group-write-bits-le-gadget-sound and the address and
-   big-endian variants) uses field-to-bits-soundness and
-   acl2::nat=>lebits-of-lebits=>nat.  Big-endian is the reversal; it adds
-   no constraint.  field-to-bits-gadget has no completeness theorem, and the
-   bit-length check is not a lifted PFCS definition.  R1CS-COMPLETE,
-   PFCS-SPEC, and R1CS-SAMPLES are 0.
+   Soundness is crv-group-write-bits-le-gadget-sound and the address and
+   big-endian variants.  Big-endian uses the same constraints; the written
+   list is the reversal.
+   Completeness is crv-group-write-bits-le-gadget-complete,
+   crv-group-write-bits-be-gadget-complete,
+   crv-address-write-bits-le-gadget-complete, and
+   crv-address-write-bits-be-gadget-complete.  The honest witness is the
+   canonical little-endian bits and the bits-lte-const fold witness, with
+   the zero-unit wire set to 1.
+   The prime-5 sample (value 1, bits (1 0 0)) is
+   crv-group-write-bits-le-sample-holds and the three big-endian and
+   address variants.
+   crv-write-bits-le-3-circuit and crv-write-bits-be-3-circuit are 3-bit
+   PFCSs.  crv-group-write-bits-le-3-pred-to-funspec and
+   crv-address-write-bits-le-3-pred-to-funspec equate the little-endian
+   predicate to the low three bits of the 253-bit funspec for an
+   x-coordinate below 5.  The big-endian theorems
+   crv-group-write-bits-be-3-pred-to-funspec and
+   crv-address-write-bits-be-3-pred-to-funspec equate it to the last three
+   bits (nthcdr 250).  R1CS-SPEC, PFCS-SPEC, R1CS-SAMPLES, R1CS-SOUND, and
+   R1CS-COMPLETE are 1 for these four rows.
    ComputeKey::write_bits is the concatenation of the two group writings
    (pk_sig then pr_sig); that concatenation is not a separate theorem.
    Scalar::write_bits_le is to_lower_bits_le of 251 bits (boolean checks and
@@ -108,8 +123,22 @@ or that assume a component result instead of deriving it, are not counted.
    a >= b and p + 2*(a-b) when a < b.  That parity lemma is
    crv-scalar-is-less-than-gadget-sound, and the swapped and negated
    variants are the other three crv-scalar-is-*-gadget-sound theorems, so
-   R1CS-SOUND is 1.  There is no completeness theorem, the decomposition
-   is not a lifted PFCS definition, and there is no sample assignment.
+   R1CS-SOUND is 1.
+   Completeness is crv-scalar-is-less-than-gadget-complete and the three
+   crv-scalar-is-*-gadget-complete variants.  The witness is the canonical
+   little-endian bits of 2*(a-b) (of 2*(b-a) for the greater-than forms)
+   and the bits-lte-const fold witness, with the zero-unit wire set to 1.
+   Prime-5 samples are crv-scalar-is-less-than-sample-holds (a=0, b=1,
+   bits of 3) and crv-scalar-is-greater-than-sample-holds (the operands
+   swapped).  The or-equal samples use those same assignments, because
+   they emit the same constraints.
+   crv-scalar-is-less-than-3-circuit is a 3-bit PFCS.  Inside the bound
+   that 2*(a-b) mod p is below 5, crv-scalar-is-less-than-3-pred-to-funspec
+   equates the predicate to the funspec.  Swapping the operands is
+   crv-scalar-is-greater-than-3-pred-to-funspec.  The or-equal theorems
+   read one minus that bit.  At the base prime this bound contains only
+   a >= b.  R1CS-SPEC, PFCS-SPEC, R1CS-SAMPLES, R1CS-SOUND, and
+   R1CS-COMPLETE are 1.
 
 7. Scalar addition and casts.
    AddAssign converts both scalars to the base field (no constraint), adds
@@ -122,6 +151,8 @@ or that assume a component result instead of deriving it, are not counted.
    calls from_bits_le.  from_field is from_bits_le of the field's 253 bits.
    from_field_lossy is from_bits_le of the low 250 bits.  None of these
    range checks or lower-bit decompositions are proved against the funspecs.
+   They are not an instance of an already verified field or integer gadget,
+   so no R1CS flag is raised.
 
 8. ComputeKey::is_equal / is_not_equal and Signature::is_equal / is_not_equal.
    The gadgets are defined (two group equalities, one scalar equality, and
