@@ -1,0 +1,74 @@
+diff --git a/circuit/types/scalar/src/helpers/to_bits.rs b/circuit/types/scalar/src/helpers/to_bits.rs
+index 12dfeae..2a223af 100644
+--- a/circuit/types/scalar/src/helpers/to_bits.rs
++++ b/circuit/types/scalar/src/helpers/to_bits.rs
+@@ -137,28 +137,28 @@ mod tests {
+     fn test_to_bits_le_public() {
+         let expected = Uniform::rand(&mut TestRng::default());
+         let candidate = Scalar::<Circuit>::new(Mode::Public, expected);
+-        check_to_bits_le("Public", &expected.to_bits_le(), &candidate, 0, 0, 501, 503);
++        check_to_bits_le("Public", &expected.to_bits_le(), &candidate, 0, 0, 0, 0);
+     }
+ 
+     #[test]
+     fn test_to_bits_be_public() {
+         let expected = Uniform::rand(&mut TestRng::default());
+         let candidate = Scalar::<Circuit>::new(Mode::Public, expected);
+-        check_to_bits_be("Public", &expected.to_bits_be(), candidate, 0, 0, 501, 503);
++        check_to_bits_be("Public", &expected.to_bits_be(), candidate, 0, 0, 0, 0);
+     }
+ 
+     #[test]
+     fn test_to_bits_le_private() {
+         let expected = Uniform::rand(&mut TestRng::default());
+         let candidate = Scalar::<Circuit>::new(Mode::Private, expected);
+-        check_to_bits_le("Private", &expected.to_bits_le(), &candidate, 0, 0, 501, 503);
++        check_to_bits_le("Private", &expected.to_bits_le(), &candidate, 0, 0, 0, 0);
+     }
+ 
+     #[test]
+     fn test_to_bits_be_private() {
+         let expected = Uniform::rand(&mut TestRng::default());
+         let candidate = Scalar::<Circuit>::new(Mode::Private, expected);
+-        check_to_bits_be("Private", &expected.to_bits_be(), candidate, 0, 0, 501, 503);
++        check_to_bits_be("Private", &expected.to_bits_be(), candidate, 0, 0, 0, 0);
+     }
+ 
+     #[test]
+diff --git a/circuit/types/scalar/src/lib.rs b/circuit/types/scalar/src/lib.rs
+index 050b1f3..b685f4e 100644
+--- a/circuit/types/scalar/src/lib.rs
++++ b/circuit/types/scalar/src/lib.rs
+@@ -57,7 +57,15 @@ impl<E: Environment> Inject for Scalar<E> {
+ 
+         // Initialize the scalar as a field element.
+         match console::ToField::to_field(&scalar) {
+-            Ok(field) => Self { field: Field::new(mode, field), bits_le: OnceCell::new() },
++            Ok(field) => {
++                let scalar = Self { field: Field::new(mode, field), bits_le: OnceCell::new() };
++                // A public or private scalar is a base field variable, and the base field is larger than the
++                // scalar field. Range-check it below the scalar field modulus (the bits are cached for later use).
++                if !mode.is_constant() {
++                    let _ = scalar.to_bits_le();
++                }
++                scalar
++            }
+             Err(error) => E::halt(format!("Unable to initialize a scalar circuit as a field element: {error}")),
+         }
+     }
+@@ -191,13 +199,13 @@ mod tests {
+     #[test]
+     fn test_new_public() {
+         let expected = Uniform::rand(&mut TestRng::default());
+-        check_new("Public", expected, Mode::Public, 0, 1, 0, 0);
++        check_new("Public", expected, Mode::Public, 0, 1, 501, 503);
+     }
+ 
+     #[test]
+     fn test_new_private() {
+         let expected = Uniform::rand(&mut TestRng::default());
+-        check_new("Private", expected, Mode::Private, 0, 0, 1, 0);
++        check_new("Private", expected, Mode::Private, 0, 0, 502, 503);
+     }
+ 
+     #[test]
