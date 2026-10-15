@@ -1752,3 +1752,720 @@
            int-spec-bool
            r1cs::r1cs-constraint-holdsp
            r1cs::dot-product))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; PFCS equivalences.  The unsigned predicate is the field equation
+; (1-r)*2^n = 2^n + x - y - s.  Inside the bound 0 <= s < 2^n, with r a
+; bit, that equation holds exactly when r is the unsigned less-than bit
+; and s is the low half of 2^n + x - y.  It is not the signed spec:
+; signed comparison is the sign-bit ternary on the unsigned readings.
+; Greater-than swaps the operands.  The or-equal forms read the negation
+; of the less-than bit.  Those rewrites are the funspec theorems
+; int-is-greater-than-spec-is-swapped-lt,
+; int-is-greater-than-or-equal-spec-is-not-lt, and
+; int-is-less-than-or-equal-spec-is-not-swapped-lt.
+; Every theorem is for every integer-widthp, including 128.
+
+(defrule int-compare-two-widths-below-prime
+  (implies (and (equal prime (base-prime))
+                (integer-widthp n))
+           (< (+ (expt 2 n) (expt 2 n)) prime))
+  :hints (("Goal"
+           :cases ((equal n 8)
+                   (equal n 16)
+                   (equal n 32)
+                   (equal n 64)
+                   (equal n 128))
+           :in-theory (enable integer-widthp
+                              (:e base-prime)
+                              (:e ecurve::edwards-bls12-q)))))
+
+(defrule int-compare-mod-when-inside
+  (implies (and (integerp a)
+                (integerp p)
+                (< 0 p)
+                (< (- p) a)
+                (< a p))
+           (equal (mod a p)
+                  (if (< a 0) (+ a p) a)))
+  :hints (("Goal"
+           :cases ((< a 0))
+           :in-theory (e/d (acl2::mod-when-<
+                            acl2::mod-when-<-of-0)
+                           (acl2::mod-of-+-of-constant
+                            acl2::mod-of-minus-arg1
+                            acl2::equal-of-mod-of-+-when-constants)))))
+
+(with-prover-step-limit
+ 400000
+ (defruled int-is-less-than-pred-to-funspec
+  (implies (and (equal prime (base-prime))
+                (primep prime)
+                (integer-widthp n)
+                (not signedp)
+                (int-valuep x nil n)
+                (int-valuep y nil n)
+                (bitp r)
+                (natp s)
+                (< s (expt 2 n))
+                (equal n2 (expt 2 n)))
+           (equal (int-is-less-than-pred x y r s n2 prime)
+                  (and (equal r (int-is-less-than-spec x y nil n))
+                       (equal s (if (< x y)
+                                    (+ n2 x (- y))
+                                  (- x y))))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use int-compare-two-widths-below-prime
+           :cases ((< x y) (equal r 0))
+           :in-theory (e/d (int-is-less-than-pred
+                            int-is-less-than-spec
+                            int-spec-bool
+                            int-valuep
+                            int-min
+                            int-max
+                            integer-widthp
+                            posp-when-integer-widthp
+                            pfield::add
+                            pfield::mul
+                            pfield::neg
+                            pfield::sub
+                            bitp
+                            int-compare-mod-when-inside
+                            acl2::mod-when-<
+                            acl2::mod-when-<-of-0)
+                           (mod floor
+                            acl2::mod-of-+-of-constant
+                            acl2::mod-of-minus-arg1
+                            acl2::equal-of-mod-of-+-when-constants
+                            pfield::add-of-mod-arg1
+                            pfield::mod-when-fep))))))
+
+(define int-is-greater-than-circuit ()
+  :returns (pdef pfcs::definitionp)
+  :short "Unsigned @('is_greater_than').  Less-than with the operands swapped."
+  (pfcs::parse-def
+   "int_is_greater_than(x, y, r, s, n2) := {
+    (1 - r) * (n2) == (n2 + y - x - s)
+    }")
+  ///
+  (more-returns
+   (pdef pfcs::sr1cs-definitionp
+         :hints (("Goal" :in-theory (enable pfcs::sr1cs-definitionp
+                                            pfcs::sr1cs-constraintp
+                                            pfcs::r1cs-constraintp
+                                            pfcs::r1cs-polynomialp
+                                            pfcs::r1cs-monomialp))))))
+
+(pfcs::lift (int-is-greater-than-circuit)
+            :pred int-is-greater-than-pred
+            :prime prime)
+
+(define int-is-greater-than-or-equal-circuit ()
+  :returns (pdef pfcs::definitionp)
+  :short "Unsigned @('is_greater_than_or_equal').  The result is the high bit."
+  (pfcs::parse-def
+   "int_is_greater_than_or_equal(x, y, r, s, n2) := {
+    (r) * (n2) == (n2 + x - y - s)
+    }")
+  ///
+  (more-returns
+   (pdef pfcs::sr1cs-definitionp
+         :hints (("Goal" :in-theory (enable pfcs::sr1cs-definitionp
+                                            pfcs::sr1cs-constraintp
+                                            pfcs::r1cs-constraintp
+                                            pfcs::r1cs-polynomialp
+                                            pfcs::r1cs-monomialp))))))
+
+(pfcs::lift (int-is-greater-than-or-equal-circuit)
+            :pred int-is-greater-than-or-equal-pred
+            :prime prime)
+
+(define int-is-less-than-or-equal-circuit ()
+  :returns (pdef pfcs::definitionp)
+  :short "Unsigned @('is_less_than_or_equal').  Greater-than-or-equal
+          with the operands swapped."
+  (pfcs::parse-def
+   "int_is_less_than_or_equal(x, y, r, s, n2) := {
+    (r) * (n2) == (n2 + y - x - s)
+    }")
+  ///
+  (more-returns
+   (pdef pfcs::sr1cs-definitionp
+         :hints (("Goal" :in-theory (enable pfcs::sr1cs-definitionp
+                                            pfcs::sr1cs-constraintp
+                                            pfcs::r1cs-constraintp
+                                            pfcs::r1cs-polynomialp
+                                            pfcs::r1cs-monomialp))))))
+
+(pfcs::lift (int-is-less-than-or-equal-circuit)
+            :pred int-is-less-than-or-equal-pred
+            :prime prime)
+
+(defruled int-is-greater-than-pred-is-swapped-lt
+  (equal (int-is-greater-than-pred x y r s n2 prime)
+         (int-is-less-than-pred y x r s n2 prime))
+  :enable (int-is-greater-than-pred int-is-less-than-pred))
+
+(defruled int-is-greater-than-pred-to-funspec
+  (implies (and (equal prime (base-prime))
+                (primep prime)
+                (integer-widthp n)
+                (not signedp)
+                (int-valuep x nil n)
+                (int-valuep y nil n)
+                (bitp r)
+                (natp s)
+                (< s (expt 2 n))
+                (equal n2 (expt 2 n)))
+           (equal (int-is-greater-than-pred x y r s n2 prime)
+                  (and (equal r (int-is-greater-than-spec x y nil n))
+                       (equal s (if (< y x)
+                                    (+ n2 y (- x))
+                                  (- y x))))))
+  :do-not-induct t
+  :enable (int-is-greater-than-pred-is-swapped-lt
+           int-is-greater-than-spec-is-swapped-lt
+           int-is-greater-than-spec
+           int-is-less-than-spec
+           int-spec-bool)
+  :hints (("Goal"
+           :use (:instance int-is-less-than-pred-to-funspec
+                           (x y) (y x)))))
+
+(defruled int-is-gte-pred-is-flipped-lt
+  (implies (and (equal prime (base-prime))
+                (primep prime)
+                (bitp r)
+                (integerp n2))
+           (equal (int-is-greater-than-or-equal-pred x y r s n2 prime)
+                  (int-is-less-than-pred x y (if (equal r 0) 1 0) s n2 prime)))
+  :enable (int-is-greater-than-or-equal-pred
+           int-is-less-than-pred
+           pfield::add
+           pfield::mul
+           pfield::neg
+           pfield::sub
+           bitp
+           int-compare-mod-when-inside)
+  :disable (mod floor
+            acl2::mod-of-+-of-constant
+            acl2::mod-of-minus-arg1
+            acl2::equal-of-mod-of-+-when-constants))
+
+
+(defruled int-is-greater-than-or-equal-pred-to-funspec
+  (implies (and (equal prime (base-prime))
+                (primep prime)
+                (integer-widthp n)
+                (not signedp)
+                (int-valuep x nil n)
+                (int-valuep y nil n)
+                (bitp r)
+                (natp s)
+                (< s (expt 2 n))
+                (equal n2 (expt 2 n)))
+           (equal (int-is-greater-than-or-equal-pred x y r s n2 prime)
+                  (and (equal r (int-is-greater-than-or-equal-spec x y nil n))
+                       (equal s (if (< x y)
+                                    (+ n2 x (- y))
+                                  (- x y))))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use ((:instance int-is-less-than-pred-to-funspec
+                            (r (if (equal r 0) 1 0)))
+                 (:instance int-is-gte-pred-is-flipped-lt))
+           :in-theory (e/d (int-is-greater-than-or-equal-spec-is-not-lt
+                            int-is-greater-than-or-equal-spec
+                            int-is-less-than-spec
+                            int-spec-bool
+                            bitp)
+                           (int-is-gte-pred-is-flipped-lt
+                            int-is-less-than-pred-to-funspec
+                            int-is-greater-than-or-equal-pred
+                            int-is-less-than-pred)))))
+
+(defruled int-is-less-than-or-equal-pred-is-swapped-gte
+  (equal (int-is-less-than-or-equal-pred x y r s n2 prime)
+         (int-is-greater-than-or-equal-pred y x r s n2 prime))
+  :enable (int-is-less-than-or-equal-pred
+           int-is-greater-than-or-equal-pred))
+
+
+(defruled int-is-less-than-or-equal-pred-to-funspec
+  (implies (and (equal prime (base-prime))
+                (primep prime)
+                (integer-widthp n)
+                (not signedp)
+                (int-valuep x nil n)
+                (int-valuep y nil n)
+                (bitp r)
+                (natp s)
+                (< s (expt 2 n))
+                (equal n2 (expt 2 n)))
+           (equal (int-is-less-than-or-equal-pred x y r s n2 prime)
+                  (and (equal r (int-is-less-than-or-equal-spec x y nil n))
+                       (equal s (if (< y x)
+                                    (+ n2 y (- x))
+                                  (- y x))))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use (:instance int-is-greater-than-or-equal-pred-to-funspec
+                           (x y) (y x))
+           :in-theory (e/d (int-is-less-than-or-equal-pred-is-swapped-gte
+                            int-is-less-than-or-equal-spec-is-not-swapped-lt
+                            int-is-less-than-or-equal-spec
+                            int-is-greater-than-or-equal-spec
+                            int-spec-bool)
+                           (int-is-greater-than-or-equal-pred-to-funspec
+                            int-is-less-than-or-equal-pred
+                            int-is-greater-than-or-equal-pred)))))
+
+
+(define int-is-less-than-signed-circuit ()
+  :returns (pdef pfcs::definitionp)
+  :short "Signed @('is_less_than').  Unsigned comparison of the bit
+          patterns, then the sign-bit ternary."
+  (pfcs::parse-def
+   "int_is_less_than_signed(xu, yu, r, s, n2, sx, sy, diff, negpos, out, one) := {
+    (1 - r) * (n2) == (n2 + xu - yu - s),
+    (2 * sx) * (sy) == (sx + sy - diff),
+    (sx) * (one - sy) == (negpos),
+    (1 - diff) * (r - negpos) == (out - negpos)
+    }")
+  ///
+  (more-returns
+   (pdef pfcs::sr1cs-definitionp
+         :hints (("Goal" :in-theory (enable pfcs::sr1cs-definitionp
+                                            pfcs::sr1cs-constraintp
+                                            pfcs::r1cs-constraintp
+                                            pfcs::r1cs-polynomialp
+                                            pfcs::r1cs-monomialp))))))
+
+(pfcs::lift (int-is-less-than-signed-circuit)
+            :pred int-is-less-than-signed-pred
+            :prime prime)
+
+(defruled int-spec-unsigned-unsigned-valuep
+  (implies (and (integer-widthp n)
+                (int-valuep x signedp n))
+           (int-valuep (int-spec-unsigned x n) nil n))
+  :enable (int-valuep int-min int-max int-spec-unsigned
+           integer-widthp posp-when-integer-widthp)
+  :disable (mod floor))
+
+(defthmd int-sign-bit-is-bitp
+  (implies (and (integer-widthp n)
+                (int-valuep x signedp n))
+           (bitp (car (last (int->lebits x n)))))
+  :hints (("Goal"
+           :use ((:instance bitp-of-car-of-last-when-bit-listp
+                            (bits (int->lebits x n)))
+                 (:instance int->lebits-consp))
+           :in-theory (e/d (bit-listp-of-int->lebits-explicit
+                            posp-when-integer-widthp
+                            integer-widthp)
+                           (bitp)))))
+
+(defthmd int-signed-xor-iff
+  (implies (and (equal prime (base-prime))
+                (primep prime)
+                (bitp sx)
+                (bitp sy)
+                (bitp diff))
+           (equal (equal (pfield::mul (pfield::mul (mod 2 prime) sx prime)
+                                      sy
+                                      prime)
+                         (pfield::sub (pfield::add sx sy prime)
+                                      diff
+                                      prime))
+                  (equal diff (if (equal sx sy) 0 1))))
+  :hints (("Goal"
+           :cases ((equal sx 0) (equal sy 0) (equal diff 0))
+           :in-theory (e/d (pfield::add pfield::mul pfield::neg pfield::sub
+                            bitp
+                            int-compare-mod-when-inside)
+                           (mod floor
+                            acl2::mod-of-+-of-constant
+                            acl2::mod-of-minus-arg1
+                            acl2::equal-of-mod-of-+-when-constants)))))
+
+(defthmd int-signed-and-not-iff
+  (implies (and (equal prime (base-prime))
+                (primep prime)
+                (equal one 1)
+                (bitp sx)
+                (bitp sy)
+                (bitp negpos))
+           (equal (equal (pfield::mul sx
+                                      (pfield::sub one sy prime)
+                                      prime)
+                         negpos)
+                  (equal negpos
+                         (if (and (equal sx 1) (equal sy 0))
+                             1
+                           0))))
+  :hints (("Goal"
+           :cases ((equal sx 0) (equal sy 0) (equal negpos 0))
+           :in-theory (e/d (pfield::add pfield::mul pfield::neg pfield::sub
+                            bitp
+                            int-compare-mod-when-inside)
+                           (mod floor
+                            acl2::mod-of-+-of-constant
+                            acl2::mod-of-minus-arg1
+                            acl2::equal-of-mod-of-+-when-constants)))))
+
+(defthmd int-signed-ternary-iff
+  (implies (and (equal prime (base-prime))
+                (primep prime)
+                (bitp diff)
+                (bitp r)
+                (bitp negpos)
+                (bitp out))
+           (equal (equal (pfield::mul (pfield::sub (mod 1 prime) diff prime)
+                                      (pfield::sub r negpos prime)
+                                      prime)
+                         (pfield::sub out negpos prime))
+                  (equal out (if (equal diff 0) r negpos))))
+  :hints (("Goal"
+           :cases ((equal diff 0) (equal r 0) (equal negpos 0) (equal out 0))
+           :in-theory (e/d (pfield::add pfield::mul pfield::neg pfield::sub
+                            bitp
+                            int-compare-mod-when-inside)
+                           (mod floor
+                            acl2::mod-of-+-of-constant
+                            acl2::mod-of-minus-arg1
+                            acl2::equal-of-mod-of-+-when-constants)))))
+
+(defthm int-signed-out-is-bit
+  (implies (and (natp n)
+                (equal xu (lebits=>nat (int->lebits x n)))
+                (equal yu (lebits=>nat (int->lebits y n)))
+                (equal sx (car (last (int->lebits x n))))
+                (equal sy (car (last (int->lebits y n))))
+                (equal r (if (< xu yu) 1 0))
+                (equal diff (if (equal sx sy) 0 1))
+                (equal negpos (if (and (equal sx 1) (equal sy 0)) 1 0))
+                (equal out (if (equal diff 0) r negpos)))
+           (equal out (int-signed-less-than-bit x y n)))
+  :rule-classes nil
+  :hints (("Goal" :in-theory (enable int-signed-less-than-bit))))
+
+(defthm int-signed-ternary-is-spec
+  (implies (and (integer-widthp n)
+                (int-valuep x t n)
+                (int-valuep y t n)
+                (equal xu (int-spec-unsigned x n))
+                (equal yu (int-spec-unsigned y n))
+                (equal sx (car (last (int->lebits x n))))
+                (equal sy (car (last (int->lebits y n))))
+                (equal r (if (< xu yu) 1 0))
+                (equal diff (if (equal sx sy) 0 1))
+                (equal negpos (if (and (equal sx 1) (equal sy 0)) 1 0))
+                (equal out (if (equal diff 0) r negpos)))
+           (equal out (int-is-less-than-spec x y t n)))
+  :rule-classes nil
+  :hints (("Goal"
+           :use ((:instance int-signed-out-is-bit)
+                 (:instance int-signed-less-than-bit-is-spec))
+           :in-theory (e/d (int-spec-unsigned
+                            lebits=>nat-of-int->lebits
+                            integer-widthp
+                            posp-when-integer-widthp
+                            int-valuep)
+                           (int-signed-less-than-bit
+                            int-is-less-than-spec)))))
+
+(defruled int-is-less-than-signed-pred-to-funspec
+  (implies (and (equal prime (base-prime))
+                (primep prime)
+                (integer-widthp n)
+                (int-valuep x t n)
+                (int-valuep y t n)
+                (equal xu (int-spec-unsigned x n))
+                (equal yu (int-spec-unsigned y n))
+                (equal sx (car (last (int->lebits x n))))
+                (equal sy (car (last (int->lebits y n))))
+                (bitp r)
+                (bitp diff)
+                (bitp negpos)
+                (bitp out)
+                (natp s)
+                (< s (expt 2 n))
+                (equal n2 (expt 2 n))
+                (equal one 1))
+           (equal (int-is-less-than-signed-pred
+                   xu yu r s n2 sx sy diff negpos out one prime)
+                  (and (equal r (if (< xu yu) 1 0))
+                       (equal s (if (< xu yu)
+                                    (+ n2 xu (- yu))
+                                  (- xu yu)))
+                       (equal diff (if (equal sx sy) 0 1))
+                       (equal negpos (if (and (equal sx 1)
+                                              (equal sy 0))
+                                         1
+                                       0))
+                       (equal out (if (equal diff 0) r negpos))
+                       (equal out (int-is-less-than-spec x y t n)))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use ((:instance int-is-less-than-pred-to-funspec
+                            (x xu) (y yu) (signedp nil))
+                 (:instance int-signed-xor-iff)
+                 (:instance int-signed-and-not-iff)
+                 (:instance int-signed-ternary-iff)
+                 (:instance int-signed-ternary-is-spec)
+                 (:instance int-sign-bit-is-bitp (signedp t))
+                 (:instance int-sign-bit-is-bitp (x y) (signedp t))
+                 (:instance int-spec-unsigned-unsigned-valuep
+                            (signedp t))
+                 (:instance int-spec-unsigned-unsigned-valuep
+                            (x y) (signedp t)))
+           :in-theory (union-theories
+                       '(int-is-less-than-signed-pred
+                         int-is-less-than-pred
+                         int-is-less-than-spec
+                         int-spec-bool
+                         int-spec-unsigned
+                         int-valuep
+                         int-min
+                         int-max
+                         bitp
+                         ifix
+                         natp)
+                       (theory 'minimal-theory)))))
+
+(define int-is-greater-than-signed-circuit ()
+  :returns (pdef pfcs::definitionp)
+  :short "Signed @('is_greater_than').  Signed less-than with the operands swapped."
+  (pfcs::parse-def
+   "int_is_greater_than_signed(xu, yu, r, s, n2, sx, sy, diff, negpos, out, one) := {
+    (1 - r) * (n2) == (n2 + yu - xu - s),
+    (2 * sy) * (sx) == (sy + sx - diff),
+    (sy) * (one - sx) == (negpos),
+    (1 - diff) * (r - negpos) == (out - negpos)
+    }")
+  ///
+  (more-returns
+   (pdef pfcs::sr1cs-definitionp
+         :hints (("Goal" :in-theory (enable pfcs::sr1cs-definitionp
+                                            pfcs::sr1cs-constraintp
+                                            pfcs::r1cs-constraintp
+                                            pfcs::r1cs-polynomialp
+                                            pfcs::r1cs-monomialp))))))
+
+(pfcs::lift (int-is-greater-than-signed-circuit)
+            :pred int-is-greater-than-signed-pred
+            :prime prime)
+
+(define int-is-greater-than-or-equal-signed-circuit ()
+  :returns (pdef pfcs::definitionp)
+  :short "Signed @('is_greater_than_or_equal').  Same constraints as
+          signed less-than.  The result boolean is @($1 - \\mathit{out}$)."
+  (pfcs::parse-def
+   "int_is_greater_than_or_equal_signed(xu, yu, r, s, n2, sx, sy, diff, negpos, out, one) := {
+    (1 - r) * (n2) == (n2 + xu - yu - s),
+    (2 * sx) * (sy) == (sx + sy - diff),
+    (sx) * (one - sy) == (negpos),
+    (1 - diff) * (r - negpos) == (out - negpos)
+    }")
+  ///
+  (more-returns
+   (pdef pfcs::sr1cs-definitionp
+         :hints (("Goal" :in-theory (enable pfcs::sr1cs-definitionp
+                                            pfcs::sr1cs-constraintp
+                                            pfcs::r1cs-constraintp
+                                            pfcs::r1cs-polynomialp
+                                            pfcs::r1cs-monomialp))))))
+
+(pfcs::lift (int-is-greater-than-or-equal-signed-circuit)
+            :pred int-is-greater-than-or-equal-signed-pred
+            :prime prime)
+
+(define int-is-less-than-or-equal-signed-circuit ()
+  :returns (pdef pfcs::definitionp)
+  :short "Signed @('is_less_than_or_equal').  Signed greater-than-or-equal
+          with the operands swapped."
+  (pfcs::parse-def
+   "int_is_less_than_or_equal_signed(xu, yu, r, s, n2, sx, sy, diff, negpos, out, one) := {
+    (1 - r) * (n2) == (n2 + yu - xu - s),
+    (2 * sy) * (sx) == (sy + sx - diff),
+    (sy) * (one - sx) == (negpos),
+    (1 - diff) * (r - negpos) == (out - negpos)
+    }")
+  ///
+  (more-returns
+   (pdef pfcs::sr1cs-definitionp
+         :hints (("Goal" :in-theory (enable pfcs::sr1cs-definitionp
+                                            pfcs::sr1cs-constraintp
+                                            pfcs::r1cs-constraintp
+                                            pfcs::r1cs-polynomialp
+                                            pfcs::r1cs-monomialp))))))
+
+(pfcs::lift (int-is-less-than-or-equal-signed-circuit)
+            :pred int-is-less-than-or-equal-signed-pred
+            :prime prime)
+
+(defruled int-is-greater-than-signed-pred-is-swapped-lt
+  (equal (int-is-greater-than-signed-pred
+          xu yu r s n2 sx sy diff negpos out one prime)
+         (int-is-less-than-signed-pred
+          yu xu r s n2 sy sx diff negpos out one prime))
+  :enable (int-is-greater-than-signed-pred
+           int-is-less-than-signed-pred))
+
+(defruled int-is-greater-than-signed-pred-to-funspec
+  (implies (and (equal prime (base-prime))
+                (primep prime)
+                (integer-widthp n)
+                (int-valuep x t n)
+                (int-valuep y t n)
+                (equal xu (int-spec-unsigned x n))
+                (equal yu (int-spec-unsigned y n))
+                (equal sx (car (last (int->lebits x n))))
+                (equal sy (car (last (int->lebits y n))))
+                (bitp r)
+                (bitp diff)
+                (bitp negpos)
+                (bitp out)
+                (natp s)
+                (< s (expt 2 n))
+                (equal n2 (expt 2 n))
+                (equal one 1))
+           (equal (int-is-greater-than-signed-pred
+                   xu yu r s n2 sx sy diff negpos out one prime)
+                  (and (equal r (if (< yu xu) 1 0))
+                       (equal s (if (< yu xu)
+                                    (+ n2 yu (- xu))
+                                  (- yu xu)))
+                       (equal diff (if (equal sy sx) 0 1))
+                       (equal negpos (if (and (equal sy 1)
+                                              (equal sx 0))
+                                         1
+                                       0))
+                       (equal out (if (equal diff 0) r negpos))
+                       (equal out (int-is-greater-than-spec x y t n)))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use (:instance int-is-less-than-signed-pred-to-funspec
+                           (x y) (y x)
+                           (xu yu) (yu xu)
+                           (sx sy) (sy sx))
+           :in-theory (e/d (int-is-greater-than-signed-pred-is-swapped-lt
+                            int-is-greater-than-spec-is-swapped-lt
+                            int-is-greater-than-spec
+                            int-is-less-than-spec
+                            int-spec-bool)
+                           (int-is-less-than-signed-pred-to-funspec
+                            int-is-greater-than-signed-pred
+                            int-is-less-than-signed-pred)))))
+
+(defruled int-gte-signed-pred-is-lt
+  (equal (int-is-greater-than-or-equal-signed-pred
+          xu yu r s n2 sx sy diff negpos out one prime)
+         (int-is-less-than-signed-pred
+          xu yu r s n2 sx sy diff negpos out one prime))
+  :enable (int-is-greater-than-or-equal-signed-pred
+           int-is-less-than-signed-pred))
+
+(defruled int-is-greater-than-or-equal-signed-pred-to-funspec
+  (implies (and (equal prime (base-prime))
+                (primep prime)
+                (integer-widthp n)
+                (int-valuep x t n)
+                (int-valuep y t n)
+                (equal xu (int-spec-unsigned x n))
+                (equal yu (int-spec-unsigned y n))
+                (equal sx (car (last (int->lebits x n))))
+                (equal sy (car (last (int->lebits y n))))
+                (bitp r)
+                (bitp diff)
+                (bitp negpos)
+                (bitp out)
+                (natp s)
+                (< s (expt 2 n))
+                (equal n2 (expt 2 n))
+                (equal one 1))
+           (equal (int-is-greater-than-or-equal-signed-pred
+                   xu yu r s n2 sx sy diff negpos out one prime)
+                  (and (equal r (if (< xu yu) 1 0))
+                       (equal s (if (< xu yu)
+                                    (+ n2 xu (- yu))
+                                  (- xu yu)))
+                       (equal diff (if (equal sx sy) 0 1))
+                       (equal negpos (if (and (equal sx 1)
+                                              (equal sy 0))
+                                         1
+                                       0))
+                       (equal out (if (equal diff 0) r negpos))
+                       (equal (if (equal out 0) 1 0)
+                              (int-is-greater-than-or-equal-spec x y t n)))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use (:instance int-is-less-than-signed-pred-to-funspec)
+           :in-theory (e/d (int-gte-signed-pred-is-lt
+                            int-is-greater-than-or-equal-spec-is-not-lt
+                            int-is-greater-than-or-equal-spec
+                            int-is-less-than-spec
+                            int-spec-bool
+                            bitp)
+                           (int-is-less-than-signed-pred-to-funspec
+                            int-is-greater-than-or-equal-signed-pred
+                            int-is-less-than-signed-pred)))))
+
+(defruled int-lte-signed-pred-is-swapped-gte
+  (equal (int-is-less-than-or-equal-signed-pred
+          xu yu r s n2 sx sy diff negpos out one prime)
+         (int-is-greater-than-or-equal-signed-pred
+          yu xu r s n2 sy sx diff negpos out one prime))
+  :enable (int-is-less-than-or-equal-signed-pred
+           int-is-greater-than-or-equal-signed-pred))
+
+(defruled int-is-less-than-or-equal-signed-pred-to-funspec
+  (implies (and (equal prime (base-prime))
+                (primep prime)
+                (integer-widthp n)
+                (int-valuep x t n)
+                (int-valuep y t n)
+                (equal xu (int-spec-unsigned x n))
+                (equal yu (int-spec-unsigned y n))
+                (equal sx (car (last (int->lebits x n))))
+                (equal sy (car (last (int->lebits y n))))
+                (bitp r)
+                (bitp diff)
+                (bitp negpos)
+                (bitp out)
+                (natp s)
+                (< s (expt 2 n))
+                (equal n2 (expt 2 n))
+                (equal one 1))
+           (equal (int-is-less-than-or-equal-signed-pred
+                   xu yu r s n2 sx sy diff negpos out one prime)
+                  (and (equal r (if (< yu xu) 1 0))
+                       (equal s (if (< yu xu)
+                                    (+ n2 yu (- xu))
+                                  (- yu xu)))
+                       (equal diff (if (equal sy sx) 0 1))
+                       (equal negpos (if (and (equal sy 1)
+                                              (equal sx 0))
+                                         1
+                                       0))
+                       (equal out (if (equal diff 0) r negpos))
+                       (equal (if (equal out 0) 1 0)
+                              (int-is-less-than-or-equal-spec x y t n)))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use (:instance int-is-greater-than-or-equal-signed-pred-to-funspec
+                           (x y) (y x)
+                           (xu yu) (yu xu)
+                           (sx sy) (sy sx))
+           :in-theory (e/d (int-lte-signed-pred-is-swapped-gte
+                            int-is-less-than-or-equal-spec-is-not-swapped-lt
+                            int-is-less-than-or-equal-spec
+                            int-is-greater-than-or-equal-spec
+                            int-spec-bool
+                            bitp)
+                           (int-is-greater-than-or-equal-signed-pred-to-funspec
+                            int-is-less-than-or-equal-signed-pred
+                            int-is-greater-than-or-equal-signed-pred)))))

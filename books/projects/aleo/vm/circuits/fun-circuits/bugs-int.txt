@@ -88,6 +88,23 @@ signedness that the row claims is still unproved.
    theorems, with the arguments swapped or the result bit negated,
    cover is_greater_than, is_greater_than_or_equal, and
    is_less_than_or_equal.  R1CS-SOUND and R1CS-COMPLETE are 1.
+   The unsigned PFCS is the field equation (1-r)*2^n = 2^n + x - y - s.
+   Inside the bound 0 <= s < 2^n, with r a bit, it is equivalent to the
+   unsigned funspec and the canonical low half
+   (int-is-less-than-pred-to-funspec).  That predicate is not the signed
+   spec.  Signed less-than is a separate PFCS: the same equation on the
+   unsigned readings, then xor of the sign bits, msb(x) AND NOT msb(y),
+   and the sign-bit ternary (int-is-less-than-signed-pred-to-funspec).
+   Greater-than swaps the operands, and the signed form also swaps the
+   sign bits.  The or-equal forms negate the less-than bit.  Those
+   rewrites are theorems.  The equivalences, for every integer width
+   including 128 and both signednesses, are
+   int-is-greater-than-pred-to-funspec,
+   int-is-greater-than-signed-pred-to-funspec,
+   int-is-greater-than-or-equal-pred-to-funspec,
+   int-is-greater-than-or-equal-signed-pred-to-funspec,
+   int-is-less-than-or-equal-pred-to-funspec, and
+   int-is-less-than-or-equal-signed-pred-to-funspec.
    No snarkVM soundness or completeness bug was found in compare.rs.
 
 7. from_field_lossy
