@@ -20,7 +20,8 @@
 ; Variable/variable addition is proved equal to ecurve::edwards-bls12-add.
 ; Subtraction is that sum with x2 negated.  Doubling and enforce_double are
 ; addition of a curve point with itself.  enforce_on_curve is the twisted
-; Edwards equation.  mul_by_cofactor is two doublings; the funspec multiplies
+; Edwards equation.  Its PFCS predicate is equivalent to the funspec.
+; mul_by_cofactor is two doublings; the funspec multiplies
 ; by 4, and 4P = double(double(P)) needs the unproved associativity
 ; assumption, so that soundness is not claimed.  Group::mul's 251-step
 ; double-and-add is not a theorem.
@@ -640,6 +641,154 @@
                             pfield::equal-of-add-move-negations-bind-free-2b
                             (:definition pfield::sub)
                             pfield::mul-of-sub-arg1)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; PFCS for enforce_on_curve.  d = 3021 is edwards-bls12-d, a coefficient.
+; a = -1, so the right side a*x^2 - 1 is -x2 - 1.
+
+(define crv-group-enforce-on-curve-circuit ()
+  :returns (pdef pfcs::definitionp)
+  :short "Squares and @($y^2 (d x^2 - 1) = -x^2 - 1$), the Edwards-BLS12 check."
+  (pfcs::parse-def
+   "crv_group_enforce_on_curve(x, y, x2, y2) := {
+    (x) * (x) == (x2),
+    (y) * (y) == (y2),
+    (y2) * (3021 * x2 - 1) == (- x2 - 1)
+    }")
+  ///
+  (more-returns
+   (pdef pfcs::sr1cs-definitionp
+         :hints (("Goal" :in-theory (enable pfcs::sr1cs-definitionp
+                                            pfcs::sr1cs-constraintp
+                                            pfcs::r1cs-constraintp
+                                            pfcs::r1cs-polynomialp
+                                            pfcs::r1cs-monomialp))))))
+
+(pfcs::lift (crv-group-enforce-on-curve-circuit)
+            :pred crv-group-enforce-on-curve-pred
+            :prime prime)
+
+(defruledl crv-enforce-on-curve-mod-consts
+  (implies (equal prime (base-prime))
+           (and (equal (mod 1 prime) 1)
+                (equal (mod 3021 prime) (ecurve::edwards-bls12-d))))
+  :hints (("Goal"
+           :in-theory (enable ecurve::edwards-bls12-d
+                              (:e base-prime)
+                              (:e ecurve::edwards-bls12-q)
+                              (:e ecurve::edwards-bls12-d)))))
+
+(defruledl crv-group-enforce-on-curve-pred-to-snarkvm
+  (implies (equal prime (base-prime))
+           (equal (crv-group-enforce-on-curve-pred x y x2 y2 prime)
+                  (and (equal (pfield::mul x x prime) x2)
+                       (equal (pfield::mul y y prime) y2)
+                       (equal (pfield::mul
+                               y2
+                               (pfield::sub
+                                (pfield::mul (ecurve::edwards-bls12-d)
+                                             x2 prime)
+                                1 prime)
+                               prime)
+                              (pfield::sub (pfield::neg x2 prime) 1 prime)))))
+  :hints (("Goal"
+           :in-theory (e/d (crv-group-enforce-on-curve-pred
+                            crv-enforce-on-curve-mod-consts)
+                           ((:definition pfield::mul)
+                            (:definition pfield::sub)
+                            (:definition pfield::neg)
+                            pfield::mul-of-sub-arg1
+                            pfield::mul-of-sub-arg2
+                            pfield::mul-of-add-arg1
+                            pfield::mul-of-add-arg2)))))
+
+(defruledl crv-on-curve-squares-iff-funspec-nil
+  (implies (and (equal prime (base-prime))
+                (primep prime)
+                (curve-coordinatesp pt)
+                (equal x (ecurve::point-finite->x pt))
+                (equal y (ecurve::point-finite->y pt))
+                (equal (pfield::mul x x prime) x2)
+                (equal (pfield::mul y y prime) y2))
+           (equal (equal (pfield::mul
+                          y2
+                          (pfield::sub
+                           (pfield::mul (ecurve::edwards-bls12-d) x2 prime)
+                           1 prime)
+                          prime)
+                         (pfield::sub (pfield::neg x2 prime) 1 prime))
+                  (equal (group-enforce-on-curve-funspec pt) nil)))
+  :hints (("Goal"
+           :do-not-induct t
+           :use (:instance crv-curve-coordinates-on-curve-iff-snarkvm
+                           (p prime))
+           :in-theory (e/d (group-enforce-on-curve-funspec
+                            (:e spec-error))
+                           (crv-curve-coordinates-on-curve-iff-snarkvm
+                            (:definition pfield::mul)
+                            (:definition pfield::sub)
+                            (:definition pfield::neg)
+                            pfield::mul-of-sub-arg1
+                            pfield::mul-of-sub-arg2
+                            pfield::mul-of-add-arg1
+                            pfield::mul-of-add-arg2
+                            pfield::equal-of-add-move-negations-bind-free-2a
+                            pfield::equal-of-add-move-negations-bind-free-2b)))))
+
+(local
+ (defthm crv-eoc-combine
+   (implies (and h-prime
+                 h-primep
+                 h-coords
+                 h-x
+                 h-y
+                 (implies h-prime
+                          (equal pred (and a b c)))
+                 (implies (and h-prime h-primep h-coords h-x h-y a b)
+                          (equal c d)))
+            (equal pred (and a b d)))
+   :rule-classes nil
+   :hints (("Goal" :cases ((and a b))))))
+
+(defruled crv-group-enforce-on-curve-pred-to-funspec
+  :short "The enforce-on-curve predicate holds exactly when the witnesses
+          are the squares and the point is on the Edwards-BLS12 curve."
+  (implies (and (equal prime (base-prime))
+                (primep prime)
+                (curve-coordinatesp pt)
+                (equal x (ecurve::point-finite->x pt))
+                (equal y (ecurve::point-finite->y pt)))
+           (equal (crv-group-enforce-on-curve-pred x y x2 y2 prime)
+                  (and (equal (pfield::mul x x prime) x2)
+                       (equal (pfield::mul y y prime) y2)
+                       (equal (group-enforce-on-curve-funspec pt) nil))))
+  :do-not-induct t
+  :hints (("Goal"
+           :in-theory nil
+           :use ((:instance crv-group-enforce-on-curve-pred-to-snarkvm)
+                 (:instance crv-on-curve-squares-iff-funspec-nil)
+                 (:instance crv-eoc-combine
+                            (h-prime (equal prime (base-prime)))
+                            (h-primep (primep prime))
+                            (h-coords (curve-coordinatesp pt))
+                            (h-x (equal x (ecurve::point-finite->x pt)))
+                            (h-y (equal y (ecurve::point-finite->y pt)))
+                            (pred (crv-group-enforce-on-curve-pred
+                                   x y x2 y2 prime))
+                            (a (equal (pfield::mul x x prime) x2))
+                            (b (equal (pfield::mul y y prime) y2))
+                            (c (equal (pfield::mul
+                                       y2
+                                       (pfield::sub
+                                        (pfield::mul (ecurve::edwards-bls12-d)
+                                                     x2 prime)
+                                        1 prime)
+                                       prime)
+                                      (pfield::sub (pfield::neg x2 prime)
+                                                   1 prime)))
+                            (d (equal (group-enforce-on-curve-funspec pt)
+                                      nil)))))))
 
 (defruled crv-fep-of-edwards-bls12-coords
   (implies (and (equal p (base-prime))

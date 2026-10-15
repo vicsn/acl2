@@ -337,48 +337,48 @@ types/string	StringType	ToBits	write_bits_le	1	1	1	1	1	fun-circuits/val-string-o
 types/string	StringType	ToFields	to_fields	1	1	1	1	1	fun-circuits/val-string-ops.lisp
 types/integers	Integer	Shl	shl	1	1	1	0	0	fun-circuits/int-shift.lisp. int-exponent-bound-gadget-sound forces high exponent bits to 0 for every width, including 128. int-shl-field-mul-by-pow2 is the field product by 2^e for unsigned n other than 128. Full soundness is not claimed: those exponent bits are not assembled into the power of two, and 128-bit pow_checked and signed sign extension are not proved.
 types/integers	Integer	Shr	shr	1	0	0	0	0	fun-circuits/int-shift.lisp (int-shr-unsigned-gadget). The exponent-bound check is int-exponent-bound-gadget-sound, every width including 128. The shift itself is not proved.
-types/integers	Integer	Add	add	1	1	1	1	1	fun-circuits/int-add.lisp. Add is add_checked. Unsigned and signed complete for every width, including 128 (int-add-checked-signed-gadget-complete: the overflow bit is 0 when the funspec is not spec-error).
-types/integers	Integer	BitAnd	bitand	1	1	1	1	1	fun-circuits/int-bitwise.lisp (int-bitand-gadget = integer-and-gadget). All widths, signed and unsigned.
-types/integers	Integer	BitOr	bitor	1	1	1	1	1	fun-circuits/int-bitwise.lisp (int-bitor-gadget = integer-or-gadget).
-types/integers	Integer	BitXor	bitxor	1	1	1	1	1	fun-circuits/int-bitwise.lisp (int-bitxor-gadget = integer-xor-gadget).
+types/integers	Integer	Add	add	1	1	1	0	1	fun-circuits/int-add.lisp. Add is add_checked. Unsigned and signed complete for every width, including 128 (int-add-checked-signed-gadget-complete: the overflow bit is 0 when the funspec is not spec-error). R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/integers	Integer	BitAnd	bitand	1	1	1	0	1	fun-circuits/int-bitwise.lisp (int-bitand-gadget = integer-and-gadget). All widths, signed and unsigned. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/integers	Integer	BitOr	bitor	1	1	1	0	1	fun-circuits/int-bitwise.lisp (int-bitor-gadget = integer-or-gadget). R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/integers	Integer	BitXor	bitxor	1	1	1	0	1	fun-circuits/int-bitwise.lisp (int-bitxor-gadget = integer-xor-gadget). R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/integers	Integer	Div	div	1	1	1	0	0	fun-circuits/int-div.lisp. Div is div_checked. PFCS is the Euclidean equation only. Unsigned n in {8,16,32,64} is int-div-checked-unsigned-gadget-sound, including remainder < divisor. Sample int-unsigned-division-sample-holds. 128-bit and signed are not proved, so soundness stays 0.
 types/integers	Integer	Mul	mul	1	0	1	0	0	fun-circuits/int-mul.lisp. Mul is mul_checked. Sample is the unsigned field product. 128-bit and signed excluded.
-types/integers	Integer	Neg	neg	1	1	1	1	1	fun-circuits/int-neg.lisp. Unsigned is spec-error (host halt); no circuit. Signed completeness is int-neg-signed-gadget-complete for every width including 128: result bits of the negation, carry int-sub-carry of 0, and both-neg is 0 whenever the funspec is not spec-error (int-neg-sign-and-is-zero). PFCS-SPEC is int-neg-signed-pred-to-funspec: wrapped subtraction from zero plus the both-negative check is equivalent to int-neg-spec for every integer width including 128. Unsigned negation stays outside that circuit.
+types/integers	Integer	Neg	neg	1	1	1	0	1	fun-circuits/int-neg.lisp. Unsigned is spec-error (host halt); no circuit. Signed completeness is int-neg-signed-gadget-complete for every width including 128: result bits of the negation, carry int-sub-carry of 0, and both-neg is 0 whenever the funspec is not spec-error (int-neg-sign-and-is-zero). PFCS-SPEC is int-neg-signed-pred-to-funspec: wrapped subtraction from zero plus the both-negative check is equivalent to int-neg-spec for every integer width including 128. Unsigned negation stays outside that circuit. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/integers	Integer	Rem	rem	1	0	1	0	0	fun-circuits/int-div.lisp (int-rem-unsigned-gadget = unsigned division). Same unsigned proof and sample as div, including remainder < divisor. 128-bit and signed not proved, so soundness stays 0.
-types/integers	Integer	Sub	sub	1	1	1	1	1	fun-circuits/int-sub.lisp. Sub is sub_checked. Unsigned and signed complete for every width, including 128 (int-sub-checked-signed-gadget-complete).
+types/integers	Integer	Sub	sub	1	1	1	0	1	fun-circuits/int-sub.lisp. Sub is sub_checked. Unsigned and signed complete for every width, including 128 (int-sub-checked-signed-gadget-complete). R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/integers	Integer	ShlAssign	shl_assign	1	0	1	0	0	fun-circuits/int-shift.lisp. Same exponent-bound gadget as shl_checked. The bound check is proved for every width; the shift is not.
 types/integers	Integer	ShrAssign	shr_assign	1	0	1	0	0	fun-circuits/int-shift.lisp. Same exponent-bound gadget as shr_checked. The bound check is proved for every width; the shift is not.
-types/integers	Integer	AddAssign	add_assign	1	1	1	1	1	fun-circuits/int-add.lisp. Same circuit and funspec as add_checked, including signed completeness.
-types/integers	Integer	BitAndAssign	bitand_assign	1	1	1	1	1	fun-circuits/int-bitwise.lisp. Same gadget and funspec as bitand.
-types/integers	Integer	BitOrAssign	bitor_assign	1	1	1	1	1	fun-circuits/int-bitwise.lisp. Same gadget and funspec as bitor.
-types/integers	Integer	BitXorAssign	bitxor_assign	1	1	1	1	1	fun-circuits/int-bitwise.lisp. Same gadget and funspec as bitxor.
+types/integers	Integer	AddAssign	add_assign	1	1	1	0	1	fun-circuits/int-add.lisp. Same circuit and funspec as add_checked, including signed completeness. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/integers	Integer	BitAndAssign	bitand_assign	1	1	1	0	1	fun-circuits/int-bitwise.lisp. Same gadget and funspec as bitand. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/integers	Integer	BitOrAssign	bitor_assign	1	1	1	0	1	fun-circuits/int-bitwise.lisp. Same gadget and funspec as bitor. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/integers	Integer	BitXorAssign	bitxor_assign	1	1	1	0	1	fun-circuits/int-bitwise.lisp. Same gadget and funspec as bitxor. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/integers	Integer	DivAssign	div_assign	1	0	1	0	0	fun-circuits/int-div.lisp. Same gadget as div_checked. Unsigned 8..64 proved, with the one-bit sample. 128-bit and signed not proved.
 types/integers	Integer	MulAssign	mul_assign	1	0	1	0	0	fun-circuits/int-mul.lisp. Same gadget as mul_checked.
 types/integers	Integer	RemAssign	rem_assign	1	0	1	0	0	fun-circuits/int-div.lisp. Same gadget as rem_checked. Unsigned 8..64 proved, with the one-bit sample. 128-bit and signed not proved.
-types/integers	Integer	SubAssign	sub_assign	1	1	1	1	1	fun-circuits/int-sub.lisp. Same circuit and funspec as sub_checked, including signed completeness.
-types/integers	Integer	AbsChecked	abs_checked	1	1	1	1	1	fun-circuits/int-abs.lisp. Unsigned identity. Signed completeness is int-abs-checked-signed-gadget-complete for every width including 128. The overflow bit is 0 whenever the funspec is not spec-error (int-abs-checked-overflow-is-zero).
-types/integers	Integer	AbsWrapped	abs_wrapped	1	1	1	1	1	fun-circuits/int-abs.lisp. Unsigned identity. Signed completeness is int-abs-wrapped-signed-gadget-complete for every width including 128. The signed minimum wraps to itself.
-types/integers	Integer	Equal	is_not_equal	1	1	1	1	1	fun-circuits/int-equal.lisp (int-is-not-equal-gadget = unsigned-small-neq). Result bit is z. All widths.
-types/integers	Integer	ToFields	to_fields	1	1	1	1	1	fun-circuits/int-field.lisp. Empty gadget. PFCS is int-to-fields-pred-to-funspec.
-types/integers	Integer	Compare	is_greater_than	1	1	1	1	1	fun-circuits/int-compare.lisp. Unsigned and signed sound and complete for every width including 128. Signed greater-than is signed less-than with the operands swapped (int-is-greater-than-signed-gadget-sound and int-is-greater-than-signed-gadget-complete). Sample reuses the less-than assignment. PFCS-SPEC is int-is-greater-than-pred-to-funspec and int-is-greater-than-signed-pred-to-funspec: the predicate is equivalent to the funspec inside the bound on the low half, for every width including 128 and both signednesses. Greater-than swaps the less-than operands.
+types/integers	Integer	SubAssign	sub_assign	1	1	1	0	1	fun-circuits/int-sub.lisp. Same circuit and funspec as sub_checked, including signed completeness. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/integers	Integer	AbsChecked	abs_checked	1	1	1	0	1	fun-circuits/int-abs.lisp. Unsigned identity. Signed completeness is int-abs-checked-signed-gadget-complete for every width including 128. The overflow bit is 0 whenever the funspec is not spec-error (int-abs-checked-overflow-is-zero). R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/integers	Integer	AbsWrapped	abs_wrapped	1	1	1	0	1	fun-circuits/int-abs.lisp. Unsigned identity. Signed completeness is int-abs-wrapped-signed-gadget-complete for every width including 128. The signed minimum wraps to itself. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/integers	Integer	Equal	is_not_equal	1	1	1	0	1	fun-circuits/int-equal.lisp (int-is-not-equal-gadget = unsigned-small-neq). Result bit is z. All widths. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/integers	Integer	ToFields	to_fields	1	1	1	0	1	fun-circuits/int-field.lisp. Empty gadget. PFCS is int-to-fields-pred-to-funspec. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/integers	Integer	Compare	is_greater_than	1	1	1	0	1	fun-circuits/int-compare.lisp. Unsigned and signed sound and complete for every width including 128. Signed greater-than is signed less-than with the operands swapped (int-is-greater-than-signed-gadget-sound and int-is-greater-than-signed-gadget-complete). Sample reuses the less-than assignment. PFCS-SPEC is int-is-greater-than-pred-to-funspec and int-is-greater-than-signed-pred-to-funspec: the predicate is equivalent to the funspec inside the bound on the low half, for every width including 128 and both signednesses. Greater-than swaps the less-than operands. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/integers	Integer	Pow	pow	1	0	1	0	0	fun-circuits/int-pow.lisp. Pow is pow_checked. Only the exponent-zero case and one mul step are connected.
-types/integers	Integer	Compare	is_greater_than_or_equal	1	1	1	1	1	fun-circuits/int-compare.lisp. Unsigned and signed sound and complete for every width including 128. The result boolean is the negation of the less-than bit; boolean not adds no constraint (int-is-greater-than-or-equal-signed-gadget-sound and int-is-greater-than-or-equal-signed-gadget-complete). Sample int-is-greater-than-or-equal-sample-holds. PFCS-SPEC is int-is-greater-than-or-equal-pred-to-funspec and int-is-greater-than-or-equal-signed-pred-to-funspec. The result bit is the negation of the less-than bit, for every width including 128 and both signednesses.
-types/integers	Integer	One	is_one	1	1	1	1	1	fun-circuits/int-equal.lisp. is_equal against the bits of 1. PFCS is int-is-one-pred-to-funspec: field not-equal of the integer's field image and 1.
-types/integers	Integer	Zero	is_zero	1	1	1	1	1	fun-circuits/int-equal.lisp. is_equal against zero. PFCS is int-is-zero-pred-to-funspec: field not-equal of the integer's field image and 0.
-types/integers	Integer	Compare	is_less_than_or_equal	1	1	1	1	1	fun-circuits/int-compare.lisp. Unsigned and signed sound and complete for every width including 128. Signed less-than-or-equal is greater-than-or-equal with the operands swapped (int-is-less-than-or-equal-signed-gadget-sound and int-is-less-than-or-equal-signed-gadget-complete). Sample int-is-less-than-or-equal-sample-holds. PFCS-SPEC is int-is-less-than-or-equal-pred-to-funspec and int-is-less-than-or-equal-signed-pred-to-funspec. Less-than-or-equal is greater-than-or-equal with the operands swapped, for every width including 128 and both signednesses.
+types/integers	Integer	Compare	is_greater_than_or_equal	1	1	1	0	1	fun-circuits/int-compare.lisp. Unsigned and signed sound and complete for every width including 128. The result boolean is the negation of the less-than bit; boolean not adds no constraint (int-is-greater-than-or-equal-signed-gadget-sound and int-is-greater-than-or-equal-signed-gadget-complete). Sample int-is-greater-than-or-equal-sample-holds. PFCS-SPEC is int-is-greater-than-or-equal-pred-to-funspec and int-is-greater-than-or-equal-signed-pred-to-funspec. The result bit is the negation of the less-than bit, for every width including 128 and both signednesses. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/integers	Integer	One	is_one	1	1	1	0	1	fun-circuits/int-equal.lisp. is_equal against the bits of 1. PFCS is int-is-one-pred-to-funspec: field not-equal of the integer's field image and 1. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/integers	Integer	Zero	is_zero	1	1	1	0	1	fun-circuits/int-equal.lisp. is_equal against zero. PFCS is int-is-zero-pred-to-funspec: field not-equal of the integer's field image and 0. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/integers	Integer	Compare	is_less_than_or_equal	1	1	1	0	1	fun-circuits/int-compare.lisp. Unsigned and signed sound and complete for every width including 128. Signed less-than-or-equal is greater-than-or-equal with the operands swapped (int-is-less-than-or-equal-signed-gadget-sound and int-is-less-than-or-equal-signed-gadget-complete). Sample int-is-less-than-or-equal-sample-holds. PFCS-SPEC is int-is-less-than-or-equal-pred-to-funspec and int-is-less-than-or-equal-signed-pred-to-funspec. Less-than-or-equal is greater-than-or-equal with the operands swapped, for every width including 128 and both signednesses. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/integers	Integer	Modulo	modulo	1	0	1	0	0	fun-circuits/int-div.lisp. Signed is spec-error. Unsigned is rem_wrapped, proved for n in {8,16,32,64} including remainder < divisor. 128-bit not proved, so soundness stays 0. Sample is int-unsigned-division-sample-holds.
-types/integers	Integer	FromBits	from_bits_be	1	1	1	1	1	fun-circuits/int-bits.lisp. Reversal is not a constraint. int-from-bits-be-gadget-sound and int-from-bits-be-gadget-complete reduce to the little-endian excess check. Every width, both signednesses.
+types/integers	Integer	FromBits	from_bits_be	1	1	1	0	1	fun-circuits/int-bits.lisp. Reversal is not a constraint. int-from-bits-be-gadget-sound and int-from-bits-be-gadget-complete reduce to the little-endian excess check. Every width, both signednesses. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/integers	Integer	Inject	new	1	1	1	1	1	fun-circuits/int-new.lisp (boolean-check-gadget-list). All widths.
 types/integers	Integer		from_field_lossy	1	0	0	0	0	fun-circuits/int-field.lisp reuses field-to-bits-gadget. Low bits equal f mod 2^n. Completeness omitted: bits-lt-prime witness not constructed. No 253-bit sample.
-types/integers	Integer	ToField	to_field	1	1	1	1	1	fun-circuits/int-field.lisp. Empty gadget. Value is int-spec-unsigned.
-types/integers	Integer		to_scalar	1	1	1	1	1	fun-circuits/int-field.lisp. Empty gadget. PFCS is int-to-scalar-pred-to-funspec.
+types/integers	Integer	ToField	to_field	1	1	1	0	1	fun-circuits/int-field.lisp. Empty gadget. Value is int-spec-unsigned. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/integers	Integer		to_scalar	1	1	1	0	1	fun-circuits/int-field.lisp. Empty gadget. PFCS is int-to-scalar-pred-to-funspec. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/integers	Integer	FromField	from_field	1	1	1	1	1	fun-circuits/int-field.lisp (boolean-check plus pow2sum). All widths. PFCS is the width-2 instance of the same constraints.
-types/integers	Integer	FromBits	from_bits_le	1	1	1	1	1	fun-circuits/int-bits.lisp. No-excess path adds no constraint. Excess assert_bits_are_zero: int-excess-bits-sum-forces-all-zero, int-from-bits-le-gadget-sound, and int-from-bits-le-gadget-complete. Every width, both signednesses.
+types/integers	Integer	FromBits	from_bits_le	1	1	1	0	1	fun-circuits/int-bits.lisp. No-excess path adds no constraint. Excess assert_bits_are_zero: int-excess-bits-sum-forces-all-zero, int-from-bits-le-gadget-sound, and int-from-bits-le-gadget-complete. Every width, both signednesses. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/integers	Integer	PowWrapped	pow_wrapped	1	0	0	0	0	fun-circuits/int-pow.lisp (int-pow-wrapped-step-gadget = mul_wrapped). 128-bit and the square-and-multiply induction are not proved. Exponent 0 yields 1.
-types/integers	Integer	Equal	is_equal	1	1	1	1	1	fun-circuits/int-equal.lisp. Same constraints as is_not_equal; result is the linear combination 1-z.
-types/integers	Integer	Ternary	ternary	1	1	1	1	1	fun-circuits/int-ternary.lisp (integer-ternary-gadget). All widths.
+types/integers	Integer	Equal	is_equal	1	1	1	0	1	fun-circuits/int-equal.lisp. Same constraints as is_not_equal; result is the linear combination 1-z. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/integers	Integer	Ternary	ternary	1	1	1	0	1	fun-circuits/int-ternary.lisp (integer-ternary-gadget). All widths. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/integers	Integer	ShrChecked	shr_checked	1	0	1	0	0	fun-circuits/int-shift.lisp. Exponent bound is assert_bits_are_zero and is proved (int-exponent-bound-gadget-sound), every width including 128. In-range exponent agrees with shr_wrapped as a funspec. The shift circuit itself is not proved.
-types/integers	Integer	AddWrapped	add_wrapped	1	1	1	1	1	fun-circuits/int-add.lisp. Unsigned and signed completeness for every width including 128 (int-add-wrapped-unsigned-gadget-complete and int-add-wrapped-signed-gadget-complete). The carry is int-add-carry, forced by int-add-wrapped-carry-equation. PFCS-SPEC is int-add-wrapped-pred-to-funspec: N(x)+N(y) = N(wrap(x+y))+carry*2^n is equivalent to int-add-wrapped-spec for both signednesses and every width including 128.
+types/integers	Integer	AddWrapped	add_wrapped	1	1	1	0	1	fun-circuits/int-add.lisp. Unsigned and signed completeness for every width including 128 (int-add-wrapped-unsigned-gadget-complete and int-add-wrapped-signed-gadget-complete). The carry is int-add-carry, forced by int-add-wrapped-carry-equation. PFCS-SPEC is int-add-wrapped-pred-to-funspec: N(x)+N(y) = N(wrap(x+y))+carry*2^n is equivalent to int-add-wrapped-spec for both signednesses and every width including 128. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/integers	Integer	SubWrapped	sub_wrapped	1	0	0	0	0	fun-circuits/int-sub.lisp. Unsigned sound only (int-sub-wrapped-unsigned-gadget-sound). Signed wrapped subtraction not connected. No sample.
 types/integers	Integer		mul_and_check	1	1	1	0	0	fun-circuits/int-mul.lisp. One field product, unsigned, n other than 128. Library soundness of this gadget is commented out (WIP); the product constraint is proved here. Signed and Karatsuba not included.
 types/integers	Integer	RemWrapped	rem_wrapped	1	0	1	0	0	fun-circuits/int-div.lisp. Quotient and remainder of unsigned-small-div, including remainder < divisor, for n in {8,16,32,64}. Sample int-unsigned-division-sample-holds. 128-bit and signed not proved, so soundness stays 0.
@@ -387,10 +387,10 @@ types/integers	Integer		mul_with_flags	0	0	0	0	0	fun-circuits/int-mul.lisp defin
 types/integers	Integer		karatsuba_multiply	1	0	1	0	0	fun-circuits/int-mul.lisp samples only z0 = x0*y0. The rest of Karatsuba is not proved against int-karatsuba-multiply-spec.
 types/integers	Integer	DivWrapped	div_wrapped	1	0	1	0	0	fun-circuits/int-div.lisp. Unsigned gadget is unsigned_division_via_witness, proved for n in {8,16,32,64} with the one-bit sample. 128-bit and signed not proved, so soundness stays 0.
 types/integers	Integer	MulWrapped	mul_wrapped	1	0	0	0	0	fun-circuits/int-mul.lisp (unsigned-small-mul-wrapped). int-mul-wrapped-small-sound excludes 128-bit. No sample of the Babbage witnesses.
-types/integers	Integer	Compare	is_less_than	1	1	1	1	1	fun-circuits/int-compare.lisp. Unsigned and signed sound and complete for every width including 128. Signed witness is the low bits of 2^n+N(x)-N(y), the sign-bit xor and and-not, and the ternary selector (int-is-less-than-signed-gadget-sound and int-is-less-than-signed-gadget-complete). The unsigned PFCS int-is-less-than-pred-to-funspec is not the signed spec. Signed less-than is the separate sign-bit ternary int-is-less-than-signed-pred-to-funspec, every width including 128.
+types/integers	Integer	Compare	is_less_than	1	1	1	0	1	fun-circuits/int-compare.lisp. Unsigned and signed sound and complete for every width including 128. Signed witness is the low bits of 2^n+N(x)-N(y), the sign-bit xor and and-not, and the ternary selector (int-is-less-than-signed-gadget-sound and int-is-less-than-signed-gadget-complete). The unsigned PFCS int-is-less-than-pred-to-funspec is not the signed spec. Signed less-than is the separate sign-bit ternary int-is-less-than-signed-pred-to-funspec, every width including 128. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/integers	Integer	MulChecked	mul_checked	1	0	1	0	0	fun-circuits/int-mul.lisp. Unsigned small soundness excludes 128 and signed. Sample is 1*1=1.
-types/integers	Integer	SubChecked	sub_checked	1	1	1	1	1	fun-circuits/int-sub.lisp. Unsigned IFF. Signed complete via int-sub-checked-signed-gadget-complete, every width including 128.
-types/integers	Integer	AddChecked	add_checked	1	1	1	1	1	fun-circuits/int-add.lisp. Unsigned IFF. Signed complete via int-add-checked-signed-gadget-complete, every width including 128.
+types/integers	Integer	SubChecked	sub_checked	1	1	1	0	1	fun-circuits/int-sub.lisp. Unsigned IFF. Signed complete via int-sub-checked-signed-gadget-complete, every width including 128. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/integers	Integer	AddChecked	add_checked	1	1	1	0	1	fun-circuits/int-add.lisp. Unsigned IFF. Signed complete via int-add-checked-signed-gadget-complete, every width including 128. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/integers	Integer	RemChecked	rem_checked	1	0	1	0	0	fun-circuits/int-div.lisp. Unsigned is rem_wrapped, proved for n in {8,16,32,64} with the one-bit sample. 128-bit and signed not proved, so soundness stays 0.
 types/integers	Integer	DivChecked	div_checked	1	0	1	0	0	fun-circuits/int-div.lisp. Unsigned spec agrees with div_wrapped when the divisor is nonzero. Proved for n in {8,16,32,64}, including remainder < divisor and the one-bit sample. 128-bit and signed not proved, so soundness stays 0.
 types/integers	Integer	PowChecked	pow_checked	1	0	1	0	0	fun-circuits/int-pow.lisp. One checked mul step and the exponent-zero case. Square-and-multiply and 128-bit not proved.
@@ -405,10 +405,10 @@ account	ComputeKey	From	from	1	0	1	0	1	crv-project.lisp: empty non-hash gadget, 
 account	ComputeKey	FromBits	from_bits_be	0	0	0	0	0	
 account	ComputeKey	FromBits	from_bits_le	0	0	0	0	0	
 account	ComputeKey	Inject	new	0	0	0	0	0	
-account	ComputeKey	Ternary	ternary	1	1	1	1	1	crv-ternary.lisp
+account	ComputeKey	Ternary	ternary	1	1	1	0	1	crv-ternary.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 account	ComputeKey	ToBits	write_bits_be	0	0	0	0	0	
 account	ComputeKey	ToBits	write_bits_le	0	0	0	0	0	
-account	ComputeKey	ToFields	to_fields	1	1	1	1	1	crv-project.lisp
+account	ComputeKey	ToFields	to_fields	1	1	1	0	1	crv-project.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 account	PrivateKey		to_compute_key	0	0	0	0	0	
 account	PrivateKey		to_view_key	0	0	0	0	0	
 account	Signature		verify	0	0	0	0	0	
@@ -420,37 +420,37 @@ account	Signature	Inject	new	0	0	0	0	0
 account	Signature	Ternary	ternary	1	1	1	0	0	crv-ternary.lisp
 account	Signature	ToBits	write_bits_be	0	0	0	0	0	
 account	Signature	ToBits	write_bits_le	0	0	0	0	0	
-account	Signature	ToFields	to_fields	1	1	1	1	1	crv-project.lisp
+account	Signature	ToFields	to_fields	1	1	1	0	1	crv-project.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 account	ViewKey		from_private_key	0	0	0	0	0	
 account	ViewKey		to_address	0	0	0	0	0	
-types/address	Address	Compare	is_greater_than	1	0	0	1	0	crv-compare.lisp
-types/address	Address	Compare	is_greater_than_or_equal	1	0	0	1	0	crv-compare.lisp
-types/address	Address	Compare	is_less_than	1	0	0	1	0	crv-compare.lisp
-types/address	Address	Compare	is_less_than_or_equal	1	0	0	1	0	crv-compare.lisp
-types/address	Address	Equal	is_equal	1	1	1	1	1	crv-equal.lisp
-types/address	Address	Equal	is_not_equal	1	1	1	1	1	crv-equal.lisp
+types/address	Address	Compare	is_greater_than	1	0	0	0	0	crv-compare.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/address	Address	Compare	is_greater_than_or_equal	1	0	0	0	0	crv-compare.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/address	Address	Compare	is_less_than	1	0	0	0	0	crv-compare.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/address	Address	Compare	is_less_than_or_equal	1	0	0	0	0	crv-compare.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/address	Address	Equal	is_equal	1	1	1	0	1	crv-equal.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/address	Address	Equal	is_not_equal	1	1	1	0	1	crv-equal.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/address	Address	From	from	0	0	0	0	0	
 types/address	Address	FromBits	from_bits_be	0	0	0	0	0	
 types/address	Address	FromBits	from_bits_le	0	0	0	0	0	
 types/address	Address	FromField	from_field	0	0	0	0	0	
 types/address	Address	Inject	new	0	0	0	0	0	
-types/address	Address	Ternary	ternary	1	1	1	1	1	crv-ternary.lisp
-types/address	Address	ToBits	write_bits_be	1	1	1	1	1	crv-bits.lisp
-types/address	Address	ToBits	write_bits_le	1	1	1	1	1	crv-bits.lisp
-types/address	Field	From	from	1	1	1	1	1	crv-project.lisp
+types/address	Address	Ternary	ternary	1	1	1	0	1	crv-ternary.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/address	Address	ToBits	write_bits_be	1	1	0	0	1	crv-bits.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. R1CS-SAMPLES cleared: the assignment is an ACL2 prime-5 check, not an aleovm_sample_circuits.py snarkVM dump.
+types/address	Address	ToBits	write_bits_le	1	1	0	0	1	crv-bits.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. R1CS-SAMPLES cleared: the assignment is an ACL2 prime-5 check, not an aleovm_sample_circuits.py snarkVM dump.
+types/address	Field	From	from	1	1	1	0	1	crv-project.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/group	Group		enforce_double	1	0	0	0	0	crv-curve.lisp
 types/group	Group		enforce_in_group	0	0	0	0	0	
-types/group	Group		enforce_on_curve	1	0	1	1	1	crv-curve.lisp
+types/group	Group		enforce_on_curve	1	1	1	0	1	crv-curve.lisp. PFCS-SPEC is crv-group-enforce-on-curve-pred-to-funspec: the predicate holds iff the witnesses are the squares and group-enforce-on-curve-funspec returns nil. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/group	Group		from_x_coordinate	0	0	0	0	0	
 types/group	Group		from_x_coordinate_flagged	0	0	0	0	0	
 types/group	Group		from_xy_coordinates	0	0	0	0	0	
 types/group	Group		is_in_group	0	0	0	0	0	
 types/group	Group		mul_by_cofactor	1	0	0	0	0	crv-curve.lisp
-types/group	Group	Add	add	1	0	1	1	0	crv-curve.lisp
-types/group	Group	AddAssign	add_assign	1	0	0	1	0	crv-curve.lisp
+types/group	Group	Add	add	1	0	1	0	0	crv-curve.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/group	Group	AddAssign	add_assign	1	0	0	0	0	crv-curve.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/group	Group	Double	double	1	0	1	0	0	crv-curve.lisp
-types/group	Group	Equal	is_equal	1	1	1	1	1	crv-equal.lisp
-types/group	Group	Equal	is_not_equal	1	1	1	1	1	crv-equal.lisp
+types/group	Group	Equal	is_equal	1	1	1	0	1	crv-equal.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/group	Group	Equal	is_not_equal	1	1	1	0	1	crv-equal.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/group	Group	FromBits	from_bits_be	0	0	0	0	0	
 types/group	Group	FromBits	from_bits_le	0	0	0	0	0	
 types/group	Group	Inject	new	0	0	0	0	0	
@@ -458,24 +458,25 @@ types/group	Group	Mul	mul	1	0	0	0	0	crv-curve.lisp
 types/group	Group	MulAssign	mul_assign	1	0	0	0	0	crv-curve.lisp
 types/group	Group	Sub	sub	1	0	1	0	0	crv-curve.lisp
 types/group	Group	SubAssign	sub_assign	1	0	0	0	0	crv-curve.lisp
-types/group	Group	Ternary	ternary	1	1	1	1	1	crv-ternary.lisp
-types/group	Group	ToBits	write_bits_be	1	1	1	1	1	crv-bits.lisp
-types/group	Group	ToBits	write_bits_le	1	1	1	1	1	crv-bits.lisp
-types/group	Group	Zero	is_zero	1	1	1	1	1	crv-equal.lisp
+types/group	Group	Ternary	ternary	1	1	1	0	1	crv-ternary.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/group	Group	ToBits	write_bits_be	1	1	0	0	1	crv-bits.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. R1CS-SAMPLES cleared: the assignment is an ACL2 prime-5 check, not an aleovm_sample_circuits.py snarkVM dump.
+types/group	Group	ToBits	write_bits_le	1	1	0	0	1	crv-bits.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. R1CS-SAMPLES cleared: the assignment is an ACL2 prime-5 check, not an aleovm_sample_circuits.py snarkVM dump.
+types/group	Group	Zero	is_zero	1	1	1	0	1	crv-equal.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/scalar	Scalar		from_field_lossy	0	0	0	0	0	
 types/scalar	Scalar	Add	add	0	0	0	0	0	
 types/scalar	Scalar	AddAssign	add_assign	0	0	0	0	0	
-types/scalar	Scalar	Compare	is_greater_than	1	1	1	1	1	crv-scalar.lisp
-types/scalar	Scalar	Compare	is_greater_than_or_equal	1	1	1	1	1	crv-scalar.lisp
-types/scalar	Scalar	Compare	is_less_than	1	1	1	1	1	crv-scalar.lisp
-types/scalar	Scalar	Compare	is_less_than_or_equal	1	1	1	1	1	crv-scalar.lisp
-types/scalar	Scalar	Equal	is_equal	1	1	1	1	1	crv-equal.lisp
-types/scalar	Scalar	Equal	is_not_equal	1	1	1	1	1	crv-equal.lisp
+types/scalar	Scalar	Compare	is_greater_than	1	1	0	0	1	crv-scalar.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. R1CS-SAMPLES cleared: the assignment is an ACL2 prime-5 check, not an aleovm_sample_circuits.py snarkVM dump. Same parity gap as is_less_than, operands swapped.
+types/scalar	Scalar	Compare	is_greater_than_or_equal	1	1	0	0	1	crv-scalar.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. R1CS-SAMPLES cleared: the assignment is an ACL2 prime-5 check, not an aleovm_sample_circuits.py snarkVM dump. Same parity gap as is_less_than, result negated.
+types/scalar	Scalar	Compare	is_less_than	1	1	0	0	1	crv-scalar.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. R1CS-SAMPLES cleared: the assignment is an ACL2 prime-5 check, not an aleovm_sample_circuits.py snarkVM dump. Witness: crv-scalar-less-than-parity-not-scalar-order in scalar-range-gap.lisp.
+types/scalar	Scalar	Compare	is_less_than_or_equal	1	1	0	0	1	crv-scalar.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. R1CS-SAMPLES cleared: the assignment is an ACL2 prime-5 check, not an aleovm_sample_circuits.py snarkVM dump. Same parity gap as is_less_than, operands swapped and result negated.
+types/scalar	Scalar	Equal	is_equal	1	1	1	0	1	crv-equal.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. Witness: scalar-equal-modulus-disagrees-with-residue in scalar-range-gap.lisp.
+types/scalar	Scalar	Equal	is_not_equal	1	1	1	0	1	crv-equal.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. Same witness as is_equal: the not-equal bit is 1 while the residues are equal.
 types/scalar	Scalar	FromBits	from_bits_be	0	0	0	0	0	
 types/scalar	Scalar	FromBits	from_bits_le	0	0	0	0	0	
 types/scalar	Scalar	FromField	from_field	0	0	0	0	0	
-types/scalar	Scalar	One	is_one	1	1	1	1	1	crv-equal.lisp
-types/scalar	Scalar	Ternary	ternary	1	1	1	1	1	crv-ternary.lisp
+types/scalar	Scalar	One	is_one	1	1	1	0	1	crv-equal.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. Witness: scalar-one-modulus-disagrees-with-residue in scalar-range-gap.lisp.
+types/scalar	Scalar	Ternary	ternary	1	1	1	0	1	crv-ternary.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. Witness: scalar-ternary-copies-non-scalar in scalar-range-gap.lisp.
 types/scalar	Scalar	ToBits	write_bits_be	0	0	0	0	0	
 types/scalar	Scalar	ToBits	write_bits_le	0	0	0	0	0	
-types/scalar	Scalar	Zero	is_zero	1	1	1	1	1	crv-equal.lisp
+types/scalar	Scalar	Zero	is_zero	1	1	1	0	1	crv-equal.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. Witness: scalar-equal-modulus-disagrees-with-residue (is_equal against 0).
+program	Literal	Inject	new	1	1	0	0	0	fun-circuits/literal-new-pfcs.lisp and identifier-list-sound.lisp and literal-new-r1cs.lisp and scalar-new-r1cs.lisp and group-inject-sound.lisp; needs snarkVM-scalar-new-range-check.patch because unpatched Scalar::new accepts a wire in [r p) (scalar-new-unpatched-accepts-non-scalar); samples checked by aleovm_sample_circuits.py; R1CS-SOUND for group/address/signature is conditional on edwards-bls12-cofactor-clears; R1CS-COMPLETE open for the cofactor and comparison-chain witnesses and the string host halt (fun-specs README)

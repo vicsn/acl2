@@ -37,6 +37,13 @@ or that assume a component result instead of deriving it, are not counted.
    enforce_on_curve is proved sound and complete
    (crv-group-enforce-on-curve-gadget-sound / -complete): with a = -1,
    y^2*(d*x^2-1) = a*x^2-1 is the twisted Edwards equation.
+   The PFCS is crv-group-enforce-on-curve-circuit, the same three
+   constraints with d = edwards-bls12-d.  PFCS-SPEC is
+   crv-group-enforce-on-curve-pred-to-funspec: for Edwards-BLS12
+   coordinates, the predicate holds of those coordinates and the two
+   square witnesses exactly when the witnesses are the squares and
+   group-enforce-on-curve-funspec returns nil (the point is on the
+   curve; nil means no error).
    Subtraction negates x2 by a coefficient.  crv-neg-point-coordinates
    and crv-group-sub-gadget-to-products are proved, and
    crv-group-sub-sample-holds is a sample, but equality with
@@ -137,8 +144,11 @@ or that assume a component result instead of deriving it, are not counted.
    equates the predicate to the funspec.  Swapping the operands is
    crv-scalar-is-greater-than-3-pred-to-funspec.  The or-equal theorems
    read one minus that bit.  At the base prime this bound contains only
-   a >= b.  R1CS-SPEC, PFCS-SPEC, R1CS-SAMPLES, R1CS-SOUND, and
-   R1CS-COMPLETE are 1.
+   a >= b.  R1CS-SPEC, PFCS-SPEC, and R1CS-COMPLETE are 1.
+   R1CS-SOUND is 0: the soundness theorems assume scalarp.
+   R1CS-SAMPLES is 0: the assignments are prime-5 checks, not
+   aleovm_sample_circuits.py dumps.  The out-of-range counterexample
+   is in section 11.
 
 7. Scalar addition and casts.
    AddAssign converts both scalars to the base field (no constraint), adds
@@ -180,3 +190,43 @@ or that assume a component result instead of deriving it, are not counted.
     Poseidon hash.  crv-compute-key-from-under-hash-assumption assumes that
     hash output, so R1CS-SOUND and PFCS-SPEC are 0.  Completeness of the
     empty constraint list is kept.
+
+11. Scalar circuits on a wire in [r, p).
+    Unpatched Scalar::new accepts r.  Equality, zero, one, ternary, and
+    comparison then use the base-field embedding and do not reduce mod r.
+    fun-circuits/scalar-range-gap.lisp is the witness.
+
+    Scalar::is_equal is Field::is_equal (equal.rs).  is_zero and is_one
+    are that check against 0 and 1.  scalar-equal-modulus-disagrees-with-residue
+    is a satisfying assignment of the two enforces: a = r, b = 0,
+    m = inv(r), not-equal bit = 1.  The is_equal linear combination
+    1 - bit is 0.  The residues are both 0, so scalar-is-equal-funspec
+    and scalar-is-zero-funspec of those residues are 1.
+    scalar-one-modulus-disagrees-with-residue is the same gadget on
+    a = r+1 and b = 1.  The residue is 1 and the circuit returns 0.
+    crv-scalar-is-equal-gadget is this field gadget.
+
+    Scalar::ternary is Field::ternary.  scalar-ternary-copies-non-scalar
+    is condition 1 copying the wire r.  The constraints hold and the
+    output fails scalarp.  The residue of the output is 0, which is
+    scalar-ternary-funspec of the residues.
+
+    compare.rs returns the parity of 2*(self - other) in the base field.
+    That bit is a < b only when both wires are scalars (2r < p).
+    crv-scalar-less-than-parity-not-scalar-order: 2*(r - 1) is even, so
+    the parity bit is 0 for the wires r and 1, while the residues are
+    0 and 1.  This is the arithmetic fact, not an alist for the 253-bit
+    decomposition.
+
+    Scalar::add does reduce: add.rs subtracts r when the field sum is
+    not below r, so the wire r added to 0 becomes the scalar 0, while
+    is_equal of those same wires is false.
+
+    The crv-scalar-is-*-gadget-sound theorems assume scalarp, so
+    that R1CS-SOUND is 0.  Group, address, and integer soundness
+    theorems that take a curve point or an int-valuep input are
+    likewise not R1CS-SOUND over the wires; those flags are 0.
+    enforce_on_curve soundness takes curve-coordinatesp
+    (crv-group-enforce-on-curve-gadget-sound), so its R1CS-SOUND
+    flag is 0.  Completeness for on-curve points stays.  The PFCS
+    crv-group-enforce-on-curve-pred-to-funspec is certified.
