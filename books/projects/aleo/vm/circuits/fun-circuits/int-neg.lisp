@@ -464,11 +464,42 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define int-neg-circuit ()
+; Signed negation as a PFCS.  Wrapped subtraction from zero, then the
+; check that the operand and the result are not both negative.  Unsigned
+; negation is a host halt (spec-error) and is not this circuit.
+
+(local (in-theory (enable acl2::mod-when-<
+                           acl2::mod-when-<-of-0
+                           acl2::mod-of-+-of-constant
+                           acl2::mod-of-minus-arg1
+                           acl2::mod-when-equal-of-mod-and-0-free-cheap
+                           acl2::mod-when-integerp-of-quotient
+                           acl2::mod-of-0-arg1
+                           acl2::equal-of-mod-of-+-cancel
+                           acl2::equal-of-mod-same-arg1
+                           acl2::<-of-mod-same-arg2
+                           acl2::<-of-mod-and-0
+                           acl2::ifix-when-integerp
+                           acl2::ifix-of--
+                           acl2::ifix-of-ifix
+                           acl2::ifix-of-+-when-integerp-arg1
+                           acl2::pos-fix-when-posp
+                           acl2::expt-when-not-integerp-arg1-cheap
+                           acl2::<-of-0-and-expt
+                           acl2::<-of-expt-and-0
+                           acl2::<-of-expt-and-expt-same-base
+                           acl2::integerp-of-expt-when-natp
+                           acl2::fold-consts-in-+)))
+
+
+(define int-neg-signed-circuit ()
   :returns (pdef pfcs::definitionp)
-  :short "The both-negative check.  The subtraction is int_sub_checked."
+  :short "Signed negation: wrapped subtraction from zero, then the
+          both-negative check.  Unsigned negation is a host halt and
+          is not this circuit."
   (pfcs::parse-def
-   "int_neg_sign(sx, sy, both) := {
+   "int_neg_signed(xu, zu, carry, n2, sx, sy, both) := {
+    (carry) * (n2) == (n2 - xu - zu),
     (sx) * (sy) == (both),
     (both) * (1) == (0)
     }")
@@ -481,16 +512,545 @@
                                             pfcs::r1cs-polynomialp
                                             pfcs::r1cs-monomialp))))))
 
-(pfcs::lift (int-neg-circuit) :pred int-neg-pred :prime prime)
+(pfcs::lift (int-neg-signed-circuit)
+            :pred int-neg-signed-pred
+            :prime prime)
 
-(defruled int-neg-pred-to-funspec
-  :short "Both sign bits are clear of the product, and the product is 0.
-          This is the signed-minimum check, not the whole negation."
+(defruledl int-neg-mod-when-inside
+  (implies (and (integerp a)
+                (integerp p)
+                (< 0 p)
+                (< (- p) a)
+                (< a p))
+           (equal (mod a p)
+                  (if (< a 0) (+ a p) a)))
+  :hints (("Goal"
+           :cases ((< a 0))
+           :in-theory (e/d (acl2::mod-when-<
+                            acl2::mod-when-<-of-0)
+                           (acl2::mod-of-+-of-constant
+                            acl2::mod-of-minus-arg1
+                            acl2::equal-of-mod-of-+-when-constants)))))
+
+(defruledl int-neg-sub-mod-iff
+  (implies (and (equal prime (base-prime))
+                (integer-widthp n)
+                (natp xu) (< xu (expt 2 n))
+                (natp zu) (< zu (expt 2 n))
+                (bitp carry)
+                (equal n2 (expt 2 n)))
+           (equal (equal (mod (* carry n2) prime)
+                         (mod (+ n2 (- xu) (- zu)) prime))
+                  (equal (+ n2 (- xu))
+                         (+ zu (* carry n2)))))
+  :do-not-induct t
+  :hints (("Goal"
+           :cases ((equal n 8)
+                   (equal n 16)
+                   (equal n 32)
+                   (equal n 64)
+                   (equal n 128)
+                   (equal carry 0)
+                   (< (+ n2 (- xu) (- zu)) 0))
+           :in-theory (e/d (int-neg-mod-when-inside
+                            bitp
+                            integer-widthp
+                            base-prime
+                            (:e base-prime)
+                            (:e ecurve::edwards-bls12-q)
+                            acl2::mod-when-<
+                            acl2::mod-when-<-of-0)
+                           (mod floor
+                            acl2::mod-of-+-of-constant
+                            acl2::mod-of-minus-arg1
+                            acl2::equal-of-mod-of-+-when-constants)))))
+
+(defruledl int-neg-sign-pred-iff
   (implies (and (equal prime (base-prime))
                 (bitp sx)
                 (bitp sy)
-                (pfield::fep both prime))
-           (equal (int-neg-pred sx sy both prime)
+                (bitp both))
+           (equal (and (equal (pfield::mul sx sy prime) both)
+                       (equal (pfield::mul both (mod 1 prime) prime)
+                              (mod 0 prime)))
                   (and (equal both 0)
-                       (equal (bitand sx sy) 0))))
-  :enable (int-neg-pred bitand))
+                       (equal (* sx sy) 0))))
+  :do-not-induct t
+  :hints (("Goal"
+           :cases ((equal sx 0) (equal sy 0) (equal both 0))
+           :in-theory (e/d (pfield::mul
+                            bitp
+                            base-prime
+                            (:e base-prime)
+                            (:e ecurve::edwards-bls12-q)
+                            acl2::ifix-when-integerp
+                            acl2::pos-fix-when-posp
+                            acl2::mod-when-<)
+                           (mod floor)))))
+
+(defruledl int-neg-signed-pred-is-constraints
+  (implies (and (equal prime (base-prime))
+                (integer-widthp n)
+                (natp xu) (< xu (expt 2 n))
+                (natp zu) (< zu (expt 2 n))
+                (bitp carry)
+                (bitp sx) (bitp sy) (bitp both)
+                (equal n2 (expt 2 n)))
+           (equal (int-neg-signed-pred xu zu carry n2 sx sy both prime)
+                  (and (equal (+ n2 (- xu))
+                              (+ zu (* carry n2)))
+                       (equal both 0)
+                       (equal (* sx sy) 0))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use (:instance int-neg-sub-mod-iff)
+           :cases ((equal n 8)
+                   (equal n 16)
+                   (equal n 32)
+                   (equal n 64)
+                   (equal n 128))
+           :in-theory (e/d (int-neg-signed-pred
+                            int-neg-sign-pred-iff
+                            pfield::add
+                            pfield::mul
+                            pfield::neg
+                            pfield::sub
+                            bitp
+                            integer-widthp
+                            base-prime
+                            (:e base-prime)
+                            (:e ecurve::edwards-bls12-q)
+                            acl2::ifix-when-integerp
+                            acl2::pos-fix-when-posp
+                            acl2::mod-when-<
+                            acl2::mod-when-<-of-0
+                            acl2::mod-of-+-same-arg1
+                            acl2::mod-of-+-same-arg2)
+                           (mod floor
+                            int-neg-sub-mod-iff
+                            acl2::mod-of-+-of-constant
+                            acl2::mod-of-minus-arg1
+                            acl2::equal-of-mod-of-+-when-constants
+                            (:elim acl2::floor-mod-elim-rule))))))
+
+(defruledl int-neg-nfix-of-width
+  (implies (integer-widthp n)
+           (equal (nfix n) n))
+  :enable integer-widthp)
+
+(defruledl int-neg-spec-unsigned-is-mod
+  (implies (integer-widthp n)
+           (equal (int-spec-unsigned x n)
+                  (mod (ifix x) (expt 2 n))))
+  :enable (int-spec-unsigned int-neg-nfix-of-width))
+
+(defruledl int-neg-msb-of-small-nat
+  (implies (and (posp n)
+                (natp z)
+                (< z (expt 2 n)))
+           (equal (car (last (int->lebits z n)))
+                  (if (< z (expt 2 (1- n))) 0 1)))
+  :do-not-induct t
+  :hints (("Goal"
+           :use ((:instance int-signed-msb
+                            (x (int-wrap z t n)))
+                 (:instance int->lebits-of-int-wrap
+                            (x z)
+                            (signedp t)))
+           :in-theory (e/d (int-wrap
+                            int-valuep
+                            int-min
+                            int-max
+                            acl2::mod-when-<
+                            acl2::ifix-when-integerp
+                            len-of-int->lebits)
+                           (int-signed-msb
+                            int->lebits)))))
+
+(local
+ (defthm int-neg-split-unique
+   (implies (and (natp zu)
+                 (natp z0)
+                 (bitp c)
+                 (bitp c0)
+                 (posp m)
+                 (< zu m)
+                 (< z0 m)
+                 (equal (+ zu (* c m))
+                        (+ z0 (* c0 m))))
+            (and (equal zu z0)
+                 (equal c c0)))
+   :rule-classes nil
+   :hints (("Goal"
+            :in-theory (enable bitp)
+            :cases ((equal c 0) (equal c 1)
+                    (equal c0 0) (equal c0 1))))))
+
+(defruledl int-neg-zero-sub-equation
+  (implies (and (integer-widthp n)
+                (int-valuep x t n))
+           (equal (+ (expt 2 n)
+                     (- (int-spec-unsigned x n)))
+                  (+ (mod (- (ifix x)) (expt 2 n))
+                     (* (int-sub-carry 0 x n)
+                        (expt 2 n)))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use (:instance int-sub-carry-equation (x 0) (y x))
+           :in-theory (e/d (int-neg-spec-unsigned-is-mod
+                            integer-widthp
+                            posp-when-integer-widthp
+                            acl2::ifix-when-integerp
+                            acl2::mod-when-<)
+                           (int-spec-unsigned
+                            int-sub-carry
+                            mod floor)))))
+
+(defruledl int-neg-bitand-is-product
+  (implies (and (bitp a) (bitp b))
+           (equal (bitand a b) (* a b)))
+  :hints (("Goal"
+           :cases ((equal a 0) (equal b 0))
+           :in-theory (enable bitand bitp))))
+
+(defruledl int-neg-mod-in-range
+  (implies (and (integerp a)
+                (posp m))
+           (and (natp (mod a m))
+                (< (mod a m) m)))
+  :hints (("Goal"
+           :in-theory (e/d (natp
+                            acl2::<-of-mod-same-arg2)
+                           (mod floor)))))
+
+(defruledl int-neg-spec-unsigned-below
+  (implies (integer-widthp n)
+           (< (int-spec-unsigned x n) (expt 2 n)))
+  :hints (("Goal"
+           :cases ((equal n 8)
+                   (equal n 16)
+                   (equal n 32)
+                   (equal n 64)
+                   (equal n 128))
+           :in-theory (e/d (int-spec-unsigned
+                            integer-widthp
+                            acl2::ifix-when-integerp
+                            acl2::<-of-mod-same-arg2)
+                           (mod floor)))))
+
+(defruledl int-neg-equation-iff-canonical
+  (implies (and (integer-widthp n)
+                (int-valuep x t n)
+                (natp zu)
+                (< zu (expt 2 n))
+                (bitp carry))
+           (equal (equal (+ (expt 2 n)
+                            (- (int-spec-unsigned x n)))
+                         (+ zu (* carry (expt 2 n))))
+                  (and (equal zu (mod (- (ifix x)) (expt 2 n)))
+                       (equal carry (int-sub-carry 0 x n)))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use ((:instance int-neg-zero-sub-equation)
+                 (:instance int-neg-split-unique
+                            (m (expt 2 n))
+                            (z0 (mod (- (ifix x)) (expt 2 n)))
+                            (c0 (int-sub-carry 0 x n))
+                            (c carry))
+                 (:instance int-neg-mod-in-range
+                            (a (- (ifix x)))
+                            (m (expt 2 n))))
+           :in-theory (e/d (integer-widthp
+                            posp-when-integer-widthp
+                            bitp
+                            (:t int-sub-carry)
+                            (:t expt))
+                           (int-spec-unsigned
+                            int-sub-carry
+                            mod floor)))))
+(defruledl int-neg-unsigned-of-spec
+  (implies (and (integer-widthp n)
+                (int-valuep x t n)
+                (not (equal (int-neg-spec x t n) (spec-error))))
+           (equal (int-spec-unsigned (int-neg-spec x t n) n)
+                  (mod (- (ifix x)) (expt 2 n))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use int-neg-spec-when-not-error
+           :in-theory (e/d (int-neg-spec-unsigned-is-mod
+                            integer-widthp
+                            posp-when-integer-widthp
+                            acl2::ifix-when-integerp
+                            acl2::ifix-of--)
+                           (int-neg-spec
+                            int-spec-unsigned
+                            int-neg-spec-when-not-error
+                            mod floor)))))
+
+(defruledl int-neg-spec-error-iff-min
+  (implies (and (integer-widthp n)
+                (int-valuep x t n))
+           (iff (equal (int-neg-spec x t n) (spec-error))
+                (equal x (- (expt 2 (1- n))))))
+  :do-not-induct t
+  :hints (("Goal"
+           :cases ((equal n 8)
+                   (equal n 16)
+                   (equal n 32)
+                   (equal n 64)
+                   (equal n 128)
+                   (equal x (- (expt 2 (1- n)))))
+           :in-theory (e/d (int-neg-spec
+                            int-valuep
+                            int-min
+                            int-max
+                            integer-widthp
+                            not-spec-error-when-integerp
+                            acl2::ifix-when-integerp
+                            acl2::pos-fix-when-posp)
+                           (mod floor)))))
+
+(defruledl int-neg-min-residues
+  (implies (and (integer-widthp n)
+                (equal x (- (expt 2 (1- n)))))
+           (and (equal (mod (ifix x) (expt 2 n))
+                       (expt 2 (1- n)))
+                (equal (mod (- (ifix x)) (expt 2 n))
+                       (expt 2 (1- n)))))
+  :do-not-induct t
+  :hints (("Goal"
+           :cases ((equal n 8)
+                   (equal n 16)
+                   (equal n 32)
+                   (equal n 64)
+                   (equal n 128))
+           :in-theory (e/d (integer-widthp
+                            acl2::ifix-when-integerp
+                            acl2::ifix-of--
+                            acl2::mod-when-<
+                            acl2::mod-when-<-of-0)
+                           (mod floor)))))
+
+(defruledl int-neg-lebits-same-mod
+  (implies (and (integer-widthp n)
+                (equal (mod (ifix a) (expt 2 n))
+                       (mod (ifix b) (expt 2 n))))
+           (equal (int->lebits a n)
+                  (int->lebits b n)))
+  :enable (int->lebits int-neg-nfix-of-width))
+
+(defruledl int-neg-bitp-of-sign-bit
+  (implies (integer-widthp n)
+           (bitp (car (last (int->lebits x n)))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use ((:instance bitp-of-car-of-last-when-bit-listp
+                            (bits (int->lebits x n)))
+                 (:instance len-of-int->lebits))
+           :in-theory (e/d (bit-listp-of-int->lebits-explicit
+                            integer-widthp
+                            posp-when-integer-widthp
+                            len)
+                           (int->lebits
+                            bitp
+                            bitp-of-car-of-last-when-bit-listp
+                            len-of-int->lebits)))))
+
+(defruledl int-neg-min-product-is-one
+  (implies (and (integer-widthp n)
+                (equal x (- (expt 2 (1- n))))
+                (equal sx (car (last (int->lebits x n))))
+                (equal zu (mod (- (ifix x)) (expt 2 n)))
+                (equal sy (car (last (int->lebits zu n)))))
+           (equal (* sx sy) 1))
+  :do-not-induct t
+  :hints (("Goal"
+           :use ((:instance int-neg-min-residues)
+                 (:instance int-neg-msb-of-small-nat
+                            (z (expt 2 (1- n))))
+                 (:instance int-neg-lebits-same-mod
+                            (a x)
+                            (b (expt 2 (1- n))))
+                 (:instance int-neg-lebits-same-mod
+                            (a zu)
+                            (b (expt 2 (1- n)))))
+           :in-theory (e/d (integer-widthp
+                            posp-when-integer-widthp
+                            acl2::ifix-when-integerp)
+                           (int->lebits
+                            int-neg-msb-of-small-nat
+                            int-neg-min-residues
+                            int-neg-lebits-same-mod
+                            mod floor)))))
+
+(defruledl int-neg-lebits-of-residue
+  (implies (and (integer-widthp n)
+                (natp zu)
+                (< zu (expt 2 n))
+                (equal zu (mod (- (ifix x)) (expt 2 n))))
+           (equal (int->lebits zu n)
+                  (int->lebits (- (ifix x)) n)))
+  :do-not-induct t
+  :hints (("Goal"
+           :in-theory (e/d (int->lebits
+                            int-neg-nfix-of-width
+                            integer-widthp
+                            acl2::mod-when-<
+                            acl2::ifix-when-integerp
+                            acl2::ifix-of--)
+                           (mod floor)))))
+
+(defruledl int-neg-sign-product-zero-when-ok
+  (implies (and (integer-widthp n)
+                (int-valuep x t n)
+                (not (equal (int-neg-spec x t n) (spec-error)))
+                (equal sx (car (last (int->lebits x n))))
+                (natp zu)
+                (< zu (expt 2 n))
+                (equal zu (mod (- (ifix x)) (expt 2 n)))
+                (equal sy (car (last (int->lebits zu n)))))
+           (equal (* sx sy) 0))
+  :do-not-induct t
+  :hints (("Goal"
+           :use ((:instance int-neg-sign-and-is-zero)
+                 (:instance int-neg-lebits-of-residue)
+                 (:instance int-neg-bitp-of-sign-bit (x x))
+                 (:instance int-neg-bitp-of-sign-bit
+                            (x (- (ifix x))))
+                 (:instance int-neg-bitand-is-product
+                            (a (car (last (int->lebits x n))))
+                            (b (car (last (int->lebits
+                                           (- (ifix x)) n))))))
+           :in-theory (e/d (posp-when-integer-widthp)
+                           (int-neg-spec
+                            int->lebits
+                            bitp
+                            mod floor
+                            acl2::mod-of-minus-arg1
+                            (:elim acl2::floor-mod-elim-rule)
+                            int-neg-sign-and-is-zero
+                            int-neg-lebits-of-residue
+                            int-neg-bitp-of-sign-bit
+                            int-neg-bitand-is-product)))))
+
+(defruledl int-neg-error-unsat
+  (implies (and (integer-widthp n)
+                (int-valuep x t n)
+                (equal (int-neg-spec x t n) (spec-error))
+                (equal xu (int-spec-unsigned x n))
+                (equal sx (car (last (int->lebits x n))))
+                (natp zu)
+                (< zu (expt 2 n))
+                (bitp carry)
+                (equal sy (car (last (int->lebits zu n))))
+                (equal n2 (expt 2 n)))
+           (not (and (equal (+ n2 (- xu))
+                            (+ zu (* carry n2)))
+                     (equal (* sx sy) 0))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use ((:instance int-neg-equation-iff-canonical)
+                 (:instance int-neg-min-product-is-one))
+           :in-theory (e/d (int-neg-spec-error-iff-min)
+                           (int-neg-spec
+                            int->lebits
+                            int-spec-unsigned
+                            int-sub-carry
+                            bitp
+                            ifix
+                            mod floor
+                            (:e spec-error)
+                            acl2::mod-of-minus-arg1
+                            (:elim acl2::floor-mod-elim-rule)
+                            int-neg-equation-iff-canonical
+                            int-neg-min-product-is-one)))))
+
+(defruledl int-neg-constraints-iff-spec
+  (implies (and (integer-widthp n)
+                (int-valuep x t n)
+                (equal xu (int-spec-unsigned x n))
+                (equal sx (car (last (int->lebits x n))))
+                (natp zu)
+                (< zu (expt 2 n))
+                (bitp carry)
+                (bitp sy)
+                (bitp both)
+                (equal sy (car (last (int->lebits zu n))))
+                (equal n2 (expt 2 n)))
+           (equal (and (equal (+ n2 (- xu))
+                              (+ zu (* carry n2)))
+                       (equal both 0)
+                       (equal (* sx sy) 0))
+                  (and (not (equal (int-neg-spec x t n) (spec-error)))
+                       (equal zu
+                              (int-spec-unsigned
+                               (int-neg-spec x t n)
+                               n))
+                       (equal carry (int-sub-carry 0 x n))
+                       (equal both 0))))
+  :do-not-induct t
+  :hints (("Goal"
+           :cases ((equal (int-neg-spec x t n) (spec-error)))
+           :use ((:instance int-neg-error-unsat)
+                 (:instance int-neg-equation-iff-canonical)
+                 (:instance int-neg-unsigned-of-spec)
+                 (:instance int-neg-sign-product-zero-when-ok))
+           :in-theory (e/d (int-neg-spec-error-iff-min)
+                          (int-neg-spec
+                           int->lebits
+                           int-spec-unsigned
+                           int-sub-carry
+                           bitp
+                           ifix
+                           mod floor
+                           (:e spec-error)
+                           acl2::mod-of-minus-arg1
+                           (:elim acl2::floor-mod-elim-rule)
+                           int-neg-error-unsat
+                           int-neg-equation-iff-canonical
+                           int-neg-unsigned-of-spec
+                           int-neg-sign-product-zero-when-ok)))))
+
+(defruled int-neg-signed-pred-to-funspec
+  :short "Signed negation's wrapped subtraction from zero, together
+          with the both-negative check, is int-neg-spec for every
+          integer width, including 128.  Unsigned negation is not
+          this circuit."
+  (implies (and (equal prime (base-prime))
+                (primep prime)
+                (integer-widthp n)
+                (int-valuep x t n)
+                (equal xu (int-spec-unsigned x n))
+                (equal sx (car (last (int->lebits x n))))
+                (natp zu)
+                (< zu (expt 2 n))
+                (bitp carry)
+                (bitp sy)
+                (bitp both)
+                (equal sy (car (last (int->lebits zu n))))
+                (equal n2 (expt 2 n)))
+           (equal (int-neg-signed-pred xu zu carry n2 sx sy both prime)
+                  (and (not (equal (int-neg-spec x t n) (spec-error)))
+                       (equal zu
+                              (int-spec-unsigned
+                               (int-neg-spec x t n)
+                               n))
+                       (equal carry (int-sub-carry 0 x n))
+                       (equal both 0))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use ((:instance int-neg-signed-pred-is-constraints)
+                 (:instance int-neg-constraints-iff-spec)
+                 (:instance int-neg-bitp-of-sign-bit (x x))
+                 (:instance int-neg-bitp-of-sign-bit (x zu)))
+           :in-theory (e/d (int-neg-spec-unsigned-below)
+                           (int-neg-signed-pred
+                            int-neg-signed-pred-is-constraints
+                            int-neg-constraints-iff-spec
+                            int-neg-bitp-of-sign-bit
+                            bitp
+                            int-neg-spec
+                            int-spec-unsigned
+                            int-sub-carry
+                            int->lebits
+                            mod floor)))))

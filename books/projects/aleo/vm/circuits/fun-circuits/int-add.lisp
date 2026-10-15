@@ -1111,3 +1111,436 @@
                             pfield::mul
                             acl2::mod-when-<)
                            (mod floor)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Wrapped addition as a PFCS.  One constraint forces the carry:
+; N(x) + N(y) = N(wrap(x+y)) + carry * 2^n.  That equation, for both
+; signednesses and every integer width including 128, is int-add-wrapped-spec.
+
+(local (include-book "kestrel/arithmetic-light/expt" :dir :system))
+(local (include-book "kestrel/arithmetic-light/mod" :dir :system))
+(local (include-book "kestrel/arithmetic-light/ifix" :dir :system))
+(local (in-theory (current-theory 'int-add-before-ifix)))
+(local (in-theory (enable acl2::expt-when-not-integerp-arg1-cheap
+                           acl2::<-of-0-and-expt
+                           acl2::integerp-of-expt-when-natp
+                           acl2::integerp-of-mod
+                           acl2::integerp-of-mod-type
+                           acl2::ifix-when-integerp
+                           acl2::ifix-when-not-integerp-unlimited
+                           acl2::ifix-of-+-when-integerp-arg1
+                           acl2::pos-fix-when-posp
+                           acl2::mod-when-<
+                           acl2::mod-when-<-of-0
+                           acl2::fold-consts-in-+)))
+
+(define int-add-wrapped-circuit ()
+  :returns (pdef pfcs::definitionp)
+  :short "Wrapped addition on unsigned readings:
+          @('N(x) + N(y) = N(wrap(x+y)) + carry * 2^n')."
+  (pfcs::parse-def
+   "int_add_wrapped(x, y, z, carry, n2) := {
+    (carry) * (n2) == (x + y - z)
+    }")
+  ///
+  (more-returns
+   (pdef pfcs::sr1cs-definitionp
+         :hints (("Goal" :in-theory (enable pfcs::sr1cs-definitionp
+                                            pfcs::sr1cs-constraintp
+                                            pfcs::r1cs-constraintp
+                                            pfcs::r1cs-polynomialp
+                                            pfcs::r1cs-monomialp))))))
+
+(pfcs::lift (int-add-wrapped-circuit)
+            :pred int-add-wrapped-pred
+            :prime prime)
+
+(defruledl int-spec-unsigned-of-wrapped-sum
+  (implies (and (integer-widthp n)
+                (int-valuep x signedp n)
+                (int-valuep y signedp n))
+           (equal (int-spec-unsigned
+                   (int-add-wrapped-spec x y signedp n)
+                   n)
+                  (mod (+ (ifix x) (ifix y)) (expt 2 n))))
+  :do-not-induct t
+  :hints (("Goal"
+           :cases ((not signedp)
+                   (< (mod (+ (ifix x) (ifix y)) (expt 2 n))
+                      (expt 2 (1- n)))
+                   (equal n 8)
+                   (equal n 16)
+                   (equal n 32)
+                   (equal n 64)
+                   (equal n 128))
+           :in-theory (e/d (int-spec-unsigned
+                            int-add-wrapped-spec
+                            int-wrap
+                            int-valuep
+                            int-min
+                            int-max
+                            integer-widthp
+                            acl2::ifix-when-integerp
+                            acl2::ifix-of-+-when-integerp-arg1
+                            acl2::pos-fix-when-posp
+                            acl2::integerp-of-mod
+                            acl2::integerp-of-mod-type
+                            acl2::mod-of-mod-same-arg2
+                            acl2::mod-of-mod-when-multiple-safe
+                            acl2::mod-of-+-of-constant
+                            acl2::mod-when-<
+                            acl2::mod-when-<-of-0
+                            acl2::mod-of-+-of-*-same-arg1-arg2
+                            acl2::mod-of-+-of-*-same-arg2-arg1)
+                           (mod floor)))))
+
+(local
+ (defthm int-carry-split-unique
+  (implies (and (natp z)
+                (natp z0)
+                (bitp c)
+                (bitp c0)
+                (posp m)
+                (< z m)
+                (< z0 m)
+                (equal (+ z (* c m))
+                       (+ z0 (* c0 m))))
+           (and (equal z z0)
+                (equal c c0)))
+  :rule-classes nil
+  :hints (("Goal"
+           :in-theory (enable bitp)
+           :cases ((equal c 0) (equal c 1)
+                   (equal c0 0) (equal c0 1))))))
+
+(defruledl int-base-prime-posp
+  (implies (equal prime (base-prime))
+           (posp prime))
+  :rule-classes :forward-chaining
+  :hints (("Goal"
+           :in-theory (enable base-prime
+                              (:e base-prime)
+                              (:e ecurve::edwards-bls12-q)))))
+
+(defruledl int-expt-width-below-prime
+  (implies (and (equal prime (base-prime))
+                (integer-widthp n))
+           (< (expt 2 n) prime))
+  :hints (("Goal"
+           :cases ((equal n 8)
+                   (equal n 16)
+                   (equal n 32)
+                   (equal n 64)
+                   (equal n 128))
+           :in-theory (enable integer-widthp
+                              base-prime
+                              (:e base-prime)
+                              (:e ecurve::edwards-bls12-q)))))
+
+(defruledl int-expt-two-widths-below-prime
+  (implies (and (equal prime (base-prime))
+                (integer-widthp n))
+           (< (expt 2 (+ 1 n)) prime))
+  :hints (("Goal"
+           :cases ((equal n 8)
+                   (equal n 16)
+                   (equal n 32)
+                   (equal n 64)
+                   (equal n 128))
+           :in-theory (enable integer-widthp
+                              base-prime
+                              (:e base-prime)
+                              (:e ecurve::edwards-bls12-q)))))
+
+(defruledl int-add-readings-sum-below-prime
+  (implies (and (equal prime (base-prime))
+                (integer-widthp n)
+                (natp x)
+                (< x (expt 2 n))
+                (natp y)
+                (< y (expt 2 n)))
+           (< (+ x y) prime))
+  :hints (("Goal"
+           :use int-expt-two-widths-below-prime
+           :cases ((equal n 8)
+                   (equal n 16)
+                   (equal n 32)
+                   (equal n 64)
+                   (equal n 128))
+           :in-theory (enable integer-widthp natp))))
+
+(defruledl int-small-nat-below-prime
+  (implies (and (equal prime (base-prime))
+                (integer-widthp n)
+                (natp z)
+                (< z (expt 2 n)))
+           (< z prime))
+  :hints (("Goal"
+           :use int-expt-width-below-prime
+           :cases ((equal n 8)
+                   (equal n 16)
+                   (equal n 32)
+                   (equal n 64)
+                   (equal n 128))
+           :in-theory (enable integer-widthp natp))))
+
+(defruledl int-add-carry-limb-below-prime
+  (implies (and (equal prime (base-prime))
+                (integer-widthp n)
+                (bitp carry)
+                (equal n2 (expt 2 n)))
+           (and (< (* carry n2) prime)
+                (<= 0 (* carry n2))))
+  :hints (("Goal"
+           :use int-expt-width-below-prime
+           :cases ((equal carry 0)
+                   (equal n 8)
+                   (equal n 16)
+                   (equal n 32)
+                   (equal n 64)
+                   (equal n 128))
+           :in-theory (enable bitp integer-widthp))))
+
+(defruledl int-add-diff-in-open-range
+  (implies (and (equal prime (base-prime))
+                (integer-widthp n)
+                (natp x) (< x (expt 2 n))
+                (natp y) (< y (expt 2 n))
+                (natp z) (< z (expt 2 n)))
+           (and (< (- (+ x y) z) prime)
+                (< (- prime) (- (+ x y) z))))
+  :hints (("Goal"
+           :use int-expt-two-widths-below-prime
+           :cases ((equal n 8)
+                   (equal n 16)
+                   (equal n 32)
+                   (equal n 64)
+                   (equal n 128))
+           :in-theory (enable integer-widthp natp))))
+
+(defruledl int-mod-when-inside
+  (implies (and (integerp a)
+                (integerp p)
+                (< 0 p)
+                (< (- p) a)
+                (< a p))
+           (equal (mod a p)
+                  (if (< a 0) (+ a p) a)))
+  :hints (("Goal"
+           :cases ((< a 0))
+           :in-theory (e/d (acl2::mod-when-<
+                            acl2::mod-when-<-of-0)
+                           (acl2::mod-of-+-of-constant
+                            acl2::mod-of-minus-arg1
+                            acl2::equal-of-mod-of-+-when-constants)))))
+
+(defruledl int-add-wrapped-mod-iff
+  (implies (and (equal prime (base-prime))
+                (integer-widthp n)
+                (natp x) (< x (expt 2 n))
+                (natp y) (< y (expt 2 n))
+                (natp z) (< z (expt 2 n))
+                (bitp carry)
+                (equal n2 (expt 2 n)))
+           (equal (equal (mod (* carry n2) prime)
+                         (mod (+ x y (- z)) prime))
+                  (equal (+ x y)
+                         (+ z (* carry n2)))))
+  :do-not-induct t
+  :hints (("Goal"
+           :cases ((equal n 8)
+                   (equal n 16)
+                   (equal n 32)
+                   (equal n 64)
+                   (equal n 128)
+                   (equal carry 0)
+                   (< (+ x y) z))
+           :in-theory (e/d (int-mod-when-inside
+                            bitp
+                            integer-widthp
+                            base-prime
+                            (:e base-prime)
+                            (:e ecurve::edwards-bls12-q)
+                            acl2::mod-when-<
+                            acl2::mod-when-<-of-0)
+                           (mod floor
+                            acl2::mod-of-+-of-constant
+                            acl2::mod-of-minus-arg1
+                            acl2::equal-of-mod-of-+-when-constants)))))
+
+
+(defruledl int-add-wrapped-pred-is-sum
+  (implies (and (equal prime (base-prime))
+                (integer-widthp n)
+                (natp x)
+                (< x (expt 2 n))
+                (natp y)
+                (< y (expt 2 n))
+                (natp z)
+                (< z (expt 2 n))
+                (bitp carry)
+                (equal n2 (expt 2 n)))
+           (equal (int-add-wrapped-pred x y z carry n2 prime)
+                  (equal (+ x y)
+                         (+ z (* carry n2)))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use (:instance int-add-wrapped-mod-iff)
+           :cases ((equal n 8)
+                   (equal n 16)
+                   (equal n 32)
+                   (equal n 64)
+                   (equal n 128))
+           :in-theory (e/d (int-add-wrapped-pred
+                            integer-widthp
+                            base-prime
+                            (:e base-prime)
+                            (:e ecurve::edwards-bls12-q)
+                            pfield::add
+                            pfield::mul
+                            pfield::neg
+                            pfield::sub
+                            bitp
+                            acl2::ifix-when-integerp
+                            acl2::pos-fix-when-posp
+                            acl2::mod-when-<
+                            acl2::mod-when-<-of-0
+                            acl2::mod-of-+-same-arg1
+                            acl2::mod-of-+-same-arg2
+                            int-add-carry-limb-below-prime
+                            int-small-nat-below-prime
+                            int-base-prime-posp
+                            int-mod-when-inside)
+                           (mod floor
+                            int-add-wrapped-mod-iff
+                            acl2::mod-of-+-of-constant
+                            acl2::mod-of-minus-arg1
+                            acl2::equal-of-mod-of-+-when-constants
+                            (:elim acl2::floor-mod-elim-rule))))))
+
+(defruledl int-spec-unsigned-below
+  (implies (integer-widthp n)
+           (< (int-spec-unsigned x n) (expt 2 n)))
+  :hints (("Goal"
+           :cases ((equal n 8)
+                   (equal n 16)
+                   (equal n 32)
+                   (equal n 64)
+                   (equal n 128))
+           :in-theory (e/d (int-spec-unsigned
+                            integer-widthp
+                            acl2::ifix-when-integerp
+                            acl2::<-of-mod-same-arg2)
+                           (mod floor)))))
+
+(defruledl int-nfix-of-width
+  (implies (integer-widthp n)
+           (equal (nfix n) n))
+  :enable integer-widthp)
+
+(defruledl int-spec-unsigned-is-mod
+  (implies (integer-widthp n)
+           (equal (int-spec-unsigned x n)
+                  (mod (ifix x) (expt 2 n))))
+  :enable (int-spec-unsigned int-nfix-of-width))
+
+(defruledl int-add-wrapped-readings-equation
+  (implies (and (integer-widthp n)
+                (int-valuep x signedp n)
+                (int-valuep y signedp n))
+           (equal (+ (int-spec-unsigned x n)
+                     (int-spec-unsigned y n))
+                  (+ (int-spec-unsigned
+                      (int-add-wrapped-spec x y signedp n)
+                      n)
+                     (* (int-add-carry x y n)
+                        (expt 2 n)))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use ((:instance int-add-carry-equation)
+                 (:instance int-spec-unsigned-of-wrapped-sum))
+           :in-theory (e/d (integer-widthp
+                            posp-when-integer-widthp
+                            acl2::ifix-when-integerp
+                            int-spec-unsigned-is-mod
+                            int-spec-unsigned-of-wrapped-sum)
+                           (mod floor
+                            int-spec-unsigned
+                            int-add-carry
+                            int-add-wrapped-spec)))))
+
+(defruledl int-add-wrapped-sum-iff-spec
+  (implies (and (integer-widthp n)
+                (int-valuep x signedp n)
+                (int-valuep y signedp n)
+                (natp z)
+                (< z (expt 2 n))
+                (bitp carry)
+                (equal n2 (expt 2 n)))
+           (equal (equal (+ (int-spec-unsigned x n)
+                            (int-spec-unsigned y n))
+                         (+ z (* carry n2)))
+                  (and (equal z
+                              (int-spec-unsigned
+                               (int-add-wrapped-spec x y signedp n)
+                               n))
+                       (equal carry (int-add-carry x y n)))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use ((:instance int-add-wrapped-readings-equation)
+                 (:instance int-carry-split-unique
+                            (m (expt 2 n))
+                            (z0 (int-spec-unsigned
+                                 (int-add-wrapped-spec x y signedp n)
+                                 n))
+                            (c0 (int-add-carry x y n))
+                            (c carry))
+                 (:instance int-spec-unsigned-below
+                            (x (int-add-wrapped-spec x y signedp n))))
+           :in-theory (e/d (integer-widthp
+                            posp-when-integer-widthp
+                            bitp
+                            (:t int-add-carry)
+                            (:t expt))
+                           (int-add-carry
+                            int-add-wrapped-spec
+                            int-spec-unsigned
+                            mod floor)))))
+
+(defruled int-add-wrapped-pred-to-funspec
+  :short "The wrapped-add carry equation is int-add-wrapped-spec for
+          both signednesses and every integer width, including 128."
+  (implies (and (equal prime (base-prime))
+                (primep prime)
+                (integer-widthp n)
+                (int-valuep x signedp n)
+                (int-valuep y signedp n)
+                (natp z)
+                (< z (expt 2 n))
+                (bitp carry)
+                (equal n2 (expt 2 n)))
+           (equal (int-add-wrapped-pred
+                   (int-spec-unsigned x n)
+                   (int-spec-unsigned y n)
+                   z carry n2 prime)
+                  (and (equal z
+                              (int-spec-unsigned
+                               (int-add-wrapped-spec x y signedp n)
+                               n))
+                       (equal carry (int-add-carry x y n)))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use ((:instance int-add-wrapped-pred-is-sum
+                            (x (int-spec-unsigned x n))
+                            (y (int-spec-unsigned y n)))
+                 (:instance int-add-wrapped-sum-iff-spec))
+           :in-theory (e/d (int-spec-unsigned-below)
+                           (int-add-wrapped-pred
+                            int-add-wrapped-pred-is-sum
+                            int-add-wrapped-sum-iff-spec
+                            bitp
+                            int-spec-unsigned
+                            int-add-wrapped-spec
+                            int-add-carry
+                            mod floor)))))

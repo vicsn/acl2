@@ -141,6 +141,11 @@ signedness that the row claims is still unproved.
    and the canonical carry int-add-carry.  int-add-wrapped-carry-equation
    forces that carry from the funspec.  The library witness is the
    unsigned-small-add gadget on those n+1 bits.
+   PFCS-SPEC is int-add-wrapped-pred-to-funspec.  The predicate is the
+   field form of N(x)+N(y) = N(wrap(x+y))+carry*2^n.  For both
+   signednesses and every integer width, including 128, that equation
+   holds of a result reading and a carry bit iff the reading is the
+   unsigned image of int-add-wrapped-spec and the carry is int-add-carry.
    sub_wrapped is sound only for unsigned, so its soundness flag stays 0.
 
 10. neg, abs_checked, abs_wrapped
@@ -154,7 +159,14 @@ signedness that the row claims is still unproved.
     forces the both-negative bit to 0 whenever the funspec is not
     spec-error.  That holds for every width, including 128, so
     R1CS-COMPLETE is 1.  Unsigned negation is not given a circuit.
-    The PFCS is only the sign-and check, so PFCS-SPEC stays 0.
+    PFCS-SPEC is int-neg-signed-pred-to-funspec.  The predicate is
+    wrapped subtraction from zero together with the both-negative
+    check.  For every integer width, including 128, that predicate
+    holds iff int-neg-spec is not spec-error, the result reading is
+    the unsigned image of the negation, the carry is int-sub-carry of
+    zero minus the operand, and the both-negative bit is 0.  The
+    signed minimum makes the predicate unsatisfiable, matching
+    spec-error.  Unsigned negation stays outside that circuit.
     Unsigned abs is the identity (empty gadget), proved sound and complete.
     Signed abs_checked completeness is
     int-abs-checked-signed-gadget-complete, and signed abs_wrapped
