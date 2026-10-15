@@ -8,17 +8,20 @@
 
 ; PFCS for Literal::new.  Each relation is the constraint snarkVM emits.
 ; Boolean checks are the existing boolean_assert / boolean_assert_all
-; relations.  Field::new and Scalar::new are empty.  The string size
-; assert_eq carries the length as a constant coefficient.  Group::new is
-; the 13 enforce_in_group constraints.  IdentifierLiteral::new is the
-; boolean checks, the validate_byte relations, and the trailing-null
-; relation.  Signature::new is two group relations; hash_to_scalar_psd4
-; is the abstract equality, not a constraint emitted here.
+; relations.  Field::new is empty.  Scalar::new is the range check of
+; snarkVM-scalar-new-range-check.patch: boolean checks, the weighted-sum
+; assert_eq, the comparison chain against r - 1, and the final assert.
+; The string size assert_eq carries the length as a constant coefficient.
+; Group::new is the 13 enforce_in_group constraints.
+; IdentifierLiteral::new is the boolean checks, the validate_byte
+; relations, and the trailing-null relation.  Signature::new is two
+; Scalar::new relations and two group relations; hash_to_scalar_psd4 is
+; the abstract equality, not a constraint emitted here.
 ;
-; R1CS-SOUND of the identifier arm is identifier-list-sound.lisp.
-; R1CS-COMPLETE stays open: the cofactor witness is not constructed, and
-; a string longer than u32 is a host halt rather than an unsatisfiable
-; constraint (fun-specs/README.md).
+; R1CS-SOUND is in literal-new-r1cs.lisp and identifier-list-sound.lisp.
+; R1CS-COMPLETE stays open: the cofactor witness and the comparison-chain
+; witness are not constructed, and a string longer than u32 is a host
+; halt rather than an unsatisfiable constraint (fun-specs/README.md).
 
 (in-package "ALEOVM")
 
@@ -31,7 +34,12 @@
 (include-book "std/util/define" :dir :system)
 (include-book "std/util/defrule" :dir :system)
 
+(local (include-book "../library-extensions/r1cses"))
+(local (include-book "kestrel/arithmetic-light/expt" :dir :system))
 (local (include-book "kestrel/prime-fields/prime-fields-rules" :dir :system))
+(local (include-book "projects/pfcs/r1cs-lib-ext" :dir :system))
+(local (include-book "std/lists/last" :dir :system))
+(local (include-book "std/lists/rev" :dir :system))
 
 ; Flip (equal (mul ...) v) to the orientation used by the R1CS lemmas.
 ; The syntaxp stops the rule from looping when the other side is not a product.
@@ -410,7 +418,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; Field::new and Scalar::new emit nothing.
+; Field::new emits nothing.
 
 (define literal-field-new-circuit ()
   :returns (pdef pfcs::definitionp)
@@ -431,26 +439,6 @@
          (r1cs::r1cs-constraints-holdp (literal-field-new-gadget) asg p))
   :hints (("Goal" :in-theory (enable literal-field-new-pred
                                       literal-field-new-gadget))))
-
-(define literal-scalar-new-circuit ()
-  :returns (pdef pfcs::definitionp)
-  (pfcs::parse-def "literal_scalar_new() := { }")
-  ///
-  (more-returns
-   (pdef pfcs::sr1cs-definitionp
-         :hints (("Goal" :in-theory (enable pfcs::sr1cs-definitionp
-                                            pfcs::sr1cs-constraintp
-                                            pfcs::r1cs-constraintp
-                                            pfcs::r1cs-polynomialp
-                                            pfcs::r1cs-monomialp))))))
-
-(pfcs::lift (literal-scalar-new-circuit) :pred literal-scalar-new-pred :prime p)
-
-(defruled literal-scalar-pfcs-iff-r1cs
-  (equal (literal-scalar-new-pred p)
-         (r1cs::r1cs-constraints-holdp (literal-scalar-new-gadget) asg p))
-  :hints (("Goal" :in-theory (enable literal-scalar-new-pred
-                                      literal-scalar-new-gadget))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1498,3 +1486,387 @@
                             (:definition id-rest-bytes-gadget)
                             (:definition id-trailing-gadget)
                             (:definition id-null-symbols))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Scalar::new with snarkVM-scalar-new-range-check.patch.  The bit checks
+; are boolean_assert_all.  The assert_eq of the 251-term weighted sum is
+; literal-scalar-pow2sum-circuit; like the string size relation it is not
+; lifted, and literal-scalar-pow2sum-pred is its relation written by hand.
+; Each gate of assert_less_than_or_equal_constant is literal_id_and or
+; literal_id_or, and the final assert is literal_scalar_assert.
+
+(define literal-scalar-pow2sum-poly ((n posp))
+  :returns (e pfcs::expressionp)
+  (if (or (zp n) (equal n 1))
+      (pfmon 1 (pfname "b" 0))
+    (pfcs::expression-add (literal-scalar-pow2sum-poly (1- n))
+                          (pfmon (expt 2 (1- n)) (pfname "b" (1- n)))))
+  :verify-guards :after-returns
+  ///
+  (defret r1cs-polynomialp-of-literal-scalar-pow2sum-poly
+    (pfcs::r1cs-polynomialp e)
+    :hints (("Goal" :induct t
+             :in-theory (enable pfcs::r1cs-polynomialp
+                                pfcs::r1cs-monomialp)))))
+
+(define literal-scalar-pow2sum-circuit ()
+  :returns (pdef pfcs::definitionp)
+  (pfdef (pfname "literal_scalar_pow2sum")
+         (cons (pfname "s") (pfnames "b" 251))
+         (pf= (pf* (pfvar (pfname "s")) (pfconst 1))
+              (literal-scalar-pow2sum-poly 251)))
+  ///
+  (more-returns
+   (pdef pfcs::sr1cs-definitionp
+         :hints (("Goal"
+                  :in-theory (enable literal-scalar-pow2sum-circuit
+                                     pfcs::sr1cs-definitionp
+                                     pfcs::sr1cs-constraintp
+                                     pfcs::r1cs-constraintp
+                                     pfcs::r1cs-polynomialp
+                                     pfcs::r1cs-monomialp))))))
+
+(defund literal-scalar-pow2-sum (bits i p)
+  (if (endp bits)
+      0
+    (pfield::add (pfield::mul (expt 2 (nfix i)) (car bits) p)
+                 (literal-scalar-pow2-sum (cdr bits) (1+ (nfix i)) p)
+                 p)))
+
+(defund literal-scalar-pow2sum-pred (s bits p)
+  (equal (pfield::mul s 1 p)
+         (literal-scalar-pow2-sum bits 0 p)))
+
+(defruled literal-scalar-pow2-sum-to-dot-product
+  (implies (and (symbol-listp xs)
+                (natp i))
+           (equal (literal-scalar-pow2-sum (lookup-equal-list xs asg) i p)
+                  (r1cs::dot-product (pow2sum-vector xs i) asg p)))
+  :induct (pow2sum-vector xs i)
+  :enable (literal-scalar-pow2-sum
+           pow2sum-vector
+           r1cs::dot-product
+           lookup-equal-list))
+
+(defruled literal-scalar-pow2sum-pfcs-iff-r1cs
+  (implies (and (symbolp s)
+                (symbol-listp xs)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg s))
+           (equal (literal-scalar-pow2sum-pred (lookup-equal s asg)
+                                               (lookup-equal-list xs asg)
+                                               p)
+                  (r1cs::r1cs-constraints-holdp
+                   (pow2sum-gadget s xs) asg p)))
+  :do-not-induct t
+  :enable (literal-scalar-pow2sum-pred
+           literal-scalar-pow2-sum-to-dot-product
+           pow2sum-gadget
+           r1cs::r1cs-constraint-holdsp
+           r1cs::fep-of-lookup-equal
+           primep-when-equal-base-prime)
+  :expand ((:free (q) (r1cs::dot-product (list (list 1 s)) asg q))
+           (:free (q) (r1cs::dot-product '((1 1)) asg q))
+           (:free (q) (r1cs::dot-product nil asg q)))
+  :disable (r1cs::dot-product))
+
+(define literal-scalar-assert-circuit ()
+  :returns (pdef pfcs::definitionp)
+  (pfcs::parse-def
+   "literal_scalar_assert(r) := { (1 - r) * (1) == (1) }")
+  ///
+  (more-returns
+   (pdef pfcs::sr1cs-definitionp
+         :hints (("Goal" :in-theory (enable pfcs::sr1cs-definitionp
+                                            pfcs::sr1cs-constraintp
+                                            pfcs::r1cs-constraintp
+                                            pfcs::r1cs-polynomialp
+                                            pfcs::r1cs-monomialp))))))
+
+(pfcs::lift (literal-scalar-assert-circuit)
+            :pred literal-scalar-assert-pred :prime p)
+
+(defruled literal-scalar-assert-pred-to-eq
+  (implies (and (equal p (base-prime))
+                (pfield::fep r p))
+           (equal (literal-scalar-assert-pred r p)
+                  (equal r 0)))
+  :hints (("Goal"
+           :in-theory (e/d (literal-scalar-assert-pred
+                            literal-pfcs-mod-consts
+                            primep-when-equal-base-prime)
+                           (pfield::mul-commutative)))))
+
+(defruled literal-scalar-assert-pred-to-r1cs
+  (implies (and (symbolp r)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg r))
+           (equal (literal-scalar-assert-pred (lookup-equal r asg) p)
+                  (r1cs::r1cs-constraints-holdp
+                   (scalar-new-assert-gadget r p) asg p)))
+  :hints (("Goal"
+           :in-theory (enable literal-scalar-assert-pred-to-eq
+                              scalar-new-assert-gadget-to-zero
+                              r1cs::fep-of-lookup-equal
+                              primep-when-equal-base-prime))))
+
+(defund literal-scalar-chain-pred (xs cs rs asg p)
+  (declare (xargs :measure (len cs)))
+  (b* ((x (lookup-equal (car xs) asg))
+       (r (lookup-equal (car rs) asg)))
+    (cond ((endp (cdr cs))
+           (if (equal (car cs) 0)
+               (literal-id-or-pred x (lookup-equal (cadr xs) asg) r p)
+             (literal-id-and-pred x (lookup-equal (cadr xs) asg) r p)))
+          (t (and (if (equal (car cs) 0)
+                      (literal-id-or-pred x (lookup-equal (cadr rs) asg) r p)
+                    (literal-id-and-pred x (lookup-equal (cadr rs) asg) r p))
+                  (literal-scalar-chain-pred (cdr xs) (cdr cs) (cdr rs)
+                                             asg p))))))
+
+(defruledl literal-scalar-chain-len-facts
+  (and (implies (and (equal (len a) (len b)) (consp b))
+                (consp a))
+       (implies (and (equal (len a) (len b)) (consp (cdr b)))
+                (consp (cdr a)))
+       (implies (equal (len a) (len b))
+                (equal (equal (len (cdr a)) (len (cdr b))) t))
+       (implies (and (equal (len a) (+ 1 (len b))) (consp b))
+                (and (consp a)
+                     (consp (cdr a))
+                     (equal (equal (len (cdr a)) (+ 1 (len (cdr b)))) t))))
+  :enable len)
+
+(defruled literal-scalar-chain-pred-to-r1cs
+  (implies (and (symbol-listp xs)
+                (symbol-listp rs)
+                (equal (len xs) (1+ (len cs)))
+                (equal (len rs) (len cs))
+                (consp cs)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-binds-allp asg xs)
+                (r1cs::valuation-binds-allp asg rs))
+           (equal (literal-scalar-chain-pred xs cs rs asg p)
+                  (r1cs::r1cs-constraints-holdp
+                   (bits-lte-const-gadget-aux xs cs rs p) asg p)))
+  :induct (literal-scalar-chain-pred xs cs rs asg p)
+  :expand ((:free (q) (bits-lte-const-gadget-aux xs cs rs q)))
+  :enable (literal-scalar-chain-pred
+           bits-lte-const-gadget-aux
+           literal-id-or-pred-to-r1cs
+           literal-id-and-pred-to-r1cs
+           r1cs::r1cs-constraints-holdp-of-append
+           literal-scalar-chain-len-facts
+           symbol-listp
+           r1cs::valuation-binds-allp)
+  :disable (len))
+
+(defruledl literal-scalar-last-var
+  (implies (and (symbol-listp rs)
+                (consp rs)
+                (r1cs::valuation-binds-allp asg rs))
+           (and (symbolp (car (last rs)))
+                (r1cs::valuation-bindsp asg (car (last rs)))))
+  :induct (len rs)
+  :enable (last len r1cs::valuation-binds-allp))
+
+(defruled literal-scalar-range-to-chain
+  (implies (and (equal (len xs) 251)
+                (equal (len rs) 250))
+           (equal (r1cs::r1cs-constraints-holdp
+                   (bits-lte-const-gadget xs (scalar-modulus-minus-one-bits)
+                                          rs p)
+                   asg p)
+                  (r1cs::r1cs-constraints-holdp
+                   (bits-lte-const-gadget-aux
+                    (rev xs) (rev (cdr (scalar-modulus-minus-one-bits)))
+                    (rev rs) p)
+                   asg p)))
+  :enable (bits-lte-const-gadget
+           scalar-modulus-minus-one-bits-rlen
+           scalar-modulus-minus-one-bits-len
+           nthcdr
+           r1cs::r1cs-constraints-holdp-of-rev))
+
+(defruledl literal-scalar-modulus-bits-cdr
+  (and (equal (len (cdr (scalar-modulus-minus-one-bits))) 250)
+       (consp (cdr (scalar-modulus-minus-one-bits))))
+  :in-theory '((:e scalar-modulus-minus-one-bits)
+               (:e len)
+               (:e cdr)
+               (:e consp)))
+
+(defund literal-scalar-new-pred (s xs rs asg p)
+  (and (boolean-assert-all-pred (lookup-equal-list xs asg) p)
+       (literal-scalar-pow2sum-pred (lookup-equal s asg)
+                                    (lookup-equal-list xs asg)
+                                    p)
+       (literal-scalar-chain-pred (rev xs)
+                                  (rev (cdr (scalar-modulus-minus-one-bits)))
+                                  (rev rs)
+                                  asg p)
+       (literal-scalar-assert-pred (lookup-equal (car (last rs)) asg) p)))
+
+(defruled literal-scalar-pfcs-iff-r1cs
+  :short "PFCS-SPEC of the patched @('Scalar::new'): the relations hold of
+          the wires iff @(tsee literal-scalar-new-gadget) does."
+  (implies (and (symbolp s)
+                (symbol-listp xs)
+                (symbol-listp rs)
+                (equal (len xs) 251)
+                (equal (len rs) 250)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg s)
+                (r1cs::valuation-binds-allp asg xs)
+                (r1cs::valuation-binds-allp asg rs))
+           (equal (literal-scalar-new-pred s xs rs asg p)
+                  (r1cs::r1cs-constraints-holdp
+                   (literal-scalar-new-gadget s xs rs p) asg p)))
+  :do-not-induct t
+  :use ((:instance literal-scalar-chain-pred-to-r1cs
+                   (xs (rev xs))
+                   (cs (rev (cdr (scalar-modulus-minus-one-bits))))
+                   (rs (rev rs)))
+        literal-scalar-range-to-chain
+        literal-scalar-last-var)
+  :enable (literal-scalar-new-pred
+           literal-scalar-new-gadget
+           scalar-new-gadget
+           literal-bits-pfcs-iff-r1cs
+           literal-scalar-pow2sum-pfcs-iff-r1cs
+           literal-scalar-assert-pred-to-r1cs
+           scalar-modulus-minus-one-bits-len
+           literal-scalar-modulus-bits-cdr
+           r1cs::r1cs-constraints-holdp-of-append)
+  :disable ((:definition bits-lte-const-gadget)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Signature::new: two Scalar::new relations and two Group::new relations.
+; hash_to_scalar_psd4 is excluded.
+
+(defund literal-signature-new-pred
+  (c cxs crs r rxs rrs
+   pkx pky pk-qx pk-qy pk-cx2 pk-cy2 pk-dxy pk-dx2 pk-dy2
+   pk-x3 pk-y3 pk-exy pk-ex2 pk-ey2
+   prx pry pr-qx pr-qy pr-cx2 pr-cy2 pr-dxy pr-dx2 pr-dy2
+   pr-x3 pr-y3 pr-exy pr-ex2 pr-ey2
+   asg p)
+  (and (literal-scalar-new-pred c cxs crs asg p)
+       (literal-scalar-new-pred r rxs rrs asg p)
+       (literal-group-new-pred
+        (lookup-equal pkx asg) (lookup-equal pky asg)
+        (lookup-equal pk-qx asg) (lookup-equal pk-qy asg)
+        (lookup-equal pk-cx2 asg) (lookup-equal pk-cy2 asg)
+        (lookup-equal pk-dxy asg) (lookup-equal pk-dx2 asg)
+        (lookup-equal pk-dy2 asg)
+        (lookup-equal pk-x3 asg) (lookup-equal pk-y3 asg)
+        (lookup-equal pk-exy asg) (lookup-equal pk-ex2 asg)
+        (lookup-equal pk-ey2 asg)
+        p)
+       (literal-group-new-pred
+        (lookup-equal prx asg) (lookup-equal pry asg)
+        (lookup-equal pr-qx asg) (lookup-equal pr-qy asg)
+        (lookup-equal pr-cx2 asg) (lookup-equal pr-cy2 asg)
+        (lookup-equal pr-dxy asg) (lookup-equal pr-dx2 asg)
+        (lookup-equal pr-dy2 asg)
+        (lookup-equal pr-x3 asg) (lookup-equal pr-y3 asg)
+        (lookup-equal pr-exy asg) (lookup-equal pr-ex2 asg)
+        (lookup-equal pr-ey2 asg)
+        p)))
+
+(defruled literal-signature-pfcs-iff-r1cs
+  :short "PFCS-SPEC of @('Signature::new') aside from the excluded hash:
+          two patched @('Scalar::new') relations and two
+          @('enforce_in_group') relations."
+  (implies (and (symbolp c) (symbol-listp cxs) (symbol-listp crs)
+                (symbolp r) (symbol-listp rxs) (symbol-listp rrs)
+                (equal (len cxs) 251) (equal (len crs) 250)
+                (equal (len rxs) 251) (equal (len rrs) 250)
+                (symbolp pkx) (symbolp pky)
+                (symbolp pk-qx) (symbolp pk-qy)
+                (symbolp pk-cx2) (symbolp pk-cy2)
+                (symbolp pk-dxy) (symbolp pk-dx2) (symbolp pk-dy2)
+                (symbolp pk-x3) (symbolp pk-y3)
+                (symbolp pk-exy) (symbolp pk-ex2) (symbolp pk-ey2)
+                (symbolp prx) (symbolp pry)
+                (symbolp pr-qx) (symbolp pr-qy)
+                (symbolp pr-cx2) (symbolp pr-cy2)
+                (symbolp pr-dxy) (symbolp pr-dx2) (symbolp pr-dy2)
+                (symbolp pr-x3) (symbolp pr-y3)
+                (symbolp pr-exy) (symbolp pr-ex2) (symbolp pr-ey2)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg c)
+                (r1cs::valuation-binds-allp asg cxs)
+                (r1cs::valuation-binds-allp asg crs)
+                (r1cs::valuation-bindsp asg r)
+                (r1cs::valuation-binds-allp asg rxs)
+                (r1cs::valuation-binds-allp asg rrs)
+                (r1cs::valuation-bindsp asg pkx)
+                (r1cs::valuation-bindsp asg pky)
+                (r1cs::valuation-bindsp asg pk-qx)
+                (r1cs::valuation-bindsp asg pk-qy)
+                (r1cs::valuation-bindsp asg pk-cx2)
+                (r1cs::valuation-bindsp asg pk-cy2)
+                (r1cs::valuation-bindsp asg pk-dxy)
+                (r1cs::valuation-bindsp asg pk-dx2)
+                (r1cs::valuation-bindsp asg pk-dy2)
+                (r1cs::valuation-bindsp asg pk-x3)
+                (r1cs::valuation-bindsp asg pk-y3)
+                (r1cs::valuation-bindsp asg pk-exy)
+                (r1cs::valuation-bindsp asg pk-ex2)
+                (r1cs::valuation-bindsp asg pk-ey2)
+                (r1cs::valuation-bindsp asg prx)
+                (r1cs::valuation-bindsp asg pry)
+                (r1cs::valuation-bindsp asg pr-qx)
+                (r1cs::valuation-bindsp asg pr-qy)
+                (r1cs::valuation-bindsp asg pr-cx2)
+                (r1cs::valuation-bindsp asg pr-cy2)
+                (r1cs::valuation-bindsp asg pr-dxy)
+                (r1cs::valuation-bindsp asg pr-dx2)
+                (r1cs::valuation-bindsp asg pr-dy2)
+                (r1cs::valuation-bindsp asg pr-x3)
+                (r1cs::valuation-bindsp asg pr-y3)
+                (r1cs::valuation-bindsp asg pr-exy)
+                (r1cs::valuation-bindsp asg pr-ex2)
+                (r1cs::valuation-bindsp asg pr-ey2))
+           (equal (literal-signature-new-pred
+                   c cxs crs r rxs rrs
+                   pkx pky pk-qx pk-qy pk-cx2 pk-cy2 pk-dxy pk-dx2 pk-dy2
+                   pk-x3 pk-y3 pk-exy pk-ex2 pk-ey2
+                   prx pry pr-qx pr-qy pr-cx2 pr-cy2 pr-dxy pr-dx2 pr-dy2
+                   pr-x3 pr-y3 pr-exy pr-ex2 pr-ey2
+                   asg p)
+                  (r1cs::r1cs-constraints-holdp
+                   (literal-signature-new-gadget
+                    c cxs crs r rxs rrs
+                    pkx pky pk-qx pk-qy pk-cx2 pk-cy2 pk-dxy pk-dx2 pk-dy2
+                    pk-x3 pk-y3 pk-exy pk-ex2 pk-ey2
+                    prx pry pr-qx pr-qy pr-cx2 pr-cy2 pr-dxy pr-dx2 pr-dy2
+                    pr-x3 pr-y3 pr-exy pr-ex2 pr-ey2 p)
+                   asg p)))
+  :do-not-induct t
+  :use ((:instance literal-scalar-pfcs-iff-r1cs (s c) (xs cxs) (rs crs))
+        (:instance literal-scalar-pfcs-iff-r1cs (s r) (xs rxs) (rs rrs))
+        (:instance literal-group-new-pred-to-r1cs
+                   (x pkx) (y pky) (qx pk-qx) (qy pk-qy)
+                   (cx2 pk-cx2) (cy2 pk-cy2)
+                   (dxy pk-dxy) (dx2 pk-dx2) (dy2 pk-dy2)
+                   (x3 pk-x3) (y3 pk-y3)
+                   (exy pk-exy) (ex2 pk-ex2) (ey2 pk-ey2))
+        (:instance literal-group-new-pred-to-r1cs
+                   (x prx) (y pry) (qx pr-qx) (qy pr-qy)
+                   (cx2 pr-cx2) (cy2 pr-cy2)
+                   (dxy pr-dxy) (dx2 pr-dx2) (dy2 pr-dy2)
+                   (x3 pr-x3) (y3 pr-y3)
+                   (exy pr-exy) (ex2 pr-ex2) (ey2 pr-ey2)))
+  :in-theory '(literal-signature-new-pred
+               literal-signature-new-gadget
+               literal-group-new-gadget
+               r1cs::r1cs-constraints-holdp-of-append))
