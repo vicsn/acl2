@@ -35,6 +35,11 @@
 (include-book "projects/pfcs/parser-interface" :dir :system)
 (include-book "projects/pfcs/r1cs-subset" :dir :system)
 
+(deflabel int-field-before-arith)
+(local (include-book "kestrel/arithmetic-light/mod" :dir :system))
+(local (include-book "kestrel/arithmetic-light/expt" :dir :system))
+(local (in-theory (current-theory 'int-field-before-arith)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define int-to-field-gadget ()
@@ -66,7 +71,7 @@
   (implies (and (int-valuep x signedp n)
                 (integer-widthp n)
                 (equal u (int-to-field-spec x signedp n)))
-           (and (equal u (int-spec-unsigned x n))
+           (and (equal (int-spec-unsigned x n) u)
                 (r1cs::r1cs-constraints-holdp
                  (int-to-field-gadget) asg p)))
   :enable (int-to-field-gadget
@@ -113,7 +118,7 @@
   (implies (and (int-valuep x signedp n)
                 (integer-widthp n)
                 (equal s (int-to-scalar-spec x signedp n)))
-           (and (equal s (int-spec-unsigned x n))
+           (and (equal (int-spec-unsigned x n) s)
                 (r1cs::r1cs-constraints-holdp
                  (int-to-scalar-gadget) asg p)))
   :enable (int-to-scalar-gadget
@@ -166,6 +171,38 @@
            pow2sum-gadget-to-equal-of-mod-of-lebits=>nat
            r1cs::r1cs-constraints-holdp-of-append))
 
+(defruled int-from-field-bits-match
+    (implies (and (equal p (base-prime))
+                  (integer-widthp n)
+                  (bit-listp bits)
+                  (equal (len bits) n)
+                  (equal f (mod (lebits=>nat bits) p))
+                  (fieldp f))
+             (and (not (equal (int-from-field-spec f signedp n)
+                              (spec-error)))
+                  (equal (lebits->int bits signedp)
+                         (int-from-field-spec f signedp n))))
+    :do-not-induct t
+    :hints (("Goal"
+             :in-theory (enable int-from-field-spec
+                                int-wrap
+                                lebits->int
+                                fieldp
+                                pfield::fep
+                                integer-widthp
+                                integer-length-of-base-prime
+                                acl2::mod-when-<
+                                nfix
+                                posp-when-integer-widthp
+                                acl2::pos-fix-when-posp)
+             :cases ((equal n 8)
+                     (equal n 16)
+                     (equal n 32)
+                     (equal n 64)
+                     (equal n 128)))))
+
+(deflabel int-field-before-from-field-sound)
+
 (defruled int-from-field-gadget-sound
   (implies (and (equal p (base-prime))
                 (symbolp f)
@@ -184,13 +221,17 @@
                               (spec-error)))
                   (equal (lebits->int bits signedp)
                          (int-from-field-spec f$ signedp n)))))
+  :do-not-induct t
+  :use (:instance int-from-field-bits-match
+                  (f (lookup-equal f asg))
+                  (bits (lookup-equal-list xs asg))
+                  (n (len xs))
+                  (p (base-prime)))
   :enable (int-from-field-gadget-to-bits
-           int-from-field-spec
-           int-wrap
+           int-from-field-bits-match
+           len-of-lookup-equal-list
            int-width-lt-prime-bits
-           lebits->int-when-unsigned
-           lebits->int-is-lebits=>int
-           fieldp))
+           integer-length-of-base-prime))
 
 (defruled int-from-field-gadget-complete
   (implies (and (equal p (base-prime))
@@ -209,13 +250,21 @@
                        (int->lebits (lookup-equal f asg) n)))
            (r1cs::r1cs-constraints-holdp
             (int-from-field-gadget f xs p) asg p))
+  :do-not-induct t
   :enable (int-from-field-gadget-to-bits
            int-from-field-spec
            lebits=>nat-of-int->lebits
            bit-listp-of-int->lebits-explicit
            len-of-int->lebits
            int-width-lt-prime-bits
-           fieldp))
+           integer-length-of-base-prime
+           posp-when-integer-widthp
+           acl2::mod-when-<
+           acl2::pos-fix-when-posp
+           fieldp
+           pfield::fep))
+
+(local (in-theory (disable acl2::mod-when-<)))
 
 (defconst *int-from-field-sample*
   '((f . 1) (b0 . 1) (b1 . 0)))
@@ -251,6 +300,56 @@
   :short "Full field-to-bits.  The integer is the first @('n') bits."
   (field-to-bits-gadget f xs rs u p))
 
+(local (include-book "std/lists/take" :dir :system))
+(local (include-book "std/lists/nthcdr" :dir :system))
+(local (in-theory (current-theory 'int-field-before-from-field-sound)))
+
+(local
+ (defthm int-mod-low-plus-high
+   (implies (and (integerp lo)
+                 (integerp hi)
+                 (integerp m))
+            (equal (mod (+ lo (* m hi)) m)
+                   (mod lo m)))
+   :rule-classes nil
+   :hints (("Goal" :in-theory (enable acl2::mod-of-+-of-*-same-arg2-arg1
+                                     acl2::mod-of-+-of-*-same-arg2-arg2)))))
+
+(local
+ (defthm int-mod-below-bound
+   (implies (and (integerp lo)
+                 (integerp m)
+                 (<= 0 lo)
+                 (< lo m))
+            (equal (mod lo m) lo))
+   :rule-classes nil
+   :hints (("Goal" :in-theory (enable acl2::mod-when-<)))))
+
+(defruledl int-low-lebits-are-mod
+  (implies (and (natp n)
+                (<= n (len bits)))
+           (equal (lebits=>nat (take n bits))
+                  (mod (lebits=>nat bits) (expt 2 n))))
+  :do-not-induct t
+  :hints (("Goal"
+           :in-theory (disable acl2::lebits=>nat-upper-bound)
+           :use ((:instance acl2::lebits=>nat-upper-bound
+                            (digits (take n bits)))
+                 (:instance acl2::lebits=>nat-of-append
+                            (lodigits (take n bits))
+                            (hidigits (nthcdr n bits)))
+                 (:instance acl2::append-of-take-and-nthcdr
+                            (n n)
+                            (x bits))
+                 (:instance acl2::len-of-take (n n) (xs bits))
+                 (:instance int-mod-low-plus-high
+                            (lo (lebits=>nat (take n bits)))
+                            (hi (lebits=>nat (nthcdr n bits)))
+                            (m (expt 2 n)))
+                 (:instance int-mod-below-bound
+                            (lo (lebits=>nat (take n bits)))
+                            (m (expt 2 n)))))))
+
 (defruled int-from-field-lossy-gadget-sound
   (implies (and (equal p (base-prime))
                 (primep p)
@@ -274,12 +373,18 @@
                 (f$ (lookup-equal f asg)))
              (equal (lebits=>nat bits)
                     (mod f$ (expt 2 n)))))
+  :do-not-induct t
   :enable (int-from-field-lossy-gadget
            field-to-bits-soundness
-           integer-length-of-base-prime)
-  :use (:instance acl2::lebits=>nat-of-append
-                  (lodigits (take n (lookup-equal-list xs asg)))
-                  (hidigits (nthcdr n (lookup-equal-list xs asg)))))
+           int-low-lebits-are-mod
+           integer-length-of-base-prime
+           int-width-lt-prime-bits
+           integer-widthp
+           posp-when-integer-widthp)
+  :use ((:instance int-low-lebits-are-mod
+                   (bits (lookup-equal-list xs asg))
+                   (n n))
+        field-to-bits-soundness))
 
 ; No completeness theorem: the bits-lt-prime witness is not constructed.
 
@@ -308,7 +413,7 @@
                 (integer-widthp n)
                 (equal u (int-spec-unsigned x n)))
            (and (int-to-field-pred x prime)
-                (equal u (int-to-field-spec x signedp n))))
+                (equal (int-to-field-spec x signedp n) u)))
   :enable (int-to-field-pred
            int-to-field-spec
            int-spec-unsigned))
@@ -348,3 +453,70 @@
            int-wrap
            lebits->int
            lebits=>nat))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; to_fields and to_scalar add no constraints.  Each is the unsigned bit
+; pattern, the same value as to_field; to_fields returns it in a list.
+
+(define int-to-fields-circuit ()
+  :returns (pdef pfcs::definitionp)
+  :short "Empty: @('to_fields') adds no constraint."
+  (pfcs::parse-def
+   "int_to_fields(x) := {
+    }")
+  ///
+  (more-returns
+   (pdef pfcs::sr1cs-definitionp
+         :hints (("Goal" :in-theory (enable pfcs::sr1cs-definitionp
+                                            pfcs::sr1cs-constraintp
+                                            pfcs::r1cs-constraintp
+                                            pfcs::r1cs-polynomialp
+                                            pfcs::r1cs-monomialp))))))
+
+(pfcs::lift (int-to-fields-circuit)
+            :pred int-to-fields-pred
+            :prime prime)
+
+(defruled int-to-fields-pred-to-funspec
+  (implies (and (equal prime (base-prime))
+                (int-valuep x signedp n)
+                (integer-widthp n)
+                (equal u (int-spec-unsigned x n)))
+           (and (int-to-fields-pred x prime)
+                (equal (int-to-fields-spec x signedp n)
+                       (list u))))
+  :enable (int-to-fields-pred
+           int-to-fields-spec
+           int-to-field-spec
+           int-spec-unsigned))
+
+(define int-to-scalar-circuit ()
+  :returns (pdef pfcs::definitionp)
+  :short "Empty: @('to_scalar') adds no constraint."
+  (pfcs::parse-def
+   "int_to_scalar(x) := {
+    }")
+  ///
+  (more-returns
+   (pdef pfcs::sr1cs-definitionp
+         :hints (("Goal" :in-theory (enable pfcs::sr1cs-definitionp
+                                            pfcs::sr1cs-constraintp
+                                            pfcs::r1cs-constraintp
+                                            pfcs::r1cs-polynomialp
+                                            pfcs::r1cs-monomialp))))))
+
+(pfcs::lift (int-to-scalar-circuit)
+            :pred int-to-scalar-pred
+            :prime prime)
+
+(defruled int-to-scalar-pred-to-funspec
+  (implies (and (equal prime (base-prime))
+                (int-valuep x signedp n)
+                (integer-widthp n)
+                (equal s (int-spec-unsigned x n)))
+           (and (int-to-scalar-pred x prime)
+                (equal (int-to-scalar-spec x signedp n) s)))
+  :enable (int-to-scalar-pred
+           int-to-scalar-spec
+           int-spec-unsigned))

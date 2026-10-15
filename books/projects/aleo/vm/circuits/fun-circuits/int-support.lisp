@@ -542,17 +542,17 @@
            (equal (lebits=>nat xs) 0))
   :hints (("Goal" :in-theory (enable bit-listp len acl2::lebits=>nat))))
 
-(defruled bitand-is-b-and
+(defruledl bitand-is-b-and
   (implies (and (bitp x) (bitp y))
            (equal (bitand x y) (acl2::b-and x y)))
   :enable (bitand acl2::b-and))
 
-(defruled bitor-is-b-ior
+(defruledl bitor-is-b-ior
   (implies (and (bitp x) (bitp y))
            (equal (bitor x y) (acl2::b-ior x y)))
   :enable (bitor acl2::b-ior))
 
-(defruled bitxor-is-b-xor
+(defruledl bitxor-is-b-xor
   (implies (and (bitp x) (bitp y))
            (equal (bitxor x y) (acl2::b-xor x y)))
   :enable (bitxor acl2::b-xor))

@@ -110,7 +110,12 @@ signedness that the row claims is still unproved.
    forces to 0 is 0 whenever the funspec is not spec-error.  That holds
    for every width, including 128, so R1CS-COMPLETE is 1 on add, sub,
    and their assign/checked rows.
-   add_wrapped is sound for both signednesses and not complete.
+   add_wrapped is complete for both signednesses and every width, including
+   128.  int-add-wrapped-unsigned-gadget-complete and
+   int-add-wrapped-signed-gadget-complete assign the wrapped result bits
+   and the canonical carry int-add-carry.  int-add-wrapped-carry-equation
+   forces that carry from the funspec.  The library witness is the
+   unsigned-small-add gadget on those n+1 bits.
    sub_wrapped is sound only for unsigned, so its soundness flag stays 0.
 
 10. neg, abs_checked, abs_wrapped
@@ -118,12 +123,20 @@ signedness that the row claims is still unproved.
     say the funspec is spec-error, so there is no valid output to witness.
     Signed neg is signed-small-neg (wrapped subtraction from zero, then
     both sign bits cannot be 1).  Soundness is int-neg-signed-gadget-sound
-    for every width.  The carry witness is not shown to exist, so
-    completeness is 0.  The sample is only the sign-bit AND constrained
-    to 0, not the subtraction.
+    for every width.  Completeness is int-neg-signed-gadget-complete:
+    the result bits are the bits of the negation, the carry is
+    int-sub-carry of zero minus the operand, and int-neg-sign-and-is-zero
+    forces the both-negative bit to 0 whenever the funspec is not
+    spec-error.  That holds for every width, including 128, so
+    R1CS-COMPLETE is 1.  Unsigned negation is not given a circuit.
+    The PFCS is only the sign-and check, so PFCS-SPEC stays 0.
     Unsigned abs is the identity (empty gadget), proved sound and complete.
-    Signed abs_checked / abs_wrapped reuse the library gadgets and are
-    sound, not complete.
+    Signed abs_checked completeness is
+    int-abs-checked-signed-gadget-complete, and signed abs_wrapped
+    completeness is int-abs-wrapped-signed-gadget-complete, every width
+    including 128.  int-abs-checked-overflow-is-zero says the overflow
+    bit is 0 whenever abs_checked is not spec-error.  The signed minimum
+    wraps to itself under abs_wrapped.  R1CS-COMPLETE is 1 on both rows.
 
 11. pow, pow_checked, pow_wrapped, shifts
     Variable pow_checked is square-and-multiply with mul_with_flags.
@@ -149,9 +162,21 @@ signedness that the row claims is still unproved.
     no named gadget, so R1CS-SPEC stays 0.
 
 12. to_fields, to_scalar, is_zero, is_one
-    These are proved sound and complete (empty gadget, or is_equal against
-    a constant bit list).  They have no PFCS of their own, so PFCS-SPEC
-    is 0.  to_field's empty PFCS is int-to-field-pred-to-funspec.
+    to_fields and to_scalar are empty gadgets.  Their PFCS are
+    int-to-fields-pred-to-funspec and int-to-scalar-pred-to-funspec,
+    so PFCS-SPEC is 1.  to_field's empty PFCS is
+    int-to-field-pred-to-funspec.
+    is_zero and is_one are is_equal against 0 and 1.  The book
+    int-equal.lisp certifies.  R1CS soundness and completeness for every
+    integer width are int-is-not-equal-gadget-sound,
+    int-is-not-equal-gadget-complete, and the equal, zero, and one
+    variants.  The honest not-equal witness is z = 0 and w = 0 when the
+    integers agree, and z = 1 and w the inverse of the difference of the
+    unsigned readings when they differ.  int-equal-when-same-mod forces
+    that witness: equal residues modulo 2^n are the same integer.
+    PFCS-SPEC is 1.  int-is-zero-pred-to-funspec and
+    int-is-one-pred-to-funspec are the field not-equal of the integer's
+    field image against 0 and against 1.
 
 Not constraint bugs
 -------------------

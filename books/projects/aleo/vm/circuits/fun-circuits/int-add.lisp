@@ -31,6 +31,10 @@
 (include-book "projects/pfcs/parser-interface" :dir :system)
 (include-book "projects/pfcs/r1cs-subset" :dir :system)
 
+(deflabel int-add-before-mod)
+(local (include-book "kestrel/arithmetic-light/mod" :dir :system))
+(local (in-theory (current-theory 'int-add-before-mod)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define int-add-checked-unsigned-gadget ((xs symbol-listp)
@@ -170,11 +174,15 @@
            integer-length-of-base-prime
            int-width-add-fits
            posp-when-integer-widthp
+           acl2::mod-when-<
+           acl2::pos-fix-when-posp
            lebits=>nat-of-int->lebits
            lebits->int-when-unsigned
            bit-listp-of-int->lebits-explicit
            len-of-int->lebits
            acl2::lebits=>nat-injectivity))
+
+(local (in-theory (current-theory 'int-add-before-mod)))
 
 (defruled int-add-checked-unsigned-gadget-complete
   (implies (and (equal p (base-prime))
@@ -214,9 +222,13 @@
            integer-length-of-base-prime
            int-width-add-fits
            posp-when-integer-widthp
+           acl2::mod-when-<
+           acl2::pos-fix-when-posp
            lebits=>nat-of-int->lebits
            bit-listp-of-int->lebits-explicit
            len-of-int->lebits))
+
+(local (in-theory (disable acl2::mod-when-<)))
 
 (defruledl int-lebits=>int-of-signed-int->lebits
   (implies (and (posp n)
@@ -724,13 +736,69 @@
   :enable (int-add-wrapped-unsigned-gadget
            int-add-wrapped-spec
            int-wrap
+           int-valuep
+           int-min
+           int-max
            integer-widthp
            integer-length-of-base-prime
            int-width-add-fits
+           posp-when-integer-widthp
+           acl2::mod-when-<
+           acl2::pos-fix-when-posp
            lebits=>nat-of-int->lebits
            bit-listp-of-int->lebits-explicit)
   :use (:instance unsigned-small-add-wrapped-gadget-soundness
                   (z carry)))
+
+(local (in-theory (disable acl2::mod-when-<)))
+
+(deflabel int-add-before-ifix)
+(local (include-book "kestrel/arithmetic-light/ifix" :dir :system))
+(local (in-theory (current-theory 'int-add-before-ifix)))
+
+(local (defthm int-mod-plus-minus-modulus
+         (implies (and (integerp a)
+                       (posp m))
+                  (equal (mod (+ (- m) a) m)
+                         (mod a m)))
+         :rule-classes nil
+         :hints (("Goal"
+                  :in-theory (enable acl2::mod-of-minus-arg1
+                                     acl2::equal-of-mod-of-+-and-mod-cancel
+                                     acl2::mod-when-integerp-of-quotient
+                                     acl2::mod-of-+-of-*-same-arg2-arg1
+                                     acl2::mod-of-+-of-*-same-arg2-arg2)))))
+
+(defruledl int-spec-unsigned-of-signed-wrap-sum
+  (implies (and (integer-widthp n)
+                (int-valuep x t n)
+                (int-valuep y t n))
+           (equal (int-spec-unsigned (int-add-wrapped-spec x y t n) n)
+                  (mod (+ (ifix x) (ifix y)) (expt 2 n))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use (:instance int-mod-plus-minus-modulus
+                           (a (mod (+ (ifix x) (ifix y)) (expt 2 n)))
+                           (m (expt 2 n)))
+           :in-theory (enable int-add-wrapped-spec
+                              int-wrap
+                              int-spec-unsigned
+                              int-valuep
+                              int-min
+                              int-max
+                              integer-widthp
+                              posp-when-integer-widthp
+                              acl2::pos-fix-when-posp
+                              acl2::ifix-when-integerp
+                              acl2::mod-when-<
+                              acl2::mod-of-mod-same-arg2
+                              acl2::integerp-of-mod
+                              acl2::integerp-of-mod-type)
+           :cases ((equal n 8)
+                   (equal n 16)
+                   (equal n 32)
+                   (equal n 64)
+                   (equal n 128)))))
 
 (defruled int-add-wrapped-signed-gadget-sound
   (implies (and (equal p (base-prime))
@@ -756,19 +824,174 @@
                        (expt 2 n))
                   (int-spec-unsigned (int-add-wrapped-spec x y t n) n)))
   :enable (int-add-wrapped-signed-gadget
-           int-add-wrapped-spec
-           int-wrap
-           int-spec-unsigned
+           int-spec-unsigned-of-signed-wrap-sum
            int-width-add-fits
-           lebits->int-is-lebits=>int
-           lebits->int-of-int->lebits
+           integer-length-of-base-prime
+           integer-widthp
            int-lebits=>int-of-signed-int->lebits
            bit-listp-of-int->lebits-explicit
-           integer-widthp
-           integer-length-of-base-prime)
+           acl2::ifix-when-integerp)
   :do-not-induct t
   :use (:instance signed-small-add-wrapped-gadget-soundness
                   (z carry)))
+
+(local (in-theory (disable int-spec-unsigned-of-signed-wrap-sum
+                           int-lebits=>int-of-signed-int->lebits
+                           acl2::ifix-when-integerp)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Completeness.  The wrapped-add gadget is unsigned-small-add on n+1
+; bits.  The canonical carry is int-add-carry: it is the unique bit that
+; makes the weighted sum of the result bits and the carry equal the sum
+; of the unsigned readings.  The same witness serves both signednesses,
+; because wrapped addition is arithmetic on the bit patterns.  Every
+; integer width, including 128, satisfies n+1 < 253.
+
+(local (include-book "kestrel/arithmetic-light/ifix" :dir :system))
+(local (include-book "kestrel/utilities/arith-fix-and-equiv" :dir :system))
+
+(defruledl int-lebits=>nat-of-nil
+  (equal (lebits=>nat nil) 0)
+  :enable lebits=>nat)
+
+(defruledl lebits=>nat-of-bits-and-carry
+  (implies (and (bit-listp bits)
+                (bitp c))
+           (equal (lebits=>nat (append bits (list c)))
+                  (+ (lebits=>nat bits)
+                     (* c (expt 2 (len bits))))))
+  :enable (acl2::lebits=>nat-of-append
+           acl2::lebits=>nat-of-cons
+           int-lebits=>nat-of-nil
+           acl2::bfix-when-bitp))
+
+(defruled int-add-wrapped-carry-equation
+  :short "The canonical carry is forced by the wrapped sum's bits:
+          @('N(x) + N(y) = N(wrap(x+y)) + carry * 2^n')."
+  (implies (and (posp n)
+                (int-valuep x signedp n)
+                (int-valuep y signedp n))
+           (equal (+ (lebits=>nat (int->lebits x n))
+                     (lebits=>nat (int->lebits y n)))
+                  (+ (lebits=>nat
+                      (int->lebits (int-add-wrapped-spec x y signedp n) n))
+                     (* (int-add-carry x y n) (expt 2 n)))))
+  :enable (int-add-wrapped-spec
+           int->lebits-of-int-wrap
+           lebits=>nat-of-int->lebits)
+  :hints (("Goal" :use (:instance int-add-carry-equation))))
+
+(defruledl int-valuation-binds-allp-of-nil-wrapped
+  (r1cs::valuation-binds-allp valuation nil)
+  :enable r1cs::valuation-binds-allp)
+
+(defruledl int-lookup-equal-list-of-nil-wrapped
+  (equal (lookup-equal-list nil alist) nil)
+  :enable lookup-equal-list)
+
+(defruled int-add-wrapped-unsigned-gadget-complete
+  (implies (and (equal p (base-prime))
+                (primep p)
+                (symbol-listp xs)
+                (symbol-listp ys)
+                (symbol-listp zs)
+                (symbolp carry)
+                (equal n (len xs))
+                (integer-widthp n)
+                (equal (len ys) n)
+                (equal (len zs) n)
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-binds-allp asg xs)
+                (r1cs::valuation-binds-allp asg ys)
+                (r1cs::valuation-binds-allp asg zs)
+                (r1cs::valuation-bindsp asg carry)
+                (int-valuep x nil n)
+                (int-valuep y nil n)
+                (equal (lookup-equal-list xs asg) (int->lebits x n))
+                (equal (lookup-equal-list ys asg) (int->lebits y n))
+                (equal (lookup-equal-list zs asg)
+                       (int->lebits (int-add-wrapped-spec x y nil n) n))
+                (equal (lookup-equal carry asg) (int-add-carry x y n)))
+           (r1cs::r1cs-constraints-holdp
+            (int-add-wrapped-unsigned-gadget xs ys zs carry p)
+            asg p))
+  :do-not-induct t
+  :hints (("Goal"
+           :use (:instance int-add-wrapped-carry-equation
+                           (signedp nil))))
+  :enable (int-add-wrapped-unsigned-gadget
+           unsigned-small-add-wrapped-gadget
+           unsigned-small-add-gadget-correct
+           int-add-wrapped-carry-equation
+           lebits=>nat-of-bits-and-carry
+           int-valuation-binds-allp-of-nil-wrapped
+           int-lookup-equal-list-of-nil-wrapped
+           lookup-equal-list-of-append
+           lookup-equal-list-of-cons
+           symbol-listp-of-append-of-symbol
+           bit-listp-of-append-of-bit
+           bit-listp-of-int->lebits-explicit
+           len-of-int->lebits
+           len-of-append-of-singleton
+           integer-widthp
+           integer-length-of-base-prime
+           int-width-add-fits
+           posp-when-integer-widthp
+           r1cs::r1cs-constraint-holdsp
+           r1cs::dot-product))
+
+(defruled int-add-wrapped-signed-gadget-complete
+  (implies (and (equal p (base-prime))
+                (primep p)
+                (symbol-listp xs)
+                (symbol-listp ys)
+                (symbol-listp zs)
+                (symbolp carry)
+                (equal n (len xs))
+                (integer-widthp n)
+                (equal (len ys) n)
+                (equal (len zs) n)
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-binds-allp asg xs)
+                (r1cs::valuation-binds-allp asg ys)
+                (r1cs::valuation-binds-allp asg zs)
+                (r1cs::valuation-bindsp asg carry)
+                (int-valuep x t n)
+                (int-valuep y t n)
+                (equal (lookup-equal-list xs asg) (int->lebits x n))
+                (equal (lookup-equal-list ys asg) (int->lebits y n))
+                (equal (lookup-equal-list zs asg)
+                       (int->lebits (int-add-wrapped-spec x y t n) n))
+                (equal (lookup-equal carry asg) (int-add-carry x y n)))
+           (r1cs::r1cs-constraints-holdp
+            (int-add-wrapped-signed-gadget xs ys zs carry p)
+            asg p))
+  :do-not-induct t
+  :hints (("Goal"
+           :use (:instance int-add-wrapped-carry-equation
+                           (signedp t))))
+  :enable (int-add-wrapped-signed-gadget
+           signed-small-add-wrapped-gadget
+           unsigned-small-add-wrapped-gadget
+           unsigned-small-add-gadget-correct
+           int-add-wrapped-carry-equation
+           lebits=>nat-of-bits-and-carry
+           int-valuation-binds-allp-of-nil-wrapped
+           int-lookup-equal-list-of-nil-wrapped
+           lookup-equal-list-of-append
+           lookup-equal-list-of-cons
+           symbol-listp-of-append-of-symbol
+           bit-listp-of-append-of-bit
+           bit-listp-of-int->lebits-explicit
+           len-of-int->lebits
+           len-of-append-of-singleton
+           integer-widthp
+           integer-length-of-base-prime
+           int-width-add-fits
+           posp-when-integer-widthp
+           r1cs::r1cs-constraint-holdsp
+           r1cs::dot-product))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -806,7 +1029,9 @@
     '(x0 x1) '(y0 y1) '(z0 z1) 'carry (base-prime))
    *int-add-checked-sample*
    (base-prime))
-  :enable (int-add-unsigned-gadget int-add-checked-sample-holds))
+  :hints (("Goal"
+           :use int-add-checked-sample-holds
+           :in-theory (enable int-add-unsigned-gadget))))
 
 (defruled int-add-assign-sample-holds
   (r1cs::r1cs-constraints-holdp
@@ -814,7 +1039,9 @@
     '(x0 x1) '(y0 y1) '(z0 z1) 'carry (base-prime))
    *int-add-checked-sample*
    (base-prime))
-  :enable (int-add-assign-unsigned-gadget int-add-checked-sample-holds))
+  :hints (("Goal"
+           :use int-add-checked-sample-holds
+           :in-theory (enable int-add-assign-unsigned-gadget))))
 
 (defruled int-add-wrapped-sample-holds
   (r1cs::r1cs-constraints-holdp
