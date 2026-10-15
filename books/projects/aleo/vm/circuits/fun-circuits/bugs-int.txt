@@ -74,13 +74,21 @@ signedness that the row claims is still unproved.
    The unsigned swaps and negations (is_greater_than,
    is_greater_than_or_equal, is_less_than_or_equal) are the same gadget
    and are sound and complete for the unsigned case.  Their samples hold.
-   Signed less-than in compare.rs is not the library gadget.  The book
-   defines int-is-less-than-signed-gadget: the same high bit, xor of the
-   sign bits, msb(x) AND NOT msb(y), and a ternary whose condition is the
-   linear combination 1 - diff.  int-signed-lt-same-sign-case is the
-   required numeric criterion but does not itself prove the sign-bit
-   facts, so R1CS-SOUND and R1CS-COMPLETE stay 0 for is_less_than and the
-   three swaps rather than claiming every signed width.
+   Signed less-than in compare.rs is not the library gadget.
+   int-is-less-than-signed-gadget is the high bit of 2^n + N(x) - N(y),
+   xor of the sign bits, msb(x) AND NOT msb(y), and a ternary whose
+   condition is the linear combination 1 - diff.  N is the unsigned
+   reading of the bit pattern.  int-is-less-than-signed-gadget-sound
+   and int-is-less-than-signed-gadget-complete prove that circuit for
+   every integer width, including 128.  The completeness witness is
+   those low bits, the sign bits, and the ternary selector; the output
+   wire is proved equal to the funspec and is not assumed to be it.
+   Greater-than swaps the operands.  The or-equal forms negate the
+   opposite less-than bit and add no constraint.  The same four
+   theorems, with the arguments swapped or the result bit negated,
+   cover is_greater_than, is_greater_than_or_equal, and
+   is_less_than_or_equal.  R1CS-SOUND and R1CS-COMPLETE are 1.
+   No snarkVM soundness or completeness bug was found in compare.rs.
 
 7. from_field_lossy
    This is Field::to_bits_le, then the first n bits.  Soundness is
