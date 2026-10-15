@@ -42,7 +42,7 @@ types/address	Address	ToBits	write_bits_le	1	1	0	0	1	crv-bits.lisp R1CS-SOUND cl
 types/address	Field	From	from	1	1	1	0	1	crv-project.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/group	Group		enforce_double	1	0	0	0	0	crv-curve.lisp
 types/group	Group		enforce_in_group	0	0	0	0	0	
-types/group	Group		enforce_on_curve	1	1	1	1	1	crv-curve.lisp. PFCS-SPEC is crv-group-enforce-on-curve-pred-to-funspec: the predicate holds iff the witnesses are the squares and group-enforce-on-curve-funspec returns nil.
+types/group	Group		enforce_on_curve	1	1	1	0	1	crv-curve.lisp. PFCS-SPEC is crv-group-enforce-on-curve-pred-to-funspec: the predicate holds iff the witnesses are the squares and group-enforce-on-curve-funspec returns nil. R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 types/group	Group		from_x_coordinate	0	0	0	0	0	
 types/group	Group		from_x_coordinate_flagged	0	0	0	0	0	
 types/group	Group		from_xy_coordinates	0	0	0	0	0	

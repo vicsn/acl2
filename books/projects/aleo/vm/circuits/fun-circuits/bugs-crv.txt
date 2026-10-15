@@ -34,9 +34,11 @@ or that assume a component result instead of deriving it, are not counted.
    canonical witnesses satisfy the constraints only once
    (mul (div num den) den) = num is tied to the v01 product, and that
    direction was not proved.  R1CS-COMPLETE stays 0 for add and add_assign.
-   enforce_on_curve is proved sound and complete
-   (crv-group-enforce-on-curve-gadget-sound / -complete): with a = -1,
-   y^2*(d*x^2-1) = a*x^2-1 is the twisted Edwards equation.
+   enforce_on_curve equates the snarkVM equation to the curve check for
+   curve coordinates (crv-group-enforce-on-curve-gadget-sound /
+   -complete): with a = -1, y^2*(d*x^2-1) = a*x^2-1 is the twisted
+   Edwards equation.  R1CS-SOUND is 0 because that theorem takes
+   curve-coordinatesp.  Completeness for on-curve points stays.
    The PFCS is crv-group-enforce-on-curve-circuit, the same three
    constraints with d = edwards-bls12-d.  PFCS-SPEC is
    crv-group-enforce-on-curve-pred-to-funspec: for Edwards-BLS12
