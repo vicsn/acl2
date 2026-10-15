@@ -1,0 +1,87 @@
+diff --git a/circuit/program/src/data/literal/mod.rs b/circuit/program/src/data/literal/mod.rs
+index 3dfc68b..f776193 100644
+--- a/circuit/program/src/data/literal/mod.rs
++++ b/circuit/program/src/data/literal/mod.rs
+@@ -258,6 +258,82 @@ impl<A: Aleo> Debug for Literal<A> {
+     }
+ }
+ 
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use snarkvm_circuit_network::AleoV0;
++    use snarkvm_circuit_types::prelude::*;
++    use snarkvm_console_account::PrivateKey;
++    use snarkvm_utilities::{TestRng, Uniform};
++    use std::str::FromStr;
++
++    type N = <AleoV0 as Environment>::Network;
++
++    fn sample_literal(name: &str, value: console::Literal<N>) {
++        AleoV0::reset();
++        AleoV0::scope(name, || {
++            let _ = Literal::<AleoV0>::new(Mode::Private, value);
++        });
++        assert!(AleoV0::is_satisfied());
++    }
++
++    fn sample_str(name: &str, text: &str) {
++        let value = console::Literal::<N>::from_str(text).unwrap_or_else(|e| panic!("{text}: {e}"));
++        sample_literal(name, value);
++    }
++
++    #[test]
++    fn sample_literal_boolean() {
++        sample_str("sample_literal_boolean", "true");
++    }
++
++    #[test]
++    fn sample_literal_field() {
++        sample_str("sample_literal_field", "1field");
++    }
++
++    #[test]
++    fn sample_literal_scalar() {
++        sample_str("sample_literal_scalar", "1scalar");
++    }
++
++    #[test]
++    fn sample_literal_u8() {
++        sample_str("sample_literal_u8", "7u8");
++    }
++
++    #[test]
++    fn sample_literal_string() {
++        sample_str("sample_literal_string", "\"ab\"");
++    }
++
++    #[test]
++    fn sample_literal_group() {
++        sample_str("sample_literal_group", "0group");
++    }
++
++    #[test]
++    fn sample_literal_address() {
++        let group = console::Group::<N>::zero();
++        let address = console::Address::new(group);
++        sample_literal("sample_literal_address", console::Literal::Address(address));
++    }
++
++    #[test]
++    fn sample_literal_identifier() {
++        sample_str("sample_literal_identifier", "'abc'");
++    }
++
++    #[test]
++    fn sample_literal_signature() {
++        let mut rng = TestRng::default();
++        let private_key = PrivateKey::<N>::new(&mut rng).unwrap();
++        let message = [console::Field::<N>::rand(&mut rng)];
++        let signature = console::Signature::sign(&private_key, &message, &mut rng).unwrap();
++        sample_literal("sample_literal_signature", console::Literal::Signature(Box::new(signature)));
++    }
++}
++
+ impl<A: Aleo> Display for Literal<A> {
+     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+         match self {

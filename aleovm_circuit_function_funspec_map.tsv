@@ -1,0 +1,528 @@
+crate	type	trait	function	status	acl2_spec	book
+account	ComputeKey		from_private_key	spec	compute-key-from-private-key-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	ComputeKey		to_address	spec	compute-key-to-address-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	ComputeKey	Equal	is_equal	spec	compute-key-is-equal-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	ComputeKey	Equal	is_not_equal	spec	compute-key-is-not-equal-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	ComputeKey	From	from	spec	compute-key-from-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	ComputeKey	FromBits	from_bits_be	spec	compute-key-from-bits-be-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	ComputeKey	FromBits	from_bits_le	spec	compute-key-from-bits-le-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	ComputeKey	Inject	new	spec	compute-key-new-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	ComputeKey	Ternary	ternary	spec	compute-key-ternary-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	ComputeKey	ToBits	write_bits_be	spec	compute-key-write-bits-be-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	ComputeKey	ToBits	write_bits_le	spec	compute-key-write-bits-le-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	ComputeKey	ToFields	to_fields	spec	compute-key-to-fields-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	PrivateKey		to_compute_key	spec	private-key-to-compute-key-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	PrivateKey		to_view_key	spec	private-key-to-view-key-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	Signature		verify	spec	signature-verify-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	Signature	Equal	is_equal	spec	signature-is-equal-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	Signature	Equal	is_not_equal	spec	signature-is-not-equal-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	Signature	FromBits	from_bits_be	spec	signature-from-bits-be-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	Signature	FromBits	from_bits_le	spec	signature-from-bits-le-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	Signature	Inject	new	spec	signature-new-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	Signature	Ternary	ternary	spec	signature-ternary-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	Signature	ToBits	write_bits_be	spec	signature-write-bits-be-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	Signature	ToBits	write_bits_le	spec	signature-write-bits-le-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	Signature	ToFields	to_fields	spec	signature-to-fields-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	ViewKey		from_private_key	spec	view-key-from-private-key-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+account	ViewKey		to_address	spec	view-key-to-address-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
+algorithms	BHP	Commit	commit	excluded-hash		
+algorithms	BHP	CommitUncompressed	commit_uncompressed	excluded-hash		
+algorithms	BHP	HashUncompressed	hash_uncompressed	excluded-hash		
+algorithms	BHPHasher	HashUncompressed	hash_uncompressed	excluded-hash		
+algorithms	BHPHasher	Inject	new	excluded-hash		
+algorithms	Elligator2		encode	excluded-hash		
+algorithms	Keccak		pad_keccak	excluded-hash		
+algorithms	Keccak		pad_sha3	excluded-hash		
+algorithms	Keccak		permutation_f	excluded-hash		
+algorithms	Keccak		rotate_left	excluded-hash		
+algorithms	Keccak		round	excluded-hash		
+algorithms	Pedersen	Commit	commit	excluded-hash		
+algorithms	Pedersen	CommitUncompressed	commit_uncompressed	excluded-hash		
+algorithms	Pedersen	HashUncompressed	hash_uncompressed	excluded-hash		
+algorithms	Poseidon		absorb	excluded-hash		
+algorithms	Poseidon		apply_ark	excluded-hash		
+algorithms	Poseidon		apply_mds	excluded-hash		
+algorithms	Poseidon		apply_s_box	excluded-hash		
+algorithms	Poseidon		permute	excluded-hash		
+algorithms	Poseidon		squeeze	excluded-hash		
+algorithms	Poseidon		squeeze_internal	excluded-hash		
+algorithms	Poseidon	HashMany	hash_many	excluded-hash		
+algorithms	Poseidon	HashToGroup	hash_to_group	excluded-hash		
+algorithms	Poseidon	HashToScalar	hash_to_scalar	excluded-hash		
+algorithms	Poseidon	Inject	new	excluded-hash		
+collections	<trait default>	PathHash	hash_empty	spec	crypto-kary-merkle-hash-empty	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
+collections	BHP	PathHash	hash_children	spec	crypto-merkle-hash-children	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
+collections	BooleanHash	Equal	is_equal	spec	crypto-boolean-hash-is-equal	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
+collections	BooleanHash	Equal	is_not_equal	spec	crypto-boolean-hash-is-not-equal	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
+collections	BooleanHash	Inject	new	spec	crypto-boolean-hash-new	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
+collections	BooleanHash	Ternary	ternary	spec	crypto-boolean-hash-ternary	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
+collections	KaryMerklePath		verify	spec	crypto-kary-merkle-path-verify	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
+collections	KaryMerklePath	Inject	new	spec	crypto-kary-merkle-path-new	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
+collections	Keccak	PathHash	hash_children	spec	crypto-merkle-hash-children	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
+collections	MerklePath		verify	spec	crypto-merkle-path-verify	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
+collections	MerkleTree		new	spec	crypto-merkle-tree-new	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
+environment			recursively_replace_self	spec	aleovm::recursively-replace-self-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment			rename_selfs	spec	aleovm::rename-selfs-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	(t0,ty,*)	Inject	new	spec	aleovm::inject-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	(t0,ty,+)	ToBits	write_bits_be	spec	aleovm::write-bits-be-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	(t0,ty,+)	ToBits	write_bits_le	spec	aleovm::write-bits-le-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	(t0,ty,+)	ToBitsRaw	write_bits_raw_be	spec	aleovm::write-bits-raw-be-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	(t0,ty,+)	ToBitsRaw	write_bits_raw_le	spec	aleovm::write-bits-raw-le-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	<trait default>	Environment	assert	spec	aleovm::assert-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	<trait default>	Environment	assert_eq	spec	aleovm::assert-eq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	<trait default>	Environment	assert_neq	spec	aleovm::assert-neq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	<trait default>	ToBits	to_bits_be	spec	aleovm::to-bits-be-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	<trait default>	ToBits	to_bits_le	spec	aleovm::to-bits-le-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	<trait default>	ToBitsRaw	to_bits_raw_be	spec	aleovm::to-bits-raw-be-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	<trait default>	ToBitsRaw	to_bits_raw_le	spec	aleovm::to-bits-raw-le-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	CanaryCircuit	Environment	enforce	spec	aleovm::enforce-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	Circuit	Environment	enforce	spec	aleovm::enforce-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	TestnetCircuit	Environment	enforce	spec	aleovm::enforce-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	Vec	Inject	new	spec	aleovm::inject-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	Vec	ToBits	write_bits_be	spec	aleovm::write-bits-be-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	Vec	ToBits	write_bits_le	spec	aleovm::write-bits-le-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	Vec	ToBitsRaw	write_bits_raw_be	spec	aleovm::write-bits-raw-be-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	Vec	ToBitsRaw	write_bits_raw_le	spec	aleovm::write-bits-raw-le-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	[C]	ToBits	write_bits_be	spec	aleovm::write-bits-be-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	[C]	ToBits	write_bits_le	spec	aleovm::write-bits-le-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	[C]	ToBitsRaw	write_bits_raw_be	spec	aleovm::write-bits-raw-be-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+environment	[C]	ToBitsRaw	write_bits_raw_le	spec	aleovm::write-bits-raw-le-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
+network	AleoCanaryV0	Aleo	commit_bhp1024	spec	aleo-commit-bhp1024-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	commit_bhp256	spec	aleo-commit-bhp256-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	commit_bhp512	spec	aleo-commit-bhp512-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	commit_bhp768	spec	aleo-commit-bhp768-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	commit_ped128	spec	aleo-commit-ped128-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	commit_ped64	spec	aleo-commit-ped64-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	commit_to_group_bhp1024	spec	aleo-commit-to-group-bhp1024-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	commit_to_group_bhp256	spec	aleo-commit-to-group-bhp256-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	commit_to_group_bhp512	spec	aleo-commit-to-group-bhp512-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	commit_to_group_bhp768	spec	aleo-commit-to-group-bhp768-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	commit_to_group_ped128	spec	aleo-commit-to-group-ped128-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	commit_to_group_ped64	spec	aleo-commit-to-group-ped64-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	g_scalar_multiply	spec	aleo-g-scalar-multiply-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	hash_many_psd2	spec	aleo-hash-many-psd2-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	hash_many_psd4	spec	aleo-hash-many-psd4-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	hash_many_psd8	spec	aleo-hash-many-psd8-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	hash_to_group_bhp1024	spec	aleo-hash-to-group-bhp1024-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	hash_to_group_bhp256	spec	aleo-hash-to-group-bhp256-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	hash_to_group_bhp512	spec	aleo-hash-to-group-bhp512-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	hash_to_group_bhp768	spec	aleo-hash-to-group-bhp768-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	hash_to_group_ped128	spec	aleo-hash-to-group-ped128-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	hash_to_group_ped64	spec	aleo-hash-to-group-ped64-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	hash_to_group_psd2	spec	aleo-hash-to-group-psd2-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	hash_to_group_psd4	spec	aleo-hash-to-group-psd4-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	hash_to_group_psd8	spec	aleo-hash-to-group-psd8-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	hash_to_scalar_psd2	spec	aleo-hash-to-scalar-psd2-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	hash_to_scalar_psd4	spec	aleo-hash-to-scalar-psd4-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	hash_to_scalar_psd8	spec	aleo-hash-to-scalar-psd8-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	verify_merkle_path_bhp	spec	aleo-verify-merkle-path-bhp-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Aleo	verify_merkle_path_psd	spec	aleo-verify-merkle-path-psd-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoCanaryV0	Environment	enforce	spec	aleo-enforce-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	commit_bhp1024	spec	aleo-commit-bhp1024-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	commit_bhp256	spec	aleo-commit-bhp256-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	commit_bhp512	spec	aleo-commit-bhp512-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	commit_bhp768	spec	aleo-commit-bhp768-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	commit_ped128	spec	aleo-commit-ped128-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	commit_ped64	spec	aleo-commit-ped64-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	commit_to_group_bhp1024	spec	aleo-commit-to-group-bhp1024-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	commit_to_group_bhp256	spec	aleo-commit-to-group-bhp256-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	commit_to_group_bhp512	spec	aleo-commit-to-group-bhp512-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	commit_to_group_bhp768	spec	aleo-commit-to-group-bhp768-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	commit_to_group_ped128	spec	aleo-commit-to-group-ped128-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	commit_to_group_ped64	spec	aleo-commit-to-group-ped64-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	g_scalar_multiply	spec	aleo-g-scalar-multiply-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	hash_many_psd2	spec	aleo-hash-many-psd2-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	hash_many_psd4	spec	aleo-hash-many-psd4-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	hash_many_psd8	spec	aleo-hash-many-psd8-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	hash_to_group_bhp1024	spec	aleo-hash-to-group-bhp1024-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	hash_to_group_bhp256	spec	aleo-hash-to-group-bhp256-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	hash_to_group_bhp512	spec	aleo-hash-to-group-bhp512-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	hash_to_group_bhp768	spec	aleo-hash-to-group-bhp768-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	hash_to_group_ped128	spec	aleo-hash-to-group-ped128-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	hash_to_group_ped64	spec	aleo-hash-to-group-ped64-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	hash_to_group_psd2	spec	aleo-hash-to-group-psd2-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	hash_to_group_psd4	spec	aleo-hash-to-group-psd4-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	hash_to_group_psd8	spec	aleo-hash-to-group-psd8-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	hash_to_scalar_psd2	spec	aleo-hash-to-scalar-psd2-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	hash_to_scalar_psd4	spec	aleo-hash-to-scalar-psd4-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	hash_to_scalar_psd8	spec	aleo-hash-to-scalar-psd8-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	verify_merkle_path_bhp	spec	aleo-verify-merkle-path-bhp-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Aleo	verify_merkle_path_psd	spec	aleo-verify-merkle-path-psd-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoTestnetV0	Environment	enforce	spec	aleo-enforce-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	commit_bhp1024	spec	aleo-commit-bhp1024-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	commit_bhp256	spec	aleo-commit-bhp256-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	commit_bhp512	spec	aleo-commit-bhp512-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	commit_bhp768	spec	aleo-commit-bhp768-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	commit_ped128	spec	aleo-commit-ped128-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	commit_ped64	spec	aleo-commit-ped64-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	commit_to_group_bhp1024	spec	aleo-commit-to-group-bhp1024-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	commit_to_group_bhp256	spec	aleo-commit-to-group-bhp256-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	commit_to_group_bhp512	spec	aleo-commit-to-group-bhp512-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	commit_to_group_bhp768	spec	aleo-commit-to-group-bhp768-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	commit_to_group_ped128	spec	aleo-commit-to-group-ped128-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	commit_to_group_ped64	spec	aleo-commit-to-group-ped64-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	g_scalar_multiply	spec	aleo-g-scalar-multiply-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	hash_many_psd2	spec	aleo-hash-many-psd2-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	hash_many_psd4	spec	aleo-hash-many-psd4-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	hash_many_psd8	spec	aleo-hash-many-psd8-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	hash_to_group_bhp1024	spec	aleo-hash-to-group-bhp1024-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	hash_to_group_bhp256	spec	aleo-hash-to-group-bhp256-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	hash_to_group_bhp512	spec	aleo-hash-to-group-bhp512-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	hash_to_group_bhp768	spec	aleo-hash-to-group-bhp768-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	hash_to_group_ped128	spec	aleo-hash-to-group-ped128-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	hash_to_group_ped64	spec	aleo-hash-to-group-ped64-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	hash_to_group_psd2	spec	aleo-hash-to-group-psd2-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	hash_to_group_psd4	spec	aleo-hash-to-group-psd4-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	hash_to_group_psd8	spec	aleo-hash-to-group-psd8-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	hash_to_scalar_psd2	spec	aleo-hash-to-scalar-psd2-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	hash_to_scalar_psd4	spec	aleo-hash-to-scalar-psd4-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	hash_to_scalar_psd8	spec	aleo-hash-to-scalar-psd8-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	verify_merkle_path_bhp	spec	aleo-verify-merkle-path-bhp-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Aleo	verify_merkle_path_psd	spec	aleo-verify-merkle-path-psd-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+network	AleoV0	Environment	enforce	spec	aleo-enforce-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
+program			compute_function_id	spec	compute-function-id	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	Argument	Equal	is_equal	spec	argument-is-equal	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Argument	Equal	is_not_equal	spec	argument-is-not-equal	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Argument	Inject	new	spec	argument-new	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Argument	ToBits	write_bits_be	spec	argument-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Argument	ToBits	write_bits_le	spec	argument-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Boolean	Cast	cast	spec	boolean-cast	projects/aleo/vm/circuits/fun-specs/values-cast.lisp
+program	Boolean	CastLossy	cast_lossy	spec	boolean-cast-lossy	projects/aleo/vm/circuits/fun-specs/values-cast.lisp
+program	Ciphertext		decrypt_symmetric	spec	crypto-ciphertext-decrypt-symmetric	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Ciphertext		decrypt_with_randomizers	spec	crypto-ciphertext-decrypt-with-randomizers	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Ciphertext	Equal	is_equal	spec	crypto-ciphertext-is-equal	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Ciphertext	Equal	is_not_equal	spec	crypto-ciphertext-is-not-equal	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Ciphertext	Inject	new	spec	crypto-ciphertext-new	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Ciphertext	ToBits	write_bits_be	spec	crypto-ciphertext-write-bits-be	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Ciphertext	ToBits	write_bits_le	spec	crypto-ciphertext-write-bits-le	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	DynamicFuture	Equal	is_equal	spec	dynamic-future-is-equal	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	DynamicFuture	Equal	is_not_equal	spec	dynamic-future-is-not-equal	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	DynamicFuture	Inject	new	spec	dynamic-future-new	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	DynamicFuture	ToBits	write_bits_be	spec	dynamic-future-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	DynamicFuture	ToBits	write_bits_le	spec	dynamic-future-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	DynamicFuture	ToFields	to_fields	spec	dynamic-future-to-fields	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	DynamicRecord		find	spec	dynamic-record-find	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	DynamicRecord		from_record	spec	dynamic-record-from-record	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	DynamicRecord		merkleize_data	spec	dynamic-record-merkleize-data	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	DynamicRecord	Equal	is_equal	spec	dynamic-record-is-equal	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	DynamicRecord	Equal	is_not_equal	spec	dynamic-record-is-not-equal	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	DynamicRecord	Inject	new	spec	dynamic-record-new	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	DynamicRecord	ToBits	write_bits_be	spec	dynamic-record-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	DynamicRecord	ToBits	write_bits_le	spec	dynamic-record-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	DynamicRecord	ToFields	to_fields	spec	dynamic-record-to-fields	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Entry		find	spec	entry-find	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Entry		num_randomizers	spec	entry-num-randomizers	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Entry		to_fields_with_visibility_as_mode	spec	entry-to-fields-with-visibility-as-mode	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Entry		write_bits_le_with_visibility_as_mode	spec	entry-write-bits-le-with-visibility-as-mode	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Entry	Equal	is_equal	spec	entry-is-equal	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Entry	Equal	is_not_equal	spec	entry-is-not-equal	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Entry	Inject	new	spec	entry-new	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Entry	ToBits	write_bits_be	spec	entry-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Entry	ToBits	write_bits_le	spec	entry-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Entry	ToFields	to_fields	spec	entry-to-fields	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Field	Cast	cast	spec	field-cast	projects/aleo/vm/circuits/fun-specs/values-cast.lisp
+program	Field	CastLossy	cast_lossy	spec	field-cast-lossy	projects/aleo/vm/circuits/fun-specs/values-cast.lisp
+program	Future	Equal	is_equal	spec	future-is-equal	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Future	Equal	is_not_equal	spec	future-is-not-equal	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Future	Inject	new	spec	future-new	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Future	ToBits	write_bits_be	spec	future-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Future	ToBits	write_bits_le	spec	future-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Future	ToFields	to_fields	spec	future-to-fields	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	HeaderLeaf	ToBits	write_bits_be	spec	header-leaf-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	HeaderLeaf	ToBits	write_bits_le	spec	header-leaf-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Identifier		public	spec	identifier-public	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	Identifier	Equal	is_equal	spec	identifier-is-equal	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	Identifier	Equal	is_not_equal	spec	identifier-is-not-equal	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	Identifier	FromBits	from_bits_be	spec	identifier-from-bits-be	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	Identifier	FromBits	from_bits_le	spec	identifier-from-bits-le	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	Identifier	FromField	from_field	spec	identifier-from-field	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	Identifier	ToBits	write_bits_be	spec	identifier-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	Identifier	ToBits	write_bits_le	spec	identifier-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	IdentifierLiteral	Cast	cast	spec	identifier-literal-cast	projects/aleo/vm/circuits/fun-specs/values-cast.lisp
+program	InputID	Inject	new	spec	crypto-input-id-new	projects/aleo/vm/circuits/fun-specs/crypto-request.lisp
+program	Integer	Cast	cast	spec	integer-cast	projects/aleo/vm/circuits/fun-specs/values-cast.lisp
+program	Integer	CastLossy	cast_lossy	spec	integer-cast-lossy	projects/aleo/vm/circuits/fun-specs/values-cast.lisp
+program	Literal		from_bits_be	spec	literal-from-bits-be	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	Literal		from_bits_le	spec	literal-from-bits-le	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	Literal	Equal	is_equal	spec	literal-is-equal	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	Literal	Equal	is_not_equal	spec	literal-is-not-equal	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	Literal	Inject	new	spec	literal-new	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	Literal	ToBits	write_bits_be	spec	literal-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	Literal	ToBits	write_bits_le	spec	literal-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	Literal	ToFields	to_fields	spec	literal-to-fields	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	OutputID		dynamic_future	spec	crypto-make-output-id-dynamic-future	projects/aleo/vm/circuits/fun-specs/crypto-response.lisp
+program	OutputID		dynamic_record	spec	crypto-make-output-id-dynamic-record	projects/aleo/vm/circuits/fun-specs/crypto-response.lisp
+program	OutputID		external_record	spec	crypto-make-output-id-external-record	projects/aleo/vm/circuits/fun-specs/crypto-response.lisp
+program	OutputID		future	spec	crypto-make-output-id-future	projects/aleo/vm/circuits/fun-specs/crypto-response.lisp
+program	OutputID		private	spec	crypto-make-output-id-private	projects/aleo/vm/circuits/fun-specs/crypto-response.lisp
+program	OutputID		public	spec	crypto-make-output-id-public	projects/aleo/vm/circuits/fun-specs/crypto-response.lisp
+program	OutputID		record	spec	crypto-make-output-id-record	projects/aleo/vm/circuits/fun-specs/crypto-response.lisp
+program	Owner		decrypt	spec	crypto-owner-decrypt	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Owner		encrypt	spec	crypto-owner-encrypt	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Owner		to_entry	spec	crypto-owner-to-entry	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Owner	Equal	is_equal	spec	crypto-owner-is-equal	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Owner	Equal	is_not_equal	spec	crypto-owner-is-not-equal	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Owner	Inject	new	spec	crypto-owner-new	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Plaintext		encrypt	spec	plaintext-encrypt	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext		encrypt_symmetric	spec	plaintext-encrypt-symmetric	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext		encrypt_with_randomizers	spec	plaintext-encrypt-with-randomizers	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext		find	spec	plaintext-find	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext		from_bit_array	spec	plaintext-from-bit-array	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext		from_bits_be_internal	spec	plaintext-from-bits-be-internal	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext		from_bits_le_internal	spec	plaintext-from-bits-le-internal	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext		num_randomizers	spec	plaintext-num-randomizers	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext	Equal	is_equal	spec	plaintext-is-equal	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext	Equal	is_not_equal	spec	plaintext-is-not-equal	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext	From	from	spec	plaintext-from	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext	FromBits	from_bits_be	spec	plaintext-from-bits-be	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext	FromBits	from_bits_le	spec	plaintext-from-bits-le	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext	FromFields	from_fields	spec	plaintext-from-fields	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext	Inject	new	spec	plaintext-new	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext	ToBits	write_bits_be	spec	plaintext-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext	ToBits	write_bits_le	spec	plaintext-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext	ToBitsRaw	write_bits_raw_be	spec	plaintext-to-bits-raw-be	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext	ToBitsRaw	write_bits_raw_le	spec	plaintext-to-bits-raw-le	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext	ToFields	to_fields	spec	plaintext-to-fields	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext	ToFieldsRaw	to_fields_raw	spec	plaintext-to-fields-raw	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	Plaintext	Visibility	size_in_fields	spec	plaintext-size-in-fields	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
+program	ProgramID		public	spec	program-id-public	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	ProgramID		to_address	spec	program-id-to-address	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	ProgramID	Equal	is_equal	spec	program-id-is-equal	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	ProgramID	Equal	is_not_equal	spec	program-id-is-not-equal	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	ProgramID	ToBits	write_bits_be	spec	program-id-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	ProgramID	ToBits	write_bits_le	spec	program-id-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	ProgramID	ToFields	to_fields	spec	program-id-to-fields	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
+program	Record		decrypt	spec	crypto-record-decrypt	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Record		decrypt_symmetric_unchecked	spec	crypto-record-decrypt-symmetric-unchecked	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Record		decrypt_with_randomizers	spec	crypto-record-decrypt-with-randomizers	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Record		encrypt	spec	crypto-record-encrypt	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Record		encrypt_symmetric	spec	crypto-record-encrypt-symmetric	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Record		encrypt_symmetric_unchecked	spec	crypto-record-encrypt-symmetric-unchecked	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Record		encrypt_with_randomizers	spec	crypto-record-encrypt-with-randomizers	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Record		find	spec	crypto-record-find	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Record		is_hiding	spec	crypto-record-is-hiding	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Record		num_randomizers	spec	crypto-record-num-randomizers	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Record		serial_number	spec	crypto-record-serial-number	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Record		serial_number_from_gamma	spec	crypto-record-serial-number-from-gamma	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Record		to_commitment	spec	crypto-record-to-commitment	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Record	Equal	is_equal	spec	crypto-record-is-equal	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Record	Equal	is_not_equal	spec	crypto-record-is-not-equal	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Record	Inject	new	spec	crypto-record-new	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Record	ToBits	write_bits_be	spec	crypto-record-write-bits-be	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Record	ToBits	write_bits_le	spec	crypto-record-write-bits-le	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Record	ToFields	to_fields	spec	crypto-record-to-fields	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
+program	Request		check_input_ids	spec	crypto-request-check-input-ids	projects/aleo/vm/circuits/fun-specs/crypto-request.lisp
+program	Request		to_tpk	spec	crypto-request-to-tpk	projects/aleo/vm/circuits/fun-specs/crypto-request.lisp
+program	Request		verify	spec	crypto-request-verify	projects/aleo/vm/circuits/fun-specs/crypto-request.lisp
+program	Request	Inject	new	spec	crypto-request-new	projects/aleo/vm/circuits/fun-specs/crypto-request.lisp
+program	Response		from_outputs	spec	crypto-response-from-outputs	projects/aleo/vm/circuits/fun-specs/crypto-response.lisp
+program	Response		process_outputs_from_callback	spec	crypto-response-process-outputs-from-callback	projects/aleo/vm/circuits/fun-specs/crypto-response.lisp
+program	Scalar	Cast	cast	spec	scalar-cast	projects/aleo/vm/circuits/fun-specs/values-cast.lisp
+program	Scalar	CastLossy	cast_lossy	spec	scalar-cast-lossy	projects/aleo/vm/circuits/fun-specs/values-cast.lisp
+program	StatePath		verify	spec	crypto-state-path-verify	projects/aleo/vm/circuits/fun-specs/crypto-state-path.lisp
+program	TransactionLeaf	ToBits	write_bits_be	spec	transaction-leaf-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	TransactionLeaf	ToBits	write_bits_le	spec	transaction-leaf-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	TransitionLeaf	ToBits	write_bits_be	spec	transition-leaf-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	TransitionLeaf	ToBits	write_bits_le	spec	transition-leaf-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Value		find	spec	value-find	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Value	Equal	is_equal	spec	value-is-equal	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Value	Equal	is_not_equal	spec	value-is-not-equal	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Value	Inject	new	spec	value-new	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Value	ToBits	write_bits_be	spec	value-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Value	ToBits	write_bits_le	spec	value-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Value	ToBitsRaw	write_bits_raw_be	spec	value-to-bits-raw-be	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Value	ToBitsRaw	write_bits_raw_le	spec	value-to-bits-raw-le	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Value	ToFields	to_fields	spec	value-to-fields	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+program	Value	ToFieldsRaw	to_fields_raw	spec	value-to-fields-raw	projects/aleo/vm/circuits/fun-specs/values-value.lisp
+types/address	Address	Compare	is_greater_than	spec	address-is-greater-than-funspec	projects/aleo/vm/circuits/fun-specs/curve-address.lisp
+types/address	Address	Compare	is_greater_than_or_equal	spec	address-is-greater-than-or-equal-funspec	projects/aleo/vm/circuits/fun-specs/curve-address.lisp
+types/address	Address	Compare	is_less_than	spec	address-is-less-than-funspec	projects/aleo/vm/circuits/fun-specs/curve-address.lisp
+types/address	Address	Compare	is_less_than_or_equal	spec	address-is-less-than-or-equal-funspec	projects/aleo/vm/circuits/fun-specs/curve-address.lisp
+types/address	Address	Equal	is_equal	spec	address-is-equal-funspec	projects/aleo/vm/circuits/fun-specs/curve-address.lisp
+types/address	Address	Equal	is_not_equal	spec	address-is-not-equal-funspec	projects/aleo/vm/circuits/fun-specs/curve-address.lisp
+types/address	Address	From	from	spec	address-from-funspec	projects/aleo/vm/circuits/fun-specs/curve-address.lisp
+types/address	Address	FromBits	from_bits_be	spec	address-from-bits-be-funspec	projects/aleo/vm/circuits/fun-specs/curve-address.lisp
+types/address	Address	FromBits	from_bits_le	spec	address-from-bits-le-funspec	projects/aleo/vm/circuits/fun-specs/curve-address.lisp
+types/address	Address	FromField	from_field	spec	address-from-field-funspec	projects/aleo/vm/circuits/fun-specs/curve-address.lisp
+types/address	Address	Inject	new	spec	address-new-funspec	projects/aleo/vm/circuits/fun-specs/curve-address.lisp
+types/address	Address	Ternary	ternary	spec	address-ternary-funspec	projects/aleo/vm/circuits/fun-specs/curve-address.lisp
+types/address	Address	ToBits	write_bits_be	spec	address-write-bits-be-funspec	projects/aleo/vm/circuits/fun-specs/curve-address.lisp
+types/address	Address	ToBits	write_bits_le	spec	address-write-bits-le-funspec	projects/aleo/vm/circuits/fun-specs/curve-address.lisp
+types/address	Field	From	from	spec	address-to-field-funspec	projects/aleo/vm/circuits/fun-specs/curve-address.lisp
+types/boolean	Boolean		assert_bits_are_zero	spec	aleovm::boolean-assert-bits-are-zero-funspec	projects/aleo/vm/circuits/fun-specs/primitives-boolean.lisp
+types/boolean	Boolean		assert_less_than_or_equal_constant	spec	aleovm::boolean-assert-less-than-or-equal-constant-funspec	projects/aleo/vm/circuits/fun-specs/primitives-boolean.lisp
+types/boolean	Boolean		is_less_than_or_equal_constant	spec	aleovm::boolean-is-less-than-or-equal-constant-funspec	projects/aleo/vm/circuits/fun-specs/primitives-boolean.lisp
+types/boolean	Boolean	Adder	adder	spec	aleovm::boolean-adder-funspec	projects/aleo/vm/circuits/fun-specs/primitives-boolean.lisp
+types/boolean	Boolean	BitAnd	bitand	spec	aleovm::boolean-and-funspec	projects/aleo/vm/circuits/fun-specs/primitives-boolean.lisp
+types/boolean	Boolean	BitAndAssign	bitand_assign	spec	aleovm::boolean-and-funspec	projects/aleo/vm/circuits/fun-specs/primitives-boolean.lisp
+types/boolean	Boolean	BitOr	bitor	spec	aleovm::boolean-or-funspec	projects/aleo/vm/circuits/fun-specs/primitives-boolean.lisp
+types/boolean	Boolean	BitOrAssign	bitor_assign	spec	aleovm::boolean-or-funspec	projects/aleo/vm/circuits/fun-specs/primitives-boolean.lisp
+types/boolean	Boolean	BitXor	bitxor	spec	aleovm::boolean-xor-funspec	projects/aleo/vm/circuits/fun-specs/primitives-boolean.lisp
+types/boolean	Boolean	BitXorAssign	bitxor_assign	spec	aleovm::boolean-xor-funspec	projects/aleo/vm/circuits/fun-specs/primitives-boolean.lisp
+types/boolean	Boolean	Equal	is_equal	spec	aleovm::boolean-is-equal-funspec	projects/aleo/vm/circuits/fun-specs/primitives-boolean.lisp
+types/boolean	Boolean	Equal	is_not_equal	spec	aleovm::boolean-is-not-equal-funspec	projects/aleo/vm/circuits/fun-specs/primitives-boolean.lisp
+types/boolean	Boolean	Inject	new	spec	aleovm::boolean-new-funspec	projects/aleo/vm/circuits/fun-specs/primitives-boolean.lisp
+types/boolean	Boolean	Nand	nand	spec	aleovm::boolean-nand-funspec	projects/aleo/vm/circuits/fun-specs/primitives-boolean.lisp
+types/boolean	Boolean	Nor	nor	spec	aleovm::boolean-nor-funspec	projects/aleo/vm/circuits/fun-specs/primitives-boolean.lisp
+types/boolean	Boolean	Subtractor	subtractor	spec	aleovm::boolean-subtractor-funspec	projects/aleo/vm/circuits/fun-specs/primitives-boolean.lisp
+types/boolean	Boolean	Ternary	ternary	spec	aleovm::boolean-ternary-funspec	projects/aleo/vm/circuits/fun-specs/primitives-boolean.lisp
+types/field	Field		even_square_root	spec	aleovm::field-even-square-root-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field		square_roots_flagged_nondeterministic	spec	aleovm::field-square-roots-flagged-nondeterministic-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field		to_non_unique_bits_le	spec	aleovm::field-to-non-unique-bits-le-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	Compare	is_greater_than	spec	aleovm::field-is-greater-than-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	Compare	is_greater_than_or_equal	spec	aleovm::field-is-greater-than-or-equal-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	Compare	is_less_than	spec	aleovm::field-is-less-than-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	Compare	is_less_than_or_equal	spec	aleovm::field-is-less-than-or-equal-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	Div	div	spec	aleovm::field-div-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	DivAssign	div_assign	spec	aleovm::field-div-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	DivUnchecked	div_unchecked	spec	aleovm::field-div-unchecked-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	Equal	is_equal	spec	aleovm::field-is-equal-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	Equal	is_not_equal	spec	aleovm::field-is-not-equal-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	From	from	spec	aleovm::field-from-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	FromBits	from_bits_be	spec	aleovm::field-from-bits-be-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	FromBits	from_bits_le	spec	aleovm::field-from-bits-le-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	FromBoolean	from_boolean	spec	aleovm::field-from-boolean-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	Inv	inv	spec	aleovm::field-inverse-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	Inverse	inverse	spec	aleovm::field-inverse-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	Mul	mul	spec	aleovm::field-mul-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	MulAssign	mul_assign	spec	aleovm::field-mul-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	One	is_one	spec	aleovm::field-is-one-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	Pow	pow	spec	aleovm::field-pow-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	Square	square	spec	aleovm::field-square-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	SquareRoot	square_root	spec	aleovm::field-square-root-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	Ternary	ternary	spec	aleovm::field-ternary-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	ToBits	write_bits_be	spec	aleovm::field-write-bits-be-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	ToBits	write_bits_le	spec	aleovm::field-write-bits-le-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	ToLowerBits	to_lower_bits_be	spec	aleovm::field-to-lower-bits-be-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	ToLowerBits	to_lower_bits_le	spec	aleovm::field-to-lower-bits-le-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	ToUpperBits	to_upper_bits_be	spec	aleovm::field-to-upper-bits-be-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	ToUpperBits	to_upper_bits_le	spec	aleovm::field-to-upper-bits-le-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/field	Field	Zero	is_zero	spec	aleovm::field-is-zero-funspec	projects/aleo/vm/circuits/fun-specs/primitives-field.lisp
+types/group	Group		enforce_double	spec	group-enforce-double-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group		enforce_in_group	spec	group-enforce-in-group-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group		enforce_on_curve	spec	group-enforce-on-curve-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group		from_x_coordinate	spec	group-from-x-coordinate-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group		from_x_coordinate_flagged	spec	group-from-x-coordinate-flagged-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group		from_xy_coordinates	spec	group-from-xy-coordinates-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group		is_in_group	spec	group-is-in-group-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group		mul_by_cofactor	spec	group-mul-by-cofactor-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group	Add	add	spec	group-add-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group	AddAssign	add_assign	spec	group-add-assign-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group	Double	double	spec	group-double-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group	Equal	is_equal	spec	group-is-equal-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group	Equal	is_not_equal	spec	group-is-not-equal-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group	FromBits	from_bits_be	spec	group-from-bits-be-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group	FromBits	from_bits_le	spec	group-from-bits-le-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group	Inject	new	spec	group-new-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group	Mul	mul	spec	group-mul-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group	MulAssign	mul_assign	spec	group-mul-assign-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group	Sub	sub	spec	group-sub-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group	SubAssign	sub_assign	spec	group-sub-assign-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group	Ternary	ternary	spec	group-ternary-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group	ToBits	write_bits_be	spec	group-write-bits-be-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group	ToBits	write_bits_le	spec	group-write-bits-le-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/group	Group	Zero	is_zero	spec	group-is-zero-funspec	projects/aleo/vm/circuits/fun-specs/curve-group.lisp
+types/integers	Integer		from_field_lossy	spec	aleovm::int-from-field-lossy-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer		karatsuba_multiply	spec	aleovm::int-karatsuba-multiply-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer		mul_and_check	spec	aleovm::int-mul-and-check-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer		mul_with_flags	spec	aleovm::int-mul-with-flags-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer		to_scalar	spec	aleovm::int-to-scalar-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer		unsigned_division_via_witness	spec	aleovm::int-unsigned-division-via-witness-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	AbsChecked	abs_checked	spec	aleovm::int-abs-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	AbsWrapped	abs_wrapped	spec	aleovm::int-abs-wrapped-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Add	add	spec	aleovm::int-add-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	AddAssign	add_assign	spec	aleovm::int-add-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	AddChecked	add_checked	spec	aleovm::int-add-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	AddWrapped	add_wrapped	spec	aleovm::int-add-wrapped-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	BitAnd	bitand	spec	aleovm::int-bitand-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	BitAndAssign	bitand_assign	spec	aleovm::int-bitand-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	BitOr	bitor	spec	aleovm::int-bitor-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	BitOrAssign	bitor_assign	spec	aleovm::int-bitor-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	BitXor	bitxor	spec	aleovm::int-bitxor-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	BitXorAssign	bitxor_assign	spec	aleovm::int-bitxor-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Compare	is_greater_than	spec	aleovm::int-is-greater-than-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Compare	is_greater_than_or_equal	spec	aleovm::int-is-greater-than-or-equal-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Compare	is_less_than	spec	aleovm::int-is-less-than-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Compare	is_less_than_or_equal	spec	aleovm::int-is-less-than-or-equal-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Div	div	spec	aleovm::int-div-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	DivAssign	div_assign	spec	aleovm::int-div-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	DivChecked	div_checked	spec	aleovm::int-div-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	DivWrapped	div_wrapped	spec	aleovm::int-div-wrapped-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Equal	is_equal	spec	aleovm::int-is-equal-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Equal	is_not_equal	spec	aleovm::int-is-not-equal-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	FromBits	from_bits_be	spec	aleovm::int-from-bits-be-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	FromBits	from_bits_le	spec	aleovm::int-from-bits-le-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	FromField	from_field	spec	aleovm::int-from-field-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Inject	new	spec	aleovm::int-new-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Modulo	modulo	spec	aleovm::int-modulo-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Mul	mul	spec	aleovm::int-mul-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	MulAssign	mul_assign	spec	aleovm::int-mul-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	MulChecked	mul_checked	spec	aleovm::int-mul-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	MulWrapped	mul_wrapped	spec	aleovm::int-mul-wrapped-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Neg	neg	spec	aleovm::int-neg-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	One	is_one	spec	aleovm::int-is-one-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Pow	pow	spec	aleovm::int-pow-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	PowChecked	pow_checked	spec	aleovm::int-pow-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	PowWrapped	pow_wrapped	spec	aleovm::int-pow-wrapped-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Rem	rem	spec	aleovm::int-rem-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	RemAssign	rem_assign	spec	aleovm::int-rem-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	RemChecked	rem_checked	spec	aleovm::int-rem-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	RemWrapped	rem_wrapped	spec	aleovm::int-rem-wrapped-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Shl	shl	spec	aleovm::int-shl-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	ShlAssign	shl_assign	spec	aleovm::int-shl-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	ShlChecked	shl_checked	spec	aleovm::int-shl-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	ShlWrapped	shl_wrapped	spec	aleovm::int-shl-wrapped-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Shr	shr	spec	aleovm::int-shr-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	ShrAssign	shr_assign	spec	aleovm::int-shr-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	ShrChecked	shr_checked	spec	aleovm::int-shr-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	ShrWrapped	shr_wrapped	spec	aleovm::int-shr-wrapped-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Sub	sub	spec	aleovm::int-sub-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	SubAssign	sub_assign	spec	aleovm::int-sub-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	SubChecked	sub_checked	spec	aleovm::int-sub-checked-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	SubWrapped	sub_wrapped	spec	aleovm::int-sub-wrapped-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Ternary	ternary	spec	aleovm::int-ternary-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	ToField	to_field	spec	aleovm::int-to-field-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	ToFields	to_fields	spec	aleovm::int-to-fields-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/integers	Integer	Zero	is_zero	spec	aleovm::int-is-zero-spec	projects/aleo/vm/circuits/fun-specs/integers.lisp
+types/scalar	Scalar		from_field_lossy	spec	aleovm::scalar-from-field-lossy-funspec	projects/aleo/vm/circuits/fun-specs/primitives-scalar.lisp
+types/scalar	Scalar	Add	add	spec	aleovm::scalar-add-funspec	projects/aleo/vm/circuits/fun-specs/primitives-scalar.lisp
+types/scalar	Scalar	AddAssign	add_assign	spec	aleovm::scalar-add-funspec	projects/aleo/vm/circuits/fun-specs/primitives-scalar.lisp
+types/scalar	Scalar	Compare	is_greater_than	spec	aleovm::scalar-is-greater-than-funspec	projects/aleo/vm/circuits/fun-specs/primitives-scalar.lisp
+types/scalar	Scalar	Compare	is_greater_than_or_equal	spec	aleovm::scalar-is-greater-than-or-equal-funspec	projects/aleo/vm/circuits/fun-specs/primitives-scalar.lisp
+types/scalar	Scalar	Compare	is_less_than	spec	aleovm::scalar-is-less-than-funspec	projects/aleo/vm/circuits/fun-specs/primitives-scalar.lisp
+types/scalar	Scalar	Compare	is_less_than_or_equal	spec	aleovm::scalar-is-less-than-or-equal-funspec	projects/aleo/vm/circuits/fun-specs/primitives-scalar.lisp
+types/scalar	Scalar	Equal	is_equal	spec	aleovm::scalar-is-equal-funspec	projects/aleo/vm/circuits/fun-specs/primitives-scalar.lisp
+types/scalar	Scalar	Equal	is_not_equal	spec	aleovm::scalar-is-not-equal-funspec	projects/aleo/vm/circuits/fun-specs/primitives-scalar.lisp
+types/scalar	Scalar	FromBits	from_bits_be	spec	aleovm::scalar-from-bits-be-funspec	projects/aleo/vm/circuits/fun-specs/primitives-scalar.lisp
+types/scalar	Scalar	FromBits	from_bits_le	spec	aleovm::scalar-from-bits-le-funspec	projects/aleo/vm/circuits/fun-specs/primitives-scalar.lisp
+types/scalar	Scalar	FromField	from_field	spec	aleovm::scalar-from-field-funspec	projects/aleo/vm/circuits/fun-specs/primitives-scalar.lisp
+types/scalar	Scalar	One	is_one	spec	aleovm::scalar-is-one-funspec	projects/aleo/vm/circuits/fun-specs/primitives-scalar.lisp
+types/scalar	Scalar	Ternary	ternary	spec	aleovm::scalar-ternary-funspec	projects/aleo/vm/circuits/fun-specs/primitives-scalar.lisp
+types/scalar	Scalar	ToBits	write_bits_be	spec	aleovm::scalar-write-bits-be-funspec	projects/aleo/vm/circuits/fun-specs/primitives-scalar.lisp
+types/scalar	Scalar	ToBits	write_bits_le	spec	aleovm::scalar-write-bits-le-funspec	projects/aleo/vm/circuits/fun-specs/primitives-scalar.lisp
+types/scalar	Scalar	Zero	is_zero	spec	aleovm::scalar-is-zero-funspec	projects/aleo/vm/circuits/fun-specs/primitives-scalar.lisp
+types/string			is_invalid_digit_offset	spec	is-invalid-digit-offset	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string			is_invalid_lowercase_offset	spec	is-invalid-lowercase-offset	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string			is_invalid_uppercase_offset	spec	is-invalid-uppercase-offset	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string			validate_byte	spec	validate-byte	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string			validate_identifier_bytes	spec	validate-identifier-bytes	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string			validate_trailing_nulls	spec	validate-trailing-nulls	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	ByteValidationData		new	spec	byte-validation-data-new	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	IdentifierLiteral	Equal	is_equal	spec	identifier-literal-is-equal	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	IdentifierLiteral	Equal	is_not_equal	spec	identifier-literal-is-not-equal	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	IdentifierLiteral	FromBits	from_bits_be	spec	identifier-literal-from-bits-be	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	IdentifierLiteral	FromBits	from_bits_le	spec	identifier-literal-from-bits-le	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	IdentifierLiteral	FromField	from_field	spec	identifier-literal-from-field	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	IdentifierLiteral	ToBits	write_bits_be	spec	identifier-literal-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	IdentifierLiteral	ToBits	write_bits_le	spec	identifier-literal-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	IdentifierLiteral	ToField	to_field	spec	identifier-literal-to-field	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	IdentifierLiteral	ToFields	to_fields	spec	identifier-literal-to-fields	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	StringType		inject_size_in_bytes	spec	string-type-inject-size-in-bytes	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	StringType	Equal	is_equal	spec	string-type-is-equal	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	StringType	Equal	is_not_equal	spec	string-type-is-not-equal	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	StringType	FromBits	from_bits_be	spec	string-type-from-bits-be	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	StringType	FromBits	from_bits_le	spec	string-type-from-bits-le	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	StringType	Inject	new	spec	string-type-new	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	StringType	ToBits	write_bits_be	spec	string-type-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	StringType	ToBits	write_bits_le	spec	string-type-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-string.lisp
+types/string	StringType	ToFields	to_fields	spec	string-type-to-fields	projects/aleo/vm/circuits/fun-specs/values-string.lisp
