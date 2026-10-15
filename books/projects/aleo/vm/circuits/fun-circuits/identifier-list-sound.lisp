@@ -10,7 +10,8 @@
 ; identifier-new-sound.lisp turns one byte's field equations into validate-byte.
 ; This book derives the boolean witness bits from the gates, lifts that
 ; byte theorem across the list and the trailing-null constraints, and
-; concludes identifier-literal-new.
+; concludes identifier-literal-new.  literal-identifier-new-sound states
+; it over the wires: the literal is the bytes the bit rows decode to.
 
 (in-package "ALEOVM")
 
@@ -19,6 +20,7 @@
 (include-book "../fun-specs/values-literal")
 
 (local (include-book "std/basic/arith-equivs" :dir :system))
+(local (include-book "kestrel/arithmetic-light/mod" :dir :system))
 
 (local (in-theory (disable lookup-equal-of-nth)))
 
@@ -864,7 +866,7 @@
                            (x (literal-identifier->get x)))
            :in-theory (enable literal-new))))
 
-(defruled literal-identifier-new-sound
+(defruled literal-identifier-new-sound-of-bytes
   (implies (and (literalp x)
                 (literal-case x :identifier)
                 (consp (identifier-literal->bytes
@@ -901,3 +903,94 @@
                            (x (literal-identifier->get x)))
            :in-theory (enable literal-new
                               literal-identifier-new-gadget))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; The bytes the bit rows denote: U8::from_bits_le of each row.
+
+(define id-decode-rows ((bitrows true-listp) (asg alistp))
+  :verify-guards nil
+  (if (atom bitrows)
+      nil
+    (cons (lebits=>nat (lookup-equal-list (car bitrows) asg))
+          (id-decode-rows (cdr bitrows) asg))))
+
+(defruled id-decode-rows-facts
+  (implies (id-bitrows-p bitrows)
+           (and (acl2::ubyte8-listp (id-decode-rows bitrows asg))
+                (equal (len (id-decode-rows bitrows asg)) (len bitrows))))
+  :induct (id-decode-rows bitrows asg)
+  :enable (id-decode-rows
+           id-bitrows-p
+           len-of-lookup-equal-list
+           values-ubyte8p-of-lebits=>nat))
+
+(defruled id-byte-roundtrip
+  (implies (and (bit-listp bits)
+                (equal (len bits) 8))
+           (and (equal (values-nat-to-lebits
+                        8 (acl2::ubyte8-fix (lebits=>nat bits)))
+                       bits)
+                (equal (values-nat-to-lebits 8 (lebits=>nat bits))
+                       bits)))
+  :use ((:instance values-ubyte8p-of-lebits=>nat)
+        (:instance acl2::nat=>lebits-of-lebits=>nat (digits bits)))
+  :enable (values-nat-to-lebits
+           acl2::ubyte8-fix
+           acl2::ubyte8p
+           values-lebits=>nat-upper-bound)
+  :disable acl2::nat=>lebits-of-lebits=>nat)
+
+(defruled id-decode-rows-matchp
+  (implies (and (id-bitrows-p bitrows)
+                (id-rows-bitsp bitrows asg))
+           (id-bits-matchp (id-decode-rows bitrows asg) bitrows asg))
+  :induct (id-decode-rows bitrows asg)
+  :enable (id-decode-rows
+           id-bitrows-p
+           id-rows-bitsp
+           id-bits-matchp
+           len-of-lookup-equal-list
+           id-byte-roundtrip))
+
+(defruled literal-identifier-new-sound
+  :short "R1CS-SOUND for the identifier arm of @('Literal::new') over the
+          wires: the bit rows decode to bytes, and @('literal-new') returns
+          the identifier literal of those bytes."
+  (implies (and (id-bitrows-p bitrows)
+                (id-witrows-p witrows)
+                (consp bitrows)
+                (consp witrows)
+                (equal (len witrows) (len bitrows))
+                (symbolp partial) (symbolp uscore) (symbolp islet)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg partial)
+                (r1cs::valuation-bindsp asg uscore)
+                (r1cs::valuation-bindsp asg islet)
+                (id-rows-boundp bitrows witrows asg)
+                (r1cs::r1cs-constraints-holdp
+                 (literal-identifier-new-gadget
+                  bitrows witrows partial uscore islet p)
+                 asg p))
+           (b* ((bytes (id-decode-rows bitrows asg))
+                (lit (literal-identifier
+                      (make-identifier-literal :bytes bytes))))
+             (and (acl2::ubyte8-listp bytes)
+                  (equal (identifier-literal->bytes (literal-identifier->get lit))
+                         bytes)
+                  (equal (literal-new lit) lit))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use (id-decode-rows-facts
+                 id-decode-rows-matchp
+                 id-new-gadget-pieces
+                 id-bitrows-bound-from-rows
+                 (:instance id-bit-checks-to-rows-bitsp)
+                 (:instance literal-identifier-new-sound-of-bytes
+                            (x (literal-identifier
+                                (make-identifier-literal
+                                 :bytes (id-decode-rows bitrows asg))))))
+           :in-theory (e/d (literal-identifier-new-gadget
+                            id-decode-rows)
+                           (identifier-new-gadget)))))
