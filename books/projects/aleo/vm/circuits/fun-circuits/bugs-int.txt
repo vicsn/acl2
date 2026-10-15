@@ -7,8 +7,9 @@ books/projects/aleo/vm/circuits/fun-specs/integers.lisp.
 No soundness bug (constraints accept a wrong output) and no completeness
 bug (a funspec value cannot be witnessed) was established.  The gaps below
 are unfinished proofs or circuits that the existing r1cs/ books do not
-cover for every width.  Flags in circspec-int.tsv are 0 for R1CS-SOUND and
-R1CS-COMPLETE on those rows.  ACL2 was not run.
+cover for every width.  ACL2 admitted the integer books that these notes
+name.  A row's R1CS-SOUND or R1CS-COMPLETE flag stays 0 when any width or
+signedness that the row claims is still unproved.
 
 1. mul_checked, mul, mul_assign, mul_and_check
    snarkVM uses one field product of the bit-weighted sums when
@@ -45,41 +46,41 @@ R1CS-COMPLETE on those rows.  ACL2 was not run.
 
 5. unsigned_division_via_witness, div, div_assign, div_checked, div_wrapped,
    rem, rem_assign, rem_checked, rem_wrapped, modulo
-   r1cs/unsigned-small-div proves the Euclidean quotient and remainder when
-   2*n+1 < integer-length(p).  That holds for 8..64 and fails for 128
-   (int-width-div-fits).  snarkVM's 128-bit branch is
+   r1cs/unsigned-small-div proves the Euclidean quotient and remainder,
+   including remainder < divisor, when 2*n+1 < integer-length(p).  That
+   holds for 8..64 and fails for 128 (int-width-div-fits).
+   int-unsigned-division-small-sound is that connection for the unsigned
+   gadget.  snarkVM's 128-bit branch is
    quotient.mul_checked(divisor).add_checked(remainder), i.e.
    unsigned-medium-div, and is not connected.
    Signed div/rem take absolute values, divide, and restore the sign.
-   That composition is not proved.
+   That composition is not proved, so R1CS-SOUND stays 0 on these rows.
    int-div-pred-to-euclid is only the field equation x = q*y + r.  The
    remainder < divisor constraint is in the R1CS gadget and is not in that
    PFCS.
    modulo on a signed integer is a host halt.  int-modulo-signed-is-error
-   matches the funspec.  Unsigned modulo is rem_wrapped and inherits the
-   division gap.  The sample int-div-sample-holds is the Euclidean
-   equation on field elements, not unsigned-small-div-gadget, so
-   R1CS-SAMPLES is 0 on these rows.
+   matches the funspec.  Unsigned modulo is rem_wrapped.
+   int-unsigned-division-sample-holds is a one-bit witness of
+   unsigned-small-div-gadget, so R1CS-SAMPLES is 1.  int-div-sample-holds
+   is only the Euclidean field equation.
 
 6. is_less_than and the other Compare methods
    Unsigned less-than is unsigned-small-lt.  z = 0 iff x < y, and the
    boolean snarkVM returns is the linear combination 1 - z.  The
    hypothesis n+1 < integer-length(p) holds for 128 as well
-   (int-width-add-fits).  int-is-less-than-unsigned-gadget-sound states
-   this for every integer width.
+   (int-width-add-fits).  int-is-less-than-unsigned-gadget-sound and
+   int-is-less-than-unsigned-gadget-complete state this for every integer
+   width.  The completeness witness is the low n bits of 2^n + x - y.
+   The unsigned swaps and negations (is_greater_than,
+   is_greater_than_or_equal, is_less_than_or_equal) are the same gadget
+   and are sound and complete for the unsigned case.  Their samples hold.
    Signed less-than in compare.rs is not the library gadget.  The book
    defines int-is-less-than-signed-gadget: the same high bit, xor of the
    sign bits, msb(x) AND NOT msb(y), and a ternary whose condition is the
    linear combination 1 - diff.  int-signed-lt-same-sign-case is the
    required numeric criterion but does not itself prove the sign-bit
-   facts, so R1CS-SOUND stays 0 for is_less_than rather than claiming
-   every signed width.
-   is_greater_than is less-than with the operands swapped.
-   is_greater_than_or_equal is boolean not of less-than, which for the
-   unsigned gadget is the variable z itself (not a constraint).
-   is_less_than_or_equal is greater-than-or-equal with the operands
-   swapped.  Those three are proved only along the unsigned gadget.
-   Completeness (the low bits of 2^n + x - y) is not a defrule.
+   facts, so R1CS-SOUND and R1CS-COMPLETE stay 0 for is_less_than and the
+   three swaps rather than claiming every signed width.
 
 7. from_field_lossy
    This is Field::to_bits_le, then the first n bits.  Soundness is
@@ -92,22 +93,25 @@ R1CS-COMPLETE on those rows.  ACL2 was not run.
    Exactly n bits (the path Integer::new uses) adds no constraint; the
    value is int-wrap of the little-endian number.  That case is
    int-from-bits-le-gadget-empty-sound.  Extra bits are one
-   assert_bits_are_zero constraint (sum of the excess bits is 0).  The
-   two-zero sample satisfies it.  There is no theorem that a satisfying
-   sum forces every excess bit to be 0 for an arbitrary excess list, so
-   R1CS-SOUND is 0.
+   assert_bits_are_zero constraint (sum of the excess bits is 0).
+   int-excess-bits-sum-forces-all-zero says a satisfying sum of bits
+   shorter than the prime is the all-zero list.  int-from-bits-le-gadget-sound
+   and int-from-bits-le-gadget-complete are that fact for every width and
+   both signednesses, so R1CS-SOUND and R1CS-COMPLETE are 1.
    from_bits_be reverses, then calls from_bits_le.  Reversal is not a
-   constraint.  int-from-bits-be-spec-is-le-of-rev is the funspec agreement.
+   constraint.  int-from-bits-be-gadget-sound and
+   int-from-bits-be-gadget-complete use int-from-bits-be-spec-is-le-of-rev.
 
 9. Signed checked addition and subtraction, completeness
    Soundness of add_checked and sub_checked uses the library gadgets and
    holds for every width, including 128, because n+1 < 253.
-   Completeness is the other direction of the unsigned IFF theorems only.
-   Signed completeness needs the overflow bit, which the circuit forces
-   to 0, to be shown to be 0 whenever the funspec is not spec-error.
-   That case split is not a defrule, so R1CS-COMPLETE is 0 on add, sub
-   and their assign/checked rows.  add_wrapped is sound for both
-   signednesses and not complete.  sub_wrapped is sound only for unsigned.
+   Signed completeness is int-add-checked-signed-gadget-complete and
+   int-sub-checked-signed-gadget-complete: the overflow bit the circuit
+   forces to 0 is 0 whenever the funspec is not spec-error.  That holds
+   for every width, including 128, so R1CS-COMPLETE is 1 on add, sub,
+   and their assign/checked rows.
+   add_wrapped is sound for both signednesses and not complete.
+   sub_wrapped is sound only for unsigned, so its soundness flag stays 0.
 
 10. neg, abs_checked, abs_wrapped
     Unsigned neg halts.  int-neg-unsigned-spec-error / int-neg-unsigned-complete
@@ -128,15 +132,21 @@ R1CS-COMPLETE on those rows.  ACL2 was not run.
     int-pow-checked-zero-exponent and int-pow-wrapped-zero-exponent show
     x^0 = 1.  The sample is one checked multiplication.
     shl / shl_assign / shl_checked check that exponent bits at and above
-    log2(n) are zero (int-from-bits-le-gadget) and, for small widths,
-    multiply by a power of two in the field.  Width 128 uses pow_checked.
-    Signed shl_checked also checks sign extension.  Neither is proved.
+    log2(n) are zero (int-from-bits-le-gadget).  That check is
+    int-exponent-bound-gadget-sound for every width, including 128.
+    For unsigned n other than 128, int-shl-field-mul-by-pow2 is one
+    constraint (x)*(2^e) = (z), and int-shl-field-mul-in-range-is-checked-spec
+    matches int-shl-checked-spec when that product is already in range.
+    The exponent bits are not assembled into 2^e, width 128 uses
+    pow_checked, and signed shl_checked also checks sign extension.
+    Those three are not proved, so R1CS-SOUND stays 0.
     int-shl-checked-errors-when-exponent-wide matches the funspec for
-    e >= n, but that is not a constraint proof.
+    e >= n; the constraint proof of that case is the exponent-bound gadget.
     shr_checked is the same exponent bound plus shr_wrapped.
     int-shr-checked-is-wrapped-when-in-range is the funspec agreement for
-    e < n.  shl_wrapped and shr_wrapped have a field-multiply sample and
-    no named gadget, so R1CS-SPEC is 0.
+    e < n.  The right shift itself is not proved.
+    shl_wrapped and shr_wrapped have a field-multiply sample and
+    no named gadget, so R1CS-SPEC stays 0.
 
 12. to_fields, to_scalar, is_zero, is_one
     These are proved sound and complete (empty gadget, or is_equal against

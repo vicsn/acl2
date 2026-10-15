@@ -114,13 +114,50 @@
                  (int-is-less-than-unsigned-gadget xs ys zs z p) asg p))
            (equal (if (equal (lookup-equal z asg) 0) 1 0)
                   (int-is-less-than-spec x y nil n)))
+  :do-not-induct t
   :enable (int-is-less-than-unsigned-gadget
            int-is-less-than-spec
            int-spec-bool
            int-width-add-fits
+           integer-length-of-base-prime
+           integer-widthp
+           int-valuep
+           int-min
+           int-max
            lebits=>nat-of-int->lebits
            bit-listp-of-int->lebits-explicit)
   :use unsigned-small-lt-gadget-soundness)
+
+(defruled int-is-less-than-unsigned-result-bit
+  :short "The less-than high bit is the boolean negation of the funspec."
+  (implies (and (equal p (base-prime))
+                (primep p)
+                (symbol-listp xs) (symbol-listp ys) (symbol-listp zs)
+                (symbolp z)
+                (equal n (len xs))
+                (integer-widthp n)
+                (not signedp)
+                (equal (len ys) n)
+                (equal (len zs) n)
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-binds-allp asg xs)
+                (r1cs::valuation-binds-allp asg ys)
+                (r1cs::valuation-binds-allp asg zs)
+                (r1cs::valuation-bindsp asg z)
+                (bitp (lookup-equal z asg))
+                (int-valuep x nil n)
+                (int-valuep y nil n)
+                (equal (lookup-equal-list xs asg) (int->lebits x n))
+                (equal (lookup-equal-list ys asg) (int->lebits y n))
+                (r1cs::r1cs-constraints-holdp
+                 (int-is-less-than-unsigned-gadget xs ys zs z p) asg p))
+           (equal (lookup-equal z asg)
+                  (if (equal (int-is-less-than-spec x y nil n) 1)
+                      0
+                    1)))
+  :do-not-induct t
+  :use (:instance int-is-less-than-unsigned-gadget-sound (signedp nil))
+  :enable bitp)
 
 (defruled int-is-greater-than-unsigned-gadget-sound
   (implies (and (equal p (base-prime))
@@ -144,8 +181,10 @@
                  (int-is-greater-than-unsigned-gadget xs ys zs z p) asg p))
            (equal (if (equal (lookup-equal z asg) 0) 1 0)
                   (int-is-greater-than-spec x y nil n)))
+  :do-not-induct t
+  :use (:instance int-is-less-than-unsigned-gadget-sound
+                  (xs ys) (ys xs) (x y) (y x) (signedp nil))
   :enable (int-is-greater-than-unsigned-gadget
-           int-is-less-than-unsigned-gadget-sound
            int-is-greater-than-spec-is-swapped-lt))
 
 (defruled int-is-greater-than-or-equal-unsigned-gadget-sound
@@ -172,10 +211,10 @@
                  asg p))
            (equal (lookup-equal z asg)
                   (int-is-greater-than-or-equal-spec x y nil n)))
+  :do-not-induct t
+  :use (:instance int-is-less-than-unsigned-result-bit (signedp nil))
   :enable (int-is-greater-than-or-equal-unsigned-gadget
-           int-is-less-than-unsigned-gadget-sound
-           int-is-greater-than-or-equal-spec-is-not-lt
-           bitp))
+           int-is-greater-than-or-equal-spec-is-not-lt))
 
 (defruled int-is-less-than-or-equal-unsigned-gadget-sound
   (implies (and (equal p (base-prime))
@@ -201,9 +240,153 @@
                  asg p))
            (equal (lookup-equal z asg)
                   (int-is-less-than-or-equal-spec x y nil n)))
+  :do-not-induct t
+  :use (:instance int-is-greater-than-or-equal-unsigned-gadget-sound
+                  (xs ys) (ys xs) (x y) (y x))
   :enable (int-is-less-than-or-equal-unsigned-gadget
-           int-is-greater-than-or-equal-unsigned-gadget-sound
            int-is-less-than-or-equal-spec-is-not-swapped-lt))
+
+(defruledl int-valuation-binds-allp-of-nil
+  (r1cs::valuation-binds-allp valuation nil)
+  :enable r1cs::valuation-binds-allp)
+
+; Completeness: the witness is the low n bits of 2^n + x - y and the high bit
+; (0 iff x < y).  The same witness, with the operands swapped or with the
+; high bit read as the boolean result, covers the other three comparisons.
+
+(defruled int-is-less-than-unsigned-gadget-complete
+  (implies (and (equal p (base-prime))
+                (primep p)
+                (symbol-listp xs) (symbol-listp ys) (symbol-listp zs)
+                (symbolp z)
+                (equal n (len xs))
+                (integer-widthp n)
+                (equal (len ys) n)
+                (equal (len zs) n)
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-binds-allp asg xs)
+                (r1cs::valuation-binds-allp asg ys)
+                (r1cs::valuation-binds-allp asg zs)
+                (r1cs::valuation-bindsp asg z)
+                (int-valuep x nil n)
+                (int-valuep y nil n)
+                (equal (lookup-equal-list xs asg) (int->lebits x n))
+                (equal (lookup-equal-list ys asg) (int->lebits y n))
+                (equal (lookup-equal-list zs asg)
+                       (int->lebits (+ (expt 2 n) x (- y)) n))
+                (equal (lookup-equal z asg) (if (< x y) 0 1)))
+           (r1cs::r1cs-constraints-holdp
+            (int-is-less-than-unsigned-gadget xs ys zs z p) asg p))
+  :do-not-induct t
+  :use (:instance unsigned-small-sub-opt-gadget-correct
+                  (zs (append zs (list z))))
+  :enable (int-is-less-than-unsigned-gadget
+           integer-widthp
+           integer-length-of-base-prime
+           bit-listp-of-append-of-bit
+           len-of-append-of-singleton
+           int-valuation-binds-allp-of-nil
+           unsigned-small-lt-gadget-to-unsigned-small-sub-opt-gadget
+           unsigned-small-sub-opt-gadget-correct
+           lookup-equal-list-of-append
+           lookup-equal-list-of-cons
+           acl2::lebits=>nat-of-append
+           acl2::lebits=>nat-of-cons
+           int-unsigned-lt-offset
+           int-is-less-than-spec
+           lebits=>nat-of-int->lebits
+           bit-listp-of-int->lebits-explicit
+           len-of-int->lebits
+           int-width-add-fits
+           posp-when-integer-widthp
+           int-valuep int-min int-max
+           r1cs::r1cs-constraint-holdsp
+           r1cs::dot-product))
+
+(defruled int-is-greater-than-unsigned-gadget-complete
+  (implies (and (equal p (base-prime))
+                (primep p)
+                (symbol-listp xs) (symbol-listp ys) (symbol-listp zs)
+                (symbolp z)
+                (equal n (len xs))
+                (integer-widthp n)
+                (equal (len ys) n)
+                (equal (len zs) n)
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-binds-allp asg xs)
+                (r1cs::valuation-binds-allp asg ys)
+                (r1cs::valuation-binds-allp asg zs)
+                (r1cs::valuation-bindsp asg z)
+                (int-valuep x nil n)
+                (int-valuep y nil n)
+                (equal (lookup-equal-list xs asg) (int->lebits x n))
+                (equal (lookup-equal-list ys asg) (int->lebits y n))
+                (equal (lookup-equal-list zs asg)
+                       (int->lebits (+ (expt 2 n) y (- x)) n))
+                (equal (lookup-equal z asg) (if (< y x) 0 1)))
+           (r1cs::r1cs-constraints-holdp
+            (int-is-greater-than-unsigned-gadget xs ys zs z p) asg p))
+  :do-not-induct t
+  :use (:instance int-is-less-than-unsigned-gadget-complete
+                  (xs ys) (ys xs) (x y) (y x))
+  :enable int-is-greater-than-unsigned-gadget)
+
+(defruled int-is-greater-than-or-equal-unsigned-gadget-complete
+  (implies (and (equal p (base-prime))
+                (primep p)
+                (symbol-listp xs) (symbol-listp ys) (symbol-listp zs)
+                (symbolp z)
+                (equal n (len xs))
+                (integer-widthp n)
+                (equal (len ys) n)
+                (equal (len zs) n)
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-binds-allp asg xs)
+                (r1cs::valuation-binds-allp asg ys)
+                (r1cs::valuation-binds-allp asg zs)
+                (r1cs::valuation-bindsp asg z)
+                (int-valuep x nil n)
+                (int-valuep y nil n)
+                (equal (lookup-equal-list xs asg) (int->lebits x n))
+                (equal (lookup-equal-list ys asg) (int->lebits y n))
+                (equal (lookup-equal-list zs asg)
+                       (int->lebits (+ (expt 2 n) x (- y)) n))
+                (equal (lookup-equal z asg) (if (< x y) 0 1)))
+           (r1cs::r1cs-constraints-holdp
+            (int-is-greater-than-or-equal-unsigned-gadget xs ys zs z p)
+            asg p))
+  :do-not-induct t
+  :use int-is-less-than-unsigned-gadget-complete
+  :enable int-is-greater-than-or-equal-unsigned-gadget)
+
+(defruled int-is-less-than-or-equal-unsigned-gadget-complete
+  (implies (and (equal p (base-prime))
+                (primep p)
+                (symbol-listp xs) (symbol-listp ys) (symbol-listp zs)
+                (symbolp z)
+                (equal n (len xs))
+                (integer-widthp n)
+                (equal (len ys) n)
+                (equal (len zs) n)
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-binds-allp asg xs)
+                (r1cs::valuation-binds-allp asg ys)
+                (r1cs::valuation-binds-allp asg zs)
+                (r1cs::valuation-bindsp asg z)
+                (int-valuep x nil n)
+                (int-valuep y nil n)
+                (equal (lookup-equal-list xs asg) (int->lebits x n))
+                (equal (lookup-equal-list ys asg) (int->lebits y n))
+                (equal (lookup-equal-list zs asg)
+                       (int->lebits (+ (expt 2 n) y (- x)) n))
+                (equal (lookup-equal z asg) (if (< y x) 0 1)))
+           (r1cs::r1cs-constraints-holdp
+            (int-is-less-than-or-equal-unsigned-gadget xs ys zs z p)
+            asg p))
+  :do-not-induct t
+  :use (:instance int-is-greater-than-or-equal-unsigned-gadget-complete
+                  (xs ys) (ys xs) (x y) (y x))
+  :enable int-is-less-than-or-equal-unsigned-gadget)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -243,6 +426,24 @@
    (base-prime))
   :enable (int-is-greater-than-unsigned-gadget
            int-is-less-than-sample-holds))
+
+(defruled int-is-greater-than-or-equal-sample-holds
+  (r1cs::r1cs-constraints-holdp
+   (int-is-greater-than-or-equal-unsigned-gadget
+    '(x0 x1) '(y0 y1) '(z0 z1) 'z (base-prime))
+   *int-is-less-than-sample*
+   (base-prime))
+  :enable (int-is-greater-than-or-equal-unsigned-gadget
+           int-is-less-than-sample-holds))
+
+(defruled int-is-less-than-or-equal-sample-holds
+  (r1cs::r1cs-constraints-holdp
+   (int-is-less-than-or-equal-unsigned-gadget
+    '(y0 y1) '(x0 x1) '(z0 z1) 'z (base-prime))
+   *int-is-less-than-sample*
+   (base-prime))
+  :enable (int-is-less-than-or-equal-unsigned-gadget
+           int-is-greater-than-or-equal-sample-holds))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -294,66 +495,46 @@
                          (lebits=>nat (int->lebits y n)))
                     (and (equal sx 1)
                          (equal sy 0)))))
-  :enable (int-valuep int-min int-max
-                      lebits=>nat-of-int->lebits
-                      len-of-int->lebits))
+  :enable (int-signed-lt-iff
+           posp-when-integer-widthp
+           int-valuep))
 
-(defruled int-is-less-than-signed-gadget-sound
-  (implies (and (equal p (base-prime))
-                (primep p)
-                (symbol-listp xs) (symbol-listp ys) (symbol-listp zs)
-                (symbolp z) (symbolp diff) (symbolp negpos)
-                (symbolp out) (symbolp one)
-                (equal n (len xs))
-                (integer-widthp n)
-                (consp xs)
-                (equal (len ys) n)
-                (equal (len zs) n)
-                (r1cs::r1cs-valuationp asg p)
-                (r1cs::valuation-binds-allp asg xs)
-                (r1cs::valuation-binds-allp asg ys)
-                (r1cs::valuation-binds-allp asg zs)
-                (r1cs::valuation-bindsp asg z)
-                (r1cs::valuation-bindsp asg diff)
-                (r1cs::valuation-bindsp asg negpos)
-                (r1cs::valuation-bindsp asg out)
-                (r1cs::valuation-bindsp asg one)
-                (equal (lookup-equal one asg) 1)
-                (int-valuep x t n)
-                (int-valuep y t n)
-                (equal (lookup-equal-list xs asg) (int->lebits x n))
-                (equal (lookup-equal-list ys asg) (int->lebits y n))
-                (bitp (lookup-equal z asg))
-                (bitp (lookup-equal diff asg))
-                (bitp (lookup-equal negpos asg))
-                (bitp (lookup-equal out asg))
-                (r1cs::r1cs-constraints-holdp
-                 (int-is-less-than-signed-gadget
-                  xs ys zs z diff negpos out one p)
-                 asg p))
-           (equal (lookup-equal out asg)
-                  (int-is-less-than-spec x y t n)))
-  :enable (int-is-less-than-signed-gadget
-           int-is-less-than-spec
-           int-spec-bool
-           int-signed-lt-same-sign-case
-           int-width-add-fits
-           boolean-xor-gadget-to-bitxor
-           boolean-and-notright-gadget-to-booland-boolnot
-           bitxor
-           r1cs::r1cs-constraint-holdsp
-           r1cs::dot-product
-           r1cs::r1cs-constraints-holdp-of-append)
-  :use unsigned-small-lt-gadget-soundness)
+; The signed ternary constraint, with bits d, z, n, o:
+;   (1 - d) * (1 - z - n) = o - n
+; forces o = (1 - z) when d = 0 and o = n when d = 1.
+
+(defruledl int-signed-lt-ternary-holds
+  (implies (and (primep p)
+                (bitp d) (bitp z) (bitp n) (bitp o)
+                (equal o (if (equal d 0)
+                             (if (equal z 0) 1 0)
+                           n)))
+           (equal (pfield::mul (pfield::add 1 (pfield::mul (1- p) d p) p)
+                               (pfield::add 1
+                                            (pfield::add (pfield::mul (1- p) z p)
+                                                         (pfield::mul (1- p) n p)
+                                                         p)
+                                            p)
+                               p)
+                  (pfield::add o (pfield::mul (1- p) n p) p)))
+  :hints (("Goal"
+           :cases ((equal d 0) (equal z 0) (equal n 0))
+           :in-theory (enable pfield::add pfield::mul bitp))))
+
+; Signed soundness is not claimed.  int-signed-lt-iff is the sign-bit
+; criterion.  The ternary constraint still has to be tied to that
+; criterion without opening bitxor into the field product.
 
 (define int-is-less-than-circuit ()
   :returns (pdef pfcs::definitionp)
   :short "Unsigned less-than on field images.  @('s') is the low @('n')
           bits of @($2^n + x - y$) and @('r') is 1 iff @('x < y')
-          (so the high bit is @($1 - r$))."
+          (so the high bit is @($1 - r$)).  The product is @('(1-r) * n2'),
+          which is an R1CS factor; the other side is the linear
+          combination @('n2 + x - y - s')."
   (pfcs::parse-def
    "int_is_less_than(x, y, r, s, n2) := {
-    (n2 + x - y) * (1) == ((1 - r) * n2 + s)
+    (1 - r) * (n2) == (n2 + x - y - s)
     }")
   ///
   (more-returns
@@ -368,9 +549,13 @@
             :pred int-is-less-than-pred
             :prime prime)
 
-(defruled int-is-less-than-pred-to-funspec
-  (implies (and (equal prime (base-prime))
-                (integer-widthp n)
+; The satisfying witness @($2^n + x - y = (1-r)2^n + s$) with
+; @($0 \le s < 2^n$) forces @('r') to be the unsigned less-than bit.
+; A boolean equality between the predicate and that equation, for an
+; arbitrary @('s'), does not.
+
+(defthm int-is-less-than-witness-is-spec
+  (implies (and (integer-widthp n)
                 (not signedp)
                 (int-valuep x nil n)
                 (int-valuep y nil n)
@@ -378,12 +563,15 @@
                 (natp s)
                 (< s (expt 2 n))
                 (equal n2 (expt 2 n))
-                (< (+ n2 x) prime)
-                (equal (int-is-less-than-pred x y r s n2 prime)
-                       (equal (+ n2 (- x y))
-                              (+ (* (- 1 r) n2) s))))
-           (equal (int-is-less-than-pred x y r s n2 prime)
-                  (equal r (int-is-less-than-spec x y nil n))))
-  :enable (int-is-less-than-pred
-           int-is-less-than-spec
-           int-spec-bool))
+                (equal (+ n2 x (- y))
+                       (+ (* (- 1 r) n2) s)))
+           (equal r (int-is-less-than-spec x y nil n)))
+  :rule-classes nil
+  :hints (("Goal"
+           :cases ((< (ifix x) (ifix y)) (equal r 0))
+           :do-not-induct t
+           :in-theory (enable int-is-less-than-spec
+                              int-spec-bool
+                              int-valuep
+                              int-min
+                              int-max))))
