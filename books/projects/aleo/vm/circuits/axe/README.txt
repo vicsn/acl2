@@ -25,5 +25,12 @@ blake2s-spec-openers.lisp -- Rules to unroll the spec
 Note: Proof by bit-blasting currently does not scale to full Blake2s
 blake2s-proof2.lisp -- Proof via recovering structure
 
+Poseidon (hash.psd2 / hash.psd4), fixed-length samples:
+poseidon-rate2-1.lisp -- rate 2, one input; the proof is run from top-keccak-poseidon.lisp
+poseidon-rate2-3.lisp -- rate 2, three inputs
+poseidon-rate4-1.lisp -- rate 4, one input; the proof is commented out
+A PFCS formalization of every input length, and a comparison, is in
+../pfcs/hash-psd.lisp and ../hash-psd-axe-vs-pfcs.md.
+
 Misc:
 top.lisp - bundle up several files
