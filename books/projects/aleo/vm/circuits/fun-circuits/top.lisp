@@ -36,3 +36,4 @@
 (include-book "scalar-from-bits-r1cs")
 (include-book "int-div-pfcs")
 (include-book "int-shift-pfcs")
+(include-book "compute-key-from-private-key")

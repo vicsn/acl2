@@ -1,5 +1,5 @@
 crate	type	trait	function	R1CS-SPEC	PFCS-SPEC	R1CS-SAMPLES	R1CS-SOUND	R1CS-COMPLETE	R1CS-SOUND-IF	acl2
-account	ComputeKey		from_private_key	0	0	0	0	0		
+account	ComputeKey		from_private_key	0	0	0	0	0		fun-circuits/compute-key-from-private-key.lisp: g-scalar-window-of-scalar-from-zero equates the 251-step Group::ternary fold to edwards-bls12-mul under twisted-edwards-add-associativity. compute-key-from-private-key-is-scalar-windows is that fold for sk_sig and r_sig, then compute-key-from-funspec. Variable mode emits 4353 constraints (two Scalar::to_bits_le at 503, two 250-step variable-plus-constant adds at 3 and ternaries at 2, hash_to_scalar_psd4 at 847). Those constraints are not the formal R1CS, Poseidon stays abstract, and associativity is not a circuit, so R1CS-SPEC, PFCS-SPEC, R1CS-SOUND, R1CS-COMPLETE, and R1CS-SOUND-IF stay 0.
 account	ComputeKey		to_address	0	0	0	0	0		
 account	ComputeKey	Equal	is_equal	1	0	1	0	0		crv-account.lisp
 account	ComputeKey	Equal	is_not_equal	1	0	1	0	0		crv-account.lisp

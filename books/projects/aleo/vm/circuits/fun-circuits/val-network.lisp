@@ -14,8 +14,9 @@
 ; g_scalar_multiply folds Group::ternary(bit, output+base, output) over
 ; g_powers()[i] = 2^i G and the 251 little-endian scalar bits.  Group
 ; addition and ternary are types/group constraints and stay abstract.
-; This book does not claim the fold equals edwards-bls12-mul; that link
-; is the funspec's statement and is not proved from group gadgets here.
+; compute-key-from-private-key.lisp proves that fold equals
+; edwards-bls12-mul under twisted-edwards-add-associativity.  This
+; book's gadget is still empty, so these rows are not R1CS soundness.
 ;
 ; verify_merkle_path_* calls MerklePath::verify.  The ordering constraint
 ; is merkle-path-verify-gadget (index bit 0 puts the running hash on the

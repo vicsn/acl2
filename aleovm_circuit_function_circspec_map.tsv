@@ -232,7 +232,7 @@ network	AleoCanaryV0	Aleo	commit_to_group_bhp512	0	0	0	0	0		skipped-hash
 network	AleoCanaryV0	Aleo	commit_to_group_bhp768	0	0	0	0	0		skipped-hash
 network	AleoCanaryV0	Aleo	commit_to_group_ped128	0	0	0	0	0		skipped-hash
 network	AleoCanaryV0	Aleo	commit_to_group_ped64	0	0	0	0	0		skipped-hash
-network	AleoCanaryV0	Aleo	g_scalar_multiply	1	1	1	0	0		fun-circuits/val-network.lisp (group add/ternary abstract; fold-to-mul not proved)
+network	AleoCanaryV0	Aleo	g_scalar_multiply	1	1	1	0	0		fun-circuits/val-network.lisp (group add/ternary abstract; gadget is empty). fun-circuits/compute-key-from-private-key.lisp proves the fold equals edwards-bls12-mul under twisted-edwards-add-associativity, which is not R1CS soundness.
 network	AleoCanaryV0	Aleo	hash_many_psd2	0	0	0	0	0		skipped-hash
 network	AleoCanaryV0	Aleo	hash_many_psd4	0	0	0	0	0		skipped-hash
 network	AleoCanaryV0	Aleo	hash_many_psd8	0	0	0	0	0		skipped-hash
@@ -262,7 +262,7 @@ network	AleoTestnetV0	Aleo	commit_to_group_bhp512	0	0	0	0	0		skipped-hash
 network	AleoTestnetV0	Aleo	commit_to_group_bhp768	0	0	0	0	0		skipped-hash
 network	AleoTestnetV0	Aleo	commit_to_group_ped128	0	0	0	0	0		skipped-hash
 network	AleoTestnetV0	Aleo	commit_to_group_ped64	0	0	0	0	0		skipped-hash
-network	AleoTestnetV0	Aleo	g_scalar_multiply	1	1	1	0	0		fun-circuits/val-network.lisp (group add/ternary abstract; fold-to-mul not proved)
+network	AleoTestnetV0	Aleo	g_scalar_multiply	1	1	1	0	0		fun-circuits/val-network.lisp (group add/ternary abstract; gadget is empty). fun-circuits/compute-key-from-private-key.lisp proves the fold equals edwards-bls12-mul under twisted-edwards-add-associativity, which is not R1CS soundness.
 network	AleoTestnetV0	Aleo	hash_many_psd2	0	0	0	0	0		skipped-hash
 network	AleoTestnetV0	Aleo	hash_many_psd4	0	0	0	0	0		skipped-hash
 network	AleoTestnetV0	Aleo	hash_many_psd8	0	0	0	0	0		skipped-hash
@@ -292,7 +292,7 @@ network	AleoV0	Aleo	commit_to_group_bhp512	0	0	0	0	0		skipped-hash
 network	AleoV0	Aleo	commit_to_group_bhp768	0	0	0	0	0		skipped-hash
 network	AleoV0	Aleo	commit_to_group_ped128	0	0	0	0	0		skipped-hash
 network	AleoV0	Aleo	commit_to_group_ped64	0	0	0	0	0		skipped-hash
-network	AleoV0	Aleo	g_scalar_multiply	1	1	1	0	0		fun-circuits/val-network.lisp (group add/ternary abstract; fold-to-mul not proved)
+network	AleoV0	Aleo	g_scalar_multiply	1	1	1	0	0		fun-circuits/val-network.lisp (group add/ternary abstract; gadget is empty). fun-circuits/compute-key-from-private-key.lisp proves the fold equals edwards-bls12-mul under twisted-edwards-add-associativity, which is not R1CS soundness.
 network	AleoV0	Aleo	hash_many_psd2	0	0	0	0	0		skipped-hash
 network	AleoV0	Aleo	hash_many_psd4	0	0	0	0	0		skipped-hash
 network	AleoV0	Aleo	hash_many_psd8	0	0	0	0	0		skipped-hash
@@ -397,7 +397,7 @@ types/integers	Integer	PowChecked	pow_checked	1	0	1	0	0		fun-circuits/int-pow.li
 types/integers	Integer	ShlWrapped	shl_wrapped	0	0	1	0	0		fun-circuits/int-shift.lisp samples the field multiply by two. No named wrapped-shift gadget. The single product constraint is int-shl-field-mul-by-pow2 for unsigned n other than 128, which is not this whole row. fun-circuits/int-shift-pfcs.lisp: int-shift-step-pred-to-after is only the exponent-bit-0 doubling select, so it does not raise PFCS-SPEC. int-shl-wrapped-gadget-complete is variable-mode completeness for both signednesses at every width other than 128, so R1CS-COMPLETE stays 0. Value and exponent bits are not boolean-checked, so R1CS-SOUND stays 0.
 types/integers	Integer	ShlChecked	shl_checked	1	0	1	0	0		fun-circuits/int-shift.lisp. Exponent >= n is spec-error, and the exponent-bound check is proved for every width. int-shl-field-mul-in-range-is-checked-spec is one field product for unsigned n other than 128 when the result is already in range. 128-bit pow_checked and signed sign extension are not proved, so soundness stays 0. fun-circuits/int-shift-pfcs.lisp: int-shift-step-pred-to-after is only the exponent-bit-0 doubling select, so it does not raise PFCS-SPEC. int-shl-wrapped-gadget-complete is variable-mode completeness for both signednesses at every width other than 128, so R1CS-COMPLETE stays 0. Value and exponent bits are not boolean-checked, so R1CS-SOUND stays 0.
 types/integers	Integer	ShrWrapped	shr_wrapped	0	0	1	0	0		fun-circuits/int-shift.lisp samples the field product 1*2=2, read as a right shift of 2 by 1. No named gadget and no full proof. fun-circuits/int-shift-pfcs.lisp: int-shift-step-pred-to-after is only the exponent-bit-0 doubling select, so it does not raise PFCS-SPEC. int-shl-wrapped-gadget-complete is variable-mode completeness for both signednesses at every width other than 128, so R1CS-COMPLETE stays 0. Value and exponent bits are not boolean-checked, so R1CS-SOUND stays 0.
-account	ComputeKey		from_private_key	0	0	0	0	0		
+account	ComputeKey		from_private_key	0	0	0	0	0		fun-circuits/compute-key-from-private-key.lisp: g-scalar-window-of-scalar-from-zero equates the 251-step Group::ternary fold to edwards-bls12-mul under twisted-edwards-add-associativity. compute-key-from-private-key-is-scalar-windows is that fold for sk_sig and r_sig, then compute-key-from-funspec. Variable mode emits 4353 constraints (two Scalar::to_bits_le at 503, two 250-step variable-plus-constant adds at 3 and ternaries at 2, hash_to_scalar_psd4 at 847). Those constraints are not the formal R1CS, Poseidon stays abstract, and associativity is not a circuit, so R1CS-SPEC, PFCS-SPEC, R1CS-SOUND, R1CS-COMPLETE, and R1CS-SOUND-IF stay 0.
 account	ComputeKey		to_address	0	0	0	0	0		
 account	ComputeKey	Equal	is_equal	1	0	1	0	0		crv-account.lisp
 account	ComputeKey	Equal	is_not_equal	1	0	1	0	0		crv-account.lisp
