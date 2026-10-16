@@ -33,5 +33,5 @@
 (include-book "scalar-from-field-lossy-r1cs")
 (include-book "int-from-field-lossy-sound")
 (include-book "scalar-write-bits-r1cs")
-(include-book "scalar-from-field-r1cs")
+(include-book "scalar-from-bits-r1cs")
 (include-book "int-div-pfcs")
