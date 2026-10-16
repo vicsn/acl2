@@ -45,3 +45,7 @@
 (include-book "group-wire-sound")
 (include-book "crv-add-complete")
 (include-book "crv-sub-double")
+(include-book "fsa-address-compare")
+(include-book "fsa-validate-identifier-bytes")
+(include-book "fsa-identifier-literal-bits")
+(include-book "fsa-scalar-from-field-lossy")
