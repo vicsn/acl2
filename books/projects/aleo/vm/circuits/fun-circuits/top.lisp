@@ -65,3 +65,7 @@
 (include-book "grp-from-xy-coordinates")
 (include-book "grp-edwards-abscissa")
 (include-book "grp-from-x-coordinate")
+(include-book "fsa-address-compare-complete")
+(include-book "fsa-idlit-from-bits")
+(include-book "fsa-field-sqrt-flagged")
+(include-book "fsa-scalar-add")
