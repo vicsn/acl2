@@ -62,3 +62,6 @@
 (include-book "int-divshift-shift-sound")
 (include-book "int-divshift-sub-wrapped-const")
 (include-book "int-divshift-shl-const")
+(include-book "grp-from-xy-coordinates")
+(include-book "grp-edwards-abscissa")
+(include-book "grp-from-x-coordinate")
