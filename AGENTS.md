@@ -33,6 +33,16 @@ The columns mean:
 
 Higher-level gadgets call the lower-level ones (`boolean-check-gadget`, `boolean-check-gadget-list`, `enforce-gadget`, `assert-eq-gadget`, `assert-gadget`, and the gadgets under `fun-circuits/`) instead of restating them.
 
+## Call graph
+
+`aleovm_circuit_call_graph.canvas.tsx` draws every row of the status CSV as a node, coloured by its flags, with an edge from each function to the circuit functions it calls. Its data block, between `BEGIN GENERATED DATA` and `END GENERATED DATA`, comes from the same snarkVM tree and the CSV:
+
+```
+python3 aleovm_circuit_call_graph.py <snarkVM>/circuit
+```
+
+The graph must stay up to date. Rerun the script whenever the CSV is regenerated or `aleovm_circuit_functions_scan.py` changes, and commit the canvas in the same change. Do not hand-edit the data block. The script exits with status 1 and prints the cycle when the resolved calls are not acyclic; fix the resolution rule rather than the data. A call the parser can only match by name goes to a dispatch node, not an edge; the script docstring lists which calls count as resolved. To open the canvas in Cursor, copy it into the workspace's `canvases/` directory.
+
 ## Fun-spec README
 
 `books/projects/aleo/vm/circuits/fun-specs/README.md` is the list of open limitations. When a proof stops short of a flag, add the gap there in the same change, under **Open TODOs**. In particular:
