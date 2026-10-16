@@ -40,3 +40,5 @@
 (include-book "int-div-pfcs")
 (include-book "int-shift-pfcs")
 (include-book "compute-key-from-private-key")
+(include-book "group-cofactor-clears")
+(include-book "group-unconditional")

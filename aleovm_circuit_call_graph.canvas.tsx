@@ -214,7 +214,7 @@ const DATA: Raw = {
     ["program","Literal","","from_bits_le","100000","","","program/src/data/literal/from_bits.rs:20"],
     ["program","Literal","Equal","is_equal","100000","","","program/src/data/literal/equal.rs:22"],
     ["program","Literal","Equal","is_not_equal","100000","","","program/src/data/literal/equal.rs:47"],
-    ["program","Literal","Inject","new","111100","","","program/src/data/literal/mod.rs:106"],
+    ["program","Literal","Inject","new","111111","","","program/src/data/literal/mod.rs:106"],
     ["program","Literal","ToBits","write_bits_be","100000","","","program/src/data/literal/to_bits.rs:27"],
     ["program","Literal","ToBits","write_bits_le","100000","","","program/src/data/literal/to_bits.rs:22"],
     ["program","Literal","ToFields","to_fields","100000","","","program/src/data/literal/to_fields.rs:22"],
