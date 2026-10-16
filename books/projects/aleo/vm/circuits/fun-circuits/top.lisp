@@ -35,3 +35,4 @@
 (include-book "scalar-write-bits-r1cs")
 (include-book "scalar-from-bits-r1cs")
 (include-book "int-div-pfcs")
+(include-book "int-shift-pfcs")
