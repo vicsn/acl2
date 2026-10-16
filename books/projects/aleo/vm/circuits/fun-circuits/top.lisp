@@ -57,3 +57,7 @@
 (include-book "progx-group-generator")
 (include-book "progx-boolean-cast-lossy")
 (include-book "progx-account-to-fields")
+(include-book "int-divshift-from-field-lossy-complete")
+(include-book "int-divshift-medium-div-complete")
+(include-book "int-divshift-shift-sound")
+(include-book "int-divshift-sub-wrapped-const")
