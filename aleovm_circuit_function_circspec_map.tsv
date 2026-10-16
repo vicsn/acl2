@@ -5,8 +5,6 @@ environment	<trait default>	Environment	assert_neq	1	1	1	1	1			fun-circuits/envi
 environment	CanaryCircuit	Environment	enforce	1	1	1	1	1			fun-circuits/environment-pfcs.lisp (env_enforce); same constraint as Circuit::enforce | fun-circuits/val-env-enforce.lisp (enforce-gadget, sample a=2 b=3 c=6)
 environment	Circuit	Environment	enforce	1	1	1	1	1			fun-circuits/environment-r1cs.lisp (enforce-gadget, sound+complete); fun-circuits/environment-pfcs.lisp; sample checked by aleovm_sample_circuits.py
 environment	TestnetCircuit	Environment	enforce	1	1	1	1	1			fun-circuits/environment-pfcs.lisp (env_enforce); same constraint as Circuit::enforce | fun-circuits/val-env-enforce.lisp (enforce-gadget, sample a=2 b=3 c=6)
-network	AleoCanaryV0	Environment	enforce	1	1	1	1	1			fun-circuits/environment-pfcs.lisp (env_enforce); AleoV0::enforce is E::enforce | fun-circuits/val-env-enforce.lisp (enforce-gadget, sample a=2 b=3 c=6)
-network	AleoTestnetV0	Environment	enforce	1	1	1	1	1			fun-circuits/environment-pfcs.lisp (env_enforce); AleoV0::enforce is E::enforce | fun-circuits/val-env-enforce.lisp (enforce-gadget, sample a=2 b=3 c=6)
 network	AleoV0	Environment	enforce	1	1	1	1	1			fun-circuits/environment-pfcs.lisp (env_enforce); AleoV0::enforce is E::enforce | fun-circuits/val-env-enforce.lisp (enforce-gadget, sample a=2 b=3 c=6)
 types/boolean	Boolean	Adder	adder	1	1	1	1	1	Boolean::new on each input bit		fun-circuits/boolean-adder-r1cs.lisp (boolean-adder-gadget, sound+complete); sample checked by aleovm_sample_circuits.py; fun-circuits/fb-boolean-adder.lisp (reuses boolean-adder-gadget sound+complete; pfcs+sample)
 types/boolean	Boolean	Subtractor	subtractor	1	1	1	1	1	Boolean::new on each input bit		fun-circuits/boolean-adder-r1cs.lisp (boolean-subtractor-gadget, sound+complete); sample checked by aleovm_sample_circuits.py; fun-circuits/fb-boolean-adder.lisp (reuses boolean-subtractor-gadget sound+complete; pfcs inlines negation; sample)
@@ -220,66 +218,6 @@ environment	[C]	ToBits	write_bits_be	0	0	0	0	0			fun-circuits/val-env-seq.lisp: 
 environment	[C]	ToBits	write_bits_le	0	0	0	0	0			fun-circuits/val-env-seq.lisp: sequencer only; element constraints absent; one-step funspec expansion is not R1CS soundness
 environment	[C]	ToBitsRaw	write_bits_raw_be	0	0	0	0	0			fun-circuits/val-env-seq.lisp: sequencer only; element constraints absent; one-step funspec expansion is not R1CS soundness
 environment	[C]	ToBitsRaw	write_bits_raw_le	0	0	0	0	0			fun-circuits/val-env-seq.lisp: sequencer only; element constraints absent; one-step funspec expansion is not R1CS soundness
-network	AleoCanaryV0	Aleo	commit_bhp1024	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	commit_bhp256	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	commit_bhp512	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	commit_bhp768	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	commit_ped128	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	commit_ped64	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	commit_to_group_bhp1024	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	commit_to_group_bhp256	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	commit_to_group_bhp512	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	commit_to_group_bhp768	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	commit_to_group_ped128	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	commit_to_group_ped64	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	g_scalar_multiply	1	1	1	0	0			fun-circuits/val-network.lisp (group add/ternary abstract; gadget is empty). fun-circuits/compute-key-from-private-key.lisp proves the fold equals edwards-bls12-mul under twisted-edwards-add-associativity, which is not R1CS soundness.
-network	AleoCanaryV0	Aleo	hash_many_psd2	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	hash_many_psd4	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	hash_many_psd8	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	hash_to_group_bhp1024	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	hash_to_group_bhp256	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	hash_to_group_bhp512	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	hash_to_group_bhp768	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	hash_to_group_ped128	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	hash_to_group_ped64	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	hash_to_group_psd2	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	hash_to_group_psd4	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	hash_to_group_psd8	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	hash_to_scalar_psd2	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	hash_to_scalar_psd4	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	hash_to_scalar_psd8	0	0	0	0	0			skipped-hash
-network	AleoCanaryV0	Aleo	verify_merkle_path_bhp	1	1	1	0	0			fun-circuits/val-network.lisp: one-level Rust ordering; curve-merkle-order corrected; full-path soundness not proved (bugs-val.txt)
-network	AleoCanaryV0	Aleo	verify_merkle_path_psd	1	1	1	0	0			fun-circuits/val-network.lisp: one-level Rust ordering; curve-merkle-order corrected; full-path soundness not proved (bugs-val.txt)
-network	AleoTestnetV0	Aleo	commit_bhp1024	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	commit_bhp256	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	commit_bhp512	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	commit_bhp768	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	commit_ped128	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	commit_ped64	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	commit_to_group_bhp1024	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	commit_to_group_bhp256	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	commit_to_group_bhp512	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	commit_to_group_bhp768	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	commit_to_group_ped128	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	commit_to_group_ped64	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	g_scalar_multiply	1	1	1	0	0			fun-circuits/val-network.lisp (group add/ternary abstract; gadget is empty). fun-circuits/compute-key-from-private-key.lisp proves the fold equals edwards-bls12-mul under twisted-edwards-add-associativity, which is not R1CS soundness.
-network	AleoTestnetV0	Aleo	hash_many_psd2	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	hash_many_psd4	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	hash_many_psd8	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	hash_to_group_bhp1024	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	hash_to_group_bhp256	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	hash_to_group_bhp512	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	hash_to_group_bhp768	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	hash_to_group_ped128	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	hash_to_group_ped64	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	hash_to_group_psd2	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	hash_to_group_psd4	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	hash_to_group_psd8	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	hash_to_scalar_psd2	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	hash_to_scalar_psd4	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	hash_to_scalar_psd8	0	0	0	0	0			skipped-hash
-network	AleoTestnetV0	Aleo	verify_merkle_path_bhp	1	1	1	0	0			fun-circuits/val-network.lisp: one-level Rust ordering; curve-merkle-order corrected; full-path soundness not proved (bugs-val.txt)
-network	AleoTestnetV0	Aleo	verify_merkle_path_psd	1	1	1	0	0			fun-circuits/val-network.lisp: one-level Rust ordering; curve-merkle-order corrected; full-path soundness not proved (bugs-val.txt)
 network	AleoV0	Aleo	commit_bhp1024	0	0	0	0	0			skipped-hash
 network	AleoV0	Aleo	commit_bhp256	0	0	0	0	0			skipped-hash
 network	AleoV0	Aleo	commit_bhp512	0	0	0	0	0			skipped-hash

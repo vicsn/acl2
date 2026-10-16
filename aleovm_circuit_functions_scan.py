@@ -54,8 +54,9 @@ CONSOLE_PATH = re.compile(r"\b(console|BaseField|ScalarField|Network|Affine|Proj
                           r"snarkvm_fields|snarkvm_curves|std|core|alloc|itertools|indexmap)\s*::")
 # Unsupported circuit types, left out of the status table. StringType::new halts on the host when
 # the byte length does not fit in u32 instead of emitting an unsatisfiable R1CS, so it cannot meet
-# R1CS-COMPLETE (books/projects/aleo/vm/circuits/fun-specs/README.md).
-UNSUPPORTED_TYPES = {"StringType"}
+# R1CS-COMPLETE (books/projects/aleo/vm/circuits/fun-specs/README.md). The AleoCanaryV0 and
+# AleoTestnetV0 networks are out of scope; AleoV0 is the formalised network.
+UNSUPPORTED_TYPES = {"StringType", "AleoCanaryV0", "AleoTestnetV0"}
 STD_TYPES = {"F", "Vec", "String", "Box", "Option", "Result", "IndexMap", "IndexSet", "HashMap", "BTreeMap",
               "Rc", "Arc", "RefCell", "OnceCell", "Cow", "Iterator", "PhantomData"}
 
