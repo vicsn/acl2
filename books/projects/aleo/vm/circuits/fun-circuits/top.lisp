@@ -52,3 +52,7 @@
 (include-book "progx-ids-equal-sound")
 (include-book "int-divshift-unsigned-div")
 (include-book "int-divshift-sub-wrapped")
+(include-book "acct-equal-sound")
+(include-book "acct-to-fields-wires")
+(include-book "progx-group-generator")
+(include-book "progx-boolean-cast-lossy")

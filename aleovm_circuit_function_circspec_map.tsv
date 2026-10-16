@@ -41,7 +41,7 @@ program	Argument	Inject	new	0	0	0	0	0			prog-catalog.lisp: argument-new-gadget
 program	Argument	ToBits	write_bits_be	0	0	0	0	0			prog-catalog.lisp: argument-to-bits-be-gadget
 program	Argument	ToBits	write_bits_le	0	0	0	0	0			prog-catalog.lisp: argument-to-bits-le-gadget
 program	Boolean	Cast	cast	0	0	0	0	0			prog-catalog.lisp: boolean-cast-gadget, boolean-cast-funspecs-match
-program	Boolean	CastLossy	cast_lossy	0	0	0	0	0			prog-catalog.lisp: boolean-cast-lossy-gadget
+program	Boolean	CastLossy	cast_lossy	1	0	0	1	1	Boolean::new on the input bit	Boolean::new on the input bit	prog-catalog.lisp: boolean-cast-lossy-gadget; progx-boolean-cast-lossy.lisp: progx-boolean-cast-lossy-gadget (empty: every arm is a ternary between constants, no constraint), progx-boolean-cast-lossy-lc-literal (the literal the linear combinations denote, all destination types), progx-boolean-cast-lossy-sound, progx-boolean-cast-lossy-complete; progx-group-generator.lisp: progx-groupp-of-generator-point (r G = 0 by execution) for the address/group arms
 program	Ciphertext		decrypt_symmetric	0	0	0	0	0			prog-catalog.lisp: crypto-ciphertext-decrypt-symmetric-gadget
 program	Ciphertext		decrypt_with_randomizers	0	0	0	0	0			prog-catalog.lisp: crypto-ciphertext-decrypt-with-randomizers-gadget
 program	Ciphertext	Equal	is_equal	0	0	0	0	0			prog-catalog.lisp: crypto-ciphertext-is-equal-gadget
