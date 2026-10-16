@@ -50,3 +50,5 @@
 (include-book "fsa-identifier-literal-bits")
 (include-book "fsa-scalar-from-field-lossy")
 (include-book "progx-ids-equal-sound")
+(include-book "int-divshift-unsigned-div")
+(include-book "int-divshift-sub-wrapped")
