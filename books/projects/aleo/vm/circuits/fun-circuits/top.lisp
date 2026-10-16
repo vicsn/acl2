@@ -49,3 +49,4 @@
 (include-book "fsa-validate-identifier-bytes")
 (include-book "fsa-identifier-literal-bits")
 (include-book "fsa-scalar-from-field-lossy")
+(include-book "progx-ids-equal-sound")
