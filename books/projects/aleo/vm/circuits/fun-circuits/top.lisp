@@ -31,3 +31,5 @@
 (include-book "crv-top")
 (include-book "scalar-range-gap")
 (include-book "scalar-from-field-lossy-r1cs")
+(include-book "int-from-field-lossy-sound")
+(include-book "scalar-write-bits-r1cs")
