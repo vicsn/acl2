@@ -27,6 +27,10 @@
 (include-book "projects/pfcs/parser-interface" :dir :system)
 (include-book "projects/pfcs/r1cs-subset" :dir :system)
 
+(deflabel int-sub-before-mod)
+(local (include-book "kestrel/arithmetic-light/mod" :dir :system))
+(local (in-theory (current-theory 'int-sub-before-mod)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define int-sub-checked-unsigned-gadget ((xs symbol-listp)
@@ -67,11 +71,6 @@
               (< (1+ (len xs)) (integer-length p)))
   :returns (constrs r1cs::r1cs-constraint-listp :hyp :guard)
   (int-sub-checked-unsigned-gadget xs ys zs z one p))
-
-(defthm int-sub-funspec-agrees
-  (equal (int-sub-checked-spec x y signedp n)
-         (int-sub-checked-spec x y signedp n))
-  :rule-classes nil)
 
 (defruled int-sub-checked-unsigned-gadget-sound
   (implies (and (equal p (base-prime))
@@ -115,7 +114,8 @@
            posp-when-integer-widthp
            lebits=>nat-of-int->lebits
            bit-listp-of-int->lebits-explicit
-           len-of-int->lebits))
+           len-of-int->lebits
+           acl2::mod-when-<))
 
 (defruled int-sub-checked-unsigned-gadget-complete
   (implies (and (equal p (base-prime))
@@ -157,7 +157,8 @@
            posp-when-integer-widthp
            lebits=>nat-of-int->lebits
            bit-listp-of-int->lebits-explicit
-           len-of-int->lebits))
+           len-of-int->lebits
+           acl2::mod-when-<))
 
 (defruled int-sub-gadget-sound-unsigned
   (implies (and (equal p (base-prime))
@@ -327,7 +328,11 @@
            integer-length-of-base-prime
            int-width-add-fits
            lebits=>nat-of-int->lebits
-           bit-listp-of-int->lebits-explicit)
+           bit-listp-of-int->lebits-explicit
+           int-valuep
+           int-min
+           int-max
+           acl2::mod-when-<)
   :use unsigned-small-sub-wrapped-gadget-soundness)
 
 (define int-sub-checked-signed-gadget ((xs symbol-listp)

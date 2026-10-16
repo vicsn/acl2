@@ -63,7 +63,8 @@
   :hints (("Goal"
            :in-theory (e/d (crv-group-ternary-gadget
                             group-ternary-funspec
-                            ecurve::point-finite
+                            field-ternary-funspec
+                            ecurve::equal-of-point-finite
                             curve-coordinatesp-when-edwards-bls12-pointp)
                            ())
            :use ((:instance crv-field-ternary-gadget-sound
@@ -107,7 +108,7 @@
            :in-theory (e/d (crv-group-ternary-gadget
                             group-ternary-funspec
                             field-ternary-funspec
-                            ecurve::point-finite
+                            ecurve::equal-of-point-finite
                             curve-coordinatesp-when-edwards-bls12-pointp)
                            ())
            :use ((:instance crv-field-ternary-gadget-complete
@@ -194,10 +195,16 @@
                 (crv-group-ternary-pred c x1 y1 x2 y2 rx ry prime))
            (equal (ecurve::point-finite rx ry)
                   (group-ternary-funspec c p1 p2)))
-  :enable (crv-group-ternary-pred-to-fields
-           crv-field-ternary-pred-sound
-           group-ternary-funspec
-           ecurve::point-finite))
+  :hints (("Goal"
+           :use ((:instance crv-field-ternary-pred-sound
+                            (a x1) (b x2) (r rx))
+                 (:instance crv-field-ternary-pred-sound
+                            (a y1) (b y2) (r ry)))
+           :in-theory (e/d (crv-group-ternary-pred-to-fields
+                            group-ternary-funspec
+                            field-ternary-funspec
+                            ecurve::equal-of-point-finite)
+                           (crv-field-ternary-pred-sound)))))
 
 (defruled crv-group-ternary-pred-complete
   (implies (and (equal prime (base-prime))
@@ -213,13 +220,24 @@
            (and (crv-group-ternary-pred c x1 y1 x2 y2 rx ry prime)
                 (equal (ecurve::point-finite rx ry)
                        (group-ternary-funspec c p1 p2))))
-  :enable (crv-group-ternary-pred-to-fields
-           crv-field-ternary-pred-complete
-           group-ternary-funspec
-           field-ternary-funspec
-           curve-coordinatesp-when-edwards-bls12-pointp
-           ecurve::point-finite
-           fieldp))
+  :hints (("Goal"
+           :use ((:instance crv-group-ternary-pred-to-fields)
+                 (:instance crv-field-ternary-pred-complete
+                            (a x1) (b x2) (r rx))
+                 (:instance crv-field-ternary-pred-complete
+                            (a y1) (b y2) (r ry))
+                 (:instance curve-edwards-bls12-coordinates-are-fields
+                            (p p1))
+                 (:instance curve-edwards-bls12-coordinates-are-fields
+                            (p p2)))
+           :in-theory (e/d (group-ternary-funspec
+                            field-ternary-funspec
+                            ecurve::equal-of-point-finite
+                            fieldp
+                            bitp)
+                           (crv-group-ternary-pred-to-fields
+                            crv-field-ternary-pred-complete
+                            curve-edwards-bls12-coordinates-are-fields)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -257,9 +275,11 @@
            (equal (ecurve::point-finite (lookup-equal rx asg)
                                         (lookup-equal ry asg))
                   (address-ternary-funspec (lookup-equal c asg) p1 p2)))
-  :enable (crv-address-ternary-gadget
-           address-ternary-funspec
-           crv-group-ternary-gadget-sound))
+  :hints (("Goal"
+           :use (:instance crv-group-ternary-gadget-sound)
+           :in-theory (e/d (crv-address-ternary-gadget
+                            address-ternary-funspec)
+                           (crv-group-ternary-gadget-sound)))))
 
 (defruled crv-address-ternary-gadget-complete
   (implies (and (symbolp c) (symbolp x1) (symbolp y1)
@@ -293,10 +313,11 @@
                 (equal (ecurve::point-finite (lookup-equal rx asg)
                                              (lookup-equal ry asg))
                        (address-ternary-funspec (lookup-equal c asg) p1 p2))))
-  :enable (crv-address-ternary-gadget
-           address-ternary-funspec
-           group-ternary-funspec
-           crv-group-ternary-gadget-complete))
+  :hints (("Goal"
+           :use (:instance crv-group-ternary-gadget-complete)
+           :in-theory (e/d (crv-address-ternary-gadget
+                            address-ternary-funspec)
+                           (crv-group-ternary-gadget-complete)))))
 
 (defconst *crv-address-ternary-sample* *crv-group-ternary-sample*)
 
@@ -364,10 +385,12 @@
                 (crv-address-ternary-pred c x1 y1 x2 y2 rx ry prime))
            (equal (ecurve::point-finite rx ry)
                   (address-ternary-funspec c p1 p2)))
-  :enable (crv-address-ternary-pred
-           crv-group-ternary-pred
-           crv-group-ternary-pred-sound
-           address-ternary-funspec))
+  :hints (("Goal"
+           :use (:instance crv-group-ternary-pred-sound)
+           :in-theory (e/d (crv-address-ternary-pred
+                            crv-group-ternary-pred
+                            address-ternary-funspec)
+                           (crv-group-ternary-pred-sound)))))
 
 (defruled crv-address-ternary-pred-complete
   (implies (and (equal prime (base-prime))
@@ -383,11 +406,12 @@
            (and (crv-address-ternary-pred c x1 y1 x2 y2 rx ry prime)
                 (equal (ecurve::point-finite rx ry)
                        (address-ternary-funspec c p1 p2))))
-  :enable (crv-address-ternary-pred
-           crv-group-ternary-pred
-           crv-group-ternary-pred-complete
-           address-ternary-funspec
-           group-ternary-funspec))
+  :hints (("Goal"
+           :use (:instance crv-group-ternary-pred-complete)
+           :in-theory (e/d (crv-address-ternary-pred
+                            crv-group-ternary-pred
+                            address-ternary-funspec)
+                           (crv-group-ternary-pred-complete)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -417,11 +441,12 @@
                   (scalar-ternary-funspec (lookup-equal c asg)
                                           (lookup-equal a asg)
                                           (lookup-equal b asg))))
-  :enable (crv-scalar-ternary-gadget
-           crv-field-ternary-gadget-sound
-           curve-fieldp-when-scalarp
-           scalar-ternary-funspec
-           field-ternary-funspec))
+  :hints (("Goal"
+           :use (:instance crv-field-ternary-gadget-sound)
+           :in-theory (e/d (crv-scalar-ternary-gadget
+                            scalar-ternary-funspec
+                            field-ternary-funspec)
+                           (crv-field-ternary-gadget-sound)))))
 
 (defruled crv-scalar-ternary-gadget-complete
   (implies (and (symbolp c) (symbolp a) (symbolp b) (symbolp r)
@@ -440,11 +465,13 @@
                                                (lookup-equal b asg))))
            (r1cs::r1cs-constraints-holdp
             (crv-scalar-ternary-gadget c a b r p) asg p))
-  :enable (crv-scalar-ternary-gadget
-           crv-field-ternary-gadget-complete
-           curve-fieldp-when-scalarp
-           scalar-ternary-funspec
-           field-ternary-funspec))
+  :hints (("Goal"
+           :use (:instance crv-field-ternary-gadget-complete)
+           :in-theory (e/d (crv-scalar-ternary-gadget
+                            curve-fieldp-when-scalarp
+                            scalar-ternary-funspec
+                            field-ternary-funspec)
+                           (crv-field-ternary-gadget-complete)))))
 
 (defconst *crv-scalar-ternary-sample*
   '((c . 0) (a . 3) (b . 4) (r . 4)))
@@ -488,34 +515,71 @@
             :pred crv-scalar-ternary-pred
             :prime prime)
 
+(defruled crv-scalar-ternary-pred-is-field-pred
+  (equal (crv-scalar-ternary-pred c a b r prime)
+         (crv-field-ternary-pred c a b r prime))
+  :hints (("Goal"
+           :instructions
+           ((prove :hints
+                   (("Goal"
+                     :in-theory
+                     '((:definition crv-scalar-ternary-pred)
+                       (:definition crv-field-ternary-pred)))))))))
+
 (defruled crv-scalar-ternary-pred-sound
   (implies (and (equal prime (base-prime))
                 (bitp c) (scalarp a) (scalarp b) (fieldp r)
                 (crv-scalar-ternary-pred c a b r prime))
-           (equal r (scalar-ternary-funspec c a b)))
-  :enable (crv-scalar-ternary-pred
-           crv-field-ternary-pred
-           crv-field-ternary-pred-sound
-           curve-fieldp-when-scalarp
-           scalar-ternary-funspec
-           field-ternary-funspec))
+           (equal (scalar-ternary-funspec c a b) r))
+  :hints (("Goal"
+           :use (:instance crv-field-ternary-pred-sound)
+           :in-theory (e/d (crv-scalar-ternary-pred-is-field-pred
+                            curve-fieldp-when-scalarp
+                            scalar-ternary-funspec
+                            field-ternary-funspec)
+                           (crv-field-ternary-pred-sound
+                            crv-field-ternary-pred
+                            crv-scalar-ternary-pred)))))
 
 (defruled crv-scalar-ternary-pred-complete
   (implies (and (equal prime (base-prime))
                 (bitp c) (scalarp a) (scalarp b)
                 (equal r (scalar-ternary-funspec c a b)))
            (crv-scalar-ternary-pred c a b r prime))
-  :enable (crv-scalar-ternary-pred
-           crv-field-ternary-pred
-           crv-field-ternary-pred-complete
-           curve-fieldp-when-scalarp
-           scalar-ternary-funspec
-           field-ternary-funspec))
+  :hints (("Goal"
+           :use (:instance crv-field-ternary-pred-complete)
+           :in-theory (e/d (crv-scalar-ternary-pred-is-field-pred
+                            curve-fieldp-when-scalarp
+                            scalar-ternary-funspec
+                            field-ternary-funspec)
+                           (crv-field-ternary-pred-complete
+                            crv-field-ternary-pred
+                            crv-scalar-ternary-pred)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; ComputeKey::ternary selects pk_sig, pr_sig, and sk_prf.
 ; Five field-ternary constraints.
+
+(defruled crv-compute-key-of-components
+  (implies (curve-compute-keyp ck)
+           (equal (list (first ck) (second ck) (third ck)) ck))
+  :hints (("Goal"
+           :in-theory (enable curve-compute-keyp)
+           :expand ((len ck) (len (cdr ck)) (len (cddr ck))
+                    (len (cdddr ck))
+                    (true-listp ck) (true-listp (cdr ck))
+                    (true-listp (cddr ck)) (true-listp (cdddr ck))))))
+
+(defruled crv-signature-of-components
+  (implies (curve-signaturep sig)
+           (equal (list (first sig) (second sig) (third sig)) sig))
+  :hints (("Goal"
+           :in-theory (enable curve-signaturep)
+           :expand ((len sig) (len (cdr sig)) (len (cddr sig))
+                    (len (cdddr sig))
+                    (true-listp sig) (true-listp (cdr sig))
+                    (true-listp (cddr sig)) (true-listp (cdddr sig))))))
 
 (define crv-compute-key-ternary-gadget
   ((c symbolp)
@@ -594,6 +658,9 @@
   :hints (("Goal"
            :in-theory (e/d (crv-compute-key-ternary-gadget
                             compute-key-ternary-funspec
+                            group-ternary-funspec
+                            scalar-ternary-funspec
+                            crv-compute-key-of-components
                             curve-compute-keyp-forward)
                            ())
            :use ((:instance crv-group-ternary-gadget-sound
@@ -791,6 +858,7 @@
            compute-key-ternary-funspec
            field-ternary-funspec
            scalar-ternary-funspec
+           crv-compute-key-of-components
            curve-compute-keyp-forward))
 
 (defruled crv-compute-key-ternary-pred-complete
@@ -826,6 +894,53 @@
            fieldp))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; The proof generated by pfcs::lift opens eval-expr-list by its recursive
+; definition, which takes time exponential in the number of parameters.
+; crv-fast-lift-fn is pfcs::lift-fn with that definition replaced by the two
+; rules below in the theory of the generated theorem.
+
+(local
+ (defruled crv-eval-expr-list-of-cons
+   (equal (pfcs::eval-expr-list (cons expr exprs) asg p)
+          (let ((val (pfcs::eval-expr expr asg p)))
+            (if (reserrp val)
+                val
+              (let ((vals (pfcs::eval-expr-list exprs asg p)))
+                (if (reserrp vals)
+                    vals
+                  (cons val vals))))))
+   :enable pfcs::eval-expr-list))
+
+(local
+ (defruled crv-eval-expr-list-of-nil
+   (equal (pfcs::eval-expr-list nil asg p) nil)
+   :enable pfcs::eval-expr-list))
+
+(local
+ (defun crv-fast-lift-event (event thm)
+   (declare (xargs :mode :program))
+   (cond ((atom event) event)
+         ((and (eq (car event) 'defruled) (eq (cadr event) thm))
+          (let* ((tail (member-eq :in-theory event))
+                 (theory (cadr (cadr tail))))
+            (append (take (- (len event) (len tail)) event)
+                    (list :in-theory
+                          (list 'quote
+                                (append '(crv-eval-expr-list-of-cons
+                                          crv-eval-expr-list-of-nil)
+                                        (remove-equal 'pfcs::eval-expr-list
+                                                      theory))))
+                    (cddr tail))))
+         (t (cons (crv-fast-lift-event (car event) thm)
+                  (crv-fast-lift-event (cdr event) thm))))))
+
+(local
+ (defun crv-fast-lift-fn (def pred prime state)
+   (declare (xargs :mode :program :stobjs state))
+   (crv-fast-lift-event (pfcs::lift-fn def pred prime state)
+                        (acl2::packn-pos (list 'definition-satp-to- pred)
+                                         pred))))
 
 ; Signature::ternary selects challenge, response, and the compute key.
 ; Seven field-ternary constraints.
@@ -931,9 +1046,10 @@
                                             pfcs::r1cs-polynomialp
                                             pfcs::r1cs-monomialp))))))
 
-(pfcs::lift (crv-signature-ternary-circuit)
-            :pred crv-signature-ternary-pred
-            :prime prime)
+(make-event (crv-fast-lift-fn (crv-signature-ternary-circuit)
+                             'crv-signature-ternary-pred
+                             'prime
+                             state))
 
 (defruled crv-signature-ternary-pred-sound
   (implies (and (equal prime (base-prime))
@@ -977,6 +1093,8 @@
            compute-key-ternary-funspec
            scalar-ternary-funspec
            field-ternary-funspec
+           crv-signature-of-components
+           crv-compute-key-of-components
            curve-signaturep-forward
            curve-compute-keyp-forward))
 

@@ -294,12 +294,42 @@
             :pred fb-boolean-assert-lte-const-01-pred
             :prime prime)
 
-(defruled fb-boolean-assert-lte-const-01-pred-to-funspec
+;; FALSE: b0 = 0, b1 = 0, r = 1 makes the pred NIL and the funspec T.
+;; (defruled fb-boolean-assert-lte-const-01-pred-to-funspec
+;;   (implies (and (equal prime (base-prime))
+;;                 (bitp b0)
+;;                 (bitp b1)
+;;                 (bitp r))
+;;            (equal (fb-boolean-assert-lte-const-01-pred b0 b1 r prime)
+;;                   (boolean-assert-less-than-or-equal-constant-funspec
+;;                    (list b0 b1) '(0 1))))
+;;   :enable (fb-boolean-assert-lte-const-01-pred
+;;            boolean-assert-less-than-or-equal-constant-funspec
+;;            boolean-is-less-than-or-equal-constant-funspec
+;;            assert-funspec
+;;            enforce-funspec
+;;            bitp))
+
+(defruled fb-boolean-assert-lte-const-01-pred-sound
   (implies (and (equal prime (base-prime))
                 (bitp b0)
                 (bitp b1)
-                (bitp r))
-           (equal (fb-boolean-assert-lte-const-01-pred b0 b1 r prime)
+                (fb-boolean-assert-lte-const-01-pred b0 b1 r prime))
+           (boolean-assert-less-than-or-equal-constant-funspec
+            (list b0 b1) '(0 1)))
+  :enable (fb-boolean-assert-lte-const-01-pred
+           boolean-assert-less-than-or-equal-constant-funspec
+           boolean-is-less-than-or-equal-constant-funspec
+           assert-funspec
+           enforce-funspec
+           bitp))
+
+(defruled fb-boolean-assert-lte-const-01-pred-to-funspec-at-witness
+  (implies (and (equal prime (base-prime))
+                (bitp b0)
+                (bitp b1))
+           (equal (fb-boolean-assert-lte-const-01-pred
+                   b0 b1 (pfield::mul b1 b0 prime) prime)
                   (boolean-assert-less-than-or-equal-constant-funspec
                    (list b0 b1) '(0 1))))
   :enable (fb-boolean-assert-lte-const-01-pred

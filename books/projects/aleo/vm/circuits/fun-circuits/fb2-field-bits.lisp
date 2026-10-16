@@ -46,6 +46,9 @@
 (local (include-book "kestrel/arithmetic-light/mod" :dir :system))
 (local (include-book "kestrel/arithmetic-light/expt" :dir :system))
 (local (include-book "kestrel/arithmetic-light/integer-length" :dir :system))
+(local (include-book "kestrel/utilities/typed-lists/bit-listp" :dir :system))
+(local (include-book "std/typed-lists/symbol-listp" :dir :system))
+(local (include-book "std/lists/last" :dir :system))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -83,6 +86,7 @@
                        (bitp b1)
                        (equal (list b0 b1)
                               (field-to-lower-bits-be-funspec x 2)))))
+  :cases ((equal x 0) (equal x 1) (equal x 2) (equal x 3))
   :enable (fb2-field-to-lower-bits-be-2-pred
            field-to-lower-bits-be-funspec
            field-to-lower-bits-le-funspec
@@ -109,6 +113,22 @@
       nil
     (fb2-shift-induct (1- s))))
 
+(defruled fb2-nat=>lendian*-of-double
+  (implies (posp m)
+           (equal (acl2::nat=>lendian* 2 (* 2 m))
+                  (cons 0 (acl2::nat=>lendian* 2 m))))
+  :expand ((acl2::nat=>lendian* 2 (* 2 m))))
+
+(defruled fb2-nat=>lendian*-of-mul-expt2-step
+  (implies (and (posp v)
+                (posp s))
+           (equal (acl2::nat=>lendian* 2 (* v (expt 2 s)))
+                  (cons 0 (acl2::nat=>lendian* 2 (* v (expt 2 (+ -1 s)))))))
+  :expand ((expt 2 s))
+  :prep-books ((include-book "arithmetic/top" :dir :system))
+  :use (:instance fb2-nat=>lendian*-of-double
+                  (m (* (expt 2 (+ -1 s)) v))))
+
 (defruled fb2-nat=>lendian*-of-mul-expt2
   (implies (and (posp v)
                 (natp s))
@@ -118,8 +138,30 @@
   :hints (("Goal"
            :induct (fb2-shift-induct s)
            :in-theory (enable fb2-shift-induct
-                              acl2::nat=>lendian*
+                              fb2-nat=>lendian*-of-mul-expt2-step
                               repeat))))
+
+(defruled fb2-mul-expt2-bound
+  (implies (and (natp v)
+                (natp s)
+                (natp k)
+                (< v (expt 2 k)))
+           (< (* (expt 2 s) v) (expt 2 (+ s k))))
+  :prep-books ((include-book "arithmetic-5/top" :dir :system)))
+
+(defruled fb2-nthcdr-of-append-repeat
+  (implies (natp s)
+           (equal (nthcdr s (append (repeat s 0) y))
+                  y))
+  :enable (repeat nthcdr))
+
+(defruled fb2-nat=>lendian*-of-mul-expt2-commuted
+  (implies (and (posp v)
+                (natp s))
+           (equal (acl2::nat=>lendian* 2 (* v (expt 2 s)))
+                  (append (repeat s 0)
+                          (acl2::nat=>lendian* 2 v))))
+  :use fb2-nat=>lendian*-of-mul-expt2)
 
 (defruled fb2-nthcdr-of-nat=>lebits-of-shift
   (implies (and (natp v)
@@ -129,13 +171,54 @@
            (equal (nthcdr s (acl2::nat=>lebits (+ s k)
                                                (* (expt 2 s) v)))
                   (acl2::nat=>lebits k v)))
-  :hints (("Goal"
-           :cases ((zp v))
-           :in-theory (enable acl2::nat=>lebits
-                              acl2::nat=>lendian
-                              fb2-nat=>lendian*-of-mul-expt2
-                              repeat
-                              nthcdr))))
+  :do-not-induct t
+  :prep-books ((include-book "arithmetic/top" :dir :system))
+  :cases ((zp v))
+  :use fb2-mul-expt2-bound
+  :enable (acl2::nat=>lebits
+           acl2::nat=>lendian
+           fb2-nat=>lendian*-of-mul-expt2-commuted
+           fb2-nthcdr-of-append-repeat))
+
+(defruled fb2-mod-of-shift
+  (implies (and (natp v)
+                (natp s))
+           (equal (mod (* (expt 2 s) v) (expt 2 s))
+                  0)))
+
+(defruled fb2-shift-of-floor-when-mod-0
+  (implies (and (natp x)
+                (natp s)
+                (equal (mod x (expt 2 s)) 0))
+           (equal (* (expt 2 s) (floor x (expt 2 s)))
+                  x))
+  :enable mod)
+
+(defruled fb2-floor-shift-bound
+  (implies (and (natp x)
+                (natp s)
+                (natp k)
+                (< x (expt 2 (+ s k))))
+           (< (floor x (expt 2 s)) (expt 2 k)))
+  :enable (acl2::<-of-floor-arg1 acl2::expt-of-+))
+
+(defruled fb2-field-to-upper-bits-be-funspec-of-shift
+  (implies (and (natp v)
+                (natp k)
+                (<= k (base-field-size-in-bits))
+                (< v (expt 2 k))
+                (equal x (* (expt 2 (- (base-field-size-in-bits) k)) v))
+                (< x (base-prime)))
+           (equal (field-to-upper-bits-be-funspec x k)
+                  (rev (acl2::nat=>lebits k v))))
+  :do-not-induct t
+  :enable (field-to-upper-bits-be-funspec
+           base-field-size-in-bits
+           pfield::fep-fix-when-fep)
+  :use ((:instance fb2-mod-of-shift
+                   (s (- (base-field-size-in-bits) k)))
+        (:instance fb2-nthcdr-of-nat=>lebits-of-shift
+                   (s (- (base-field-size-in-bits) k)))))
 
 (defruled fb2-field-to-upper-bits-be-gadget-sound
   (implies (and (symbolp x)
@@ -157,17 +240,16 @@
                  (fb-field-to-upper-bits-be-gadget x bits k n p) asg p))
            (equal (lookup-equal-list bits asg)
                   (field-to-upper-bits-be-funspec (lookup-equal x asg) k)))
+  :do-not-induct t
   :enable (fb-field-to-upper-bits-be-gadget-to-mod
-           field-to-upper-bits-be-funspec
-           base-field-size-in-bits
-           fieldp
-           pfield::fep-fix-when-fep
-           fb2-nthcdr-of-nat=>lebits-of-shift
-           fb-base-prime-below-2-253
-           acl2::nat=>lebits-of-lebits=>nat
-           acl2::lebits=>nat-upper-bound
-           acl2::bit-list-fix
-           rev-of-rev))
+           lookup-equal-list-of-rev
+           acl2::lebits=>nat-upper-bound)
+  :use ((:instance fb2-field-to-upper-bits-be-funspec-of-shift
+                   (x (lookup-equal x asg))
+                   (v (lebits=>nat (rev (lookup-equal-list bits asg)))))
+        (:instance fb-nat=>lebits-when-lebits=>nat
+                   (v (lebits=>nat (rev (lookup-equal-list bits asg))))
+                   (bs (rev (lookup-equal-list bits asg))))))
 
 (defruled fb2-field-to-upper-bits-be-gadget-complete
   (implies (and (symbolp x)
@@ -189,16 +271,26 @@
                         (lookup-equal x asg) k)))
            (r1cs::r1cs-constraints-holdp
             (fb-field-to-upper-bits-be-gadget x bits k n p) asg p))
+  :do-not-induct t
   :enable (fb-field-to-upper-bits-be-gadget-to-mod
-           field-to-upper-bits-be-funspec
-           base-field-size-in-bits
+           lookup-equal-list-of-rev
            fieldp
-           pfield::fep-fix-when-fep
-           fb2-nthcdr-of-nat=>lebits-of-shift
+           base-field-size-in-bits
            fb-base-prime-below-2-253
            acl2::lebits=>nat-of-nat=>lebits
-           acl2::bit-listp-of-nat=>lebits
-           rev-of-rev))
+           acl2::bit-listp-of-nat=>lebits)
+  :use ((:instance fb2-shift-of-floor-when-mod-0
+                   (x (lookup-equal x asg))
+                   (s (- (base-field-size-in-bits) k)))
+        (:instance fb2-floor-shift-bound
+                   (x (lookup-equal x asg))
+                   (s (- (base-field-size-in-bits) k)))
+        (:instance fb2-field-to-upper-bits-be-funspec-of-shift
+                   (x (lookup-equal x asg))
+                   (v (floor (lookup-equal x asg)
+                             (expt 2 (- (base-field-size-in-bits) k)))))
+        (:instance field-to-upper-bits-be-funspec
+                   (x (lookup-equal x asg)))))
 
 (defruled fb2-field-to-upper-bits-le-gadget-sound
   (implies (and (symbolp x)
@@ -220,12 +312,19 @@
                  (fb-field-to-upper-bits-le-gadget x bits k n p) asg p))
            (equal (lookup-equal-list bits asg)
                   (field-to-upper-bits-le-funspec (lookup-equal x asg) k)))
+  :do-not-induct t
   :enable (fb-field-to-upper-bits-le-gadget
            field-to-upper-bits-le-funspec
-           field-to-upper-bits-be-funspec
-           lookup-equal-list-of-rev)
-  :use (:instance fb2-field-to-upper-bits-be-gadget-sound
-                  (bits (rev bits))))
+           lookup-equal-list-of-rev
+           fb-not-reserrp-when-bit-listp)
+  :use ((:instance fb2-field-to-upper-bits-be-gadget-sound
+                   (bits (rev bits)))
+        (:instance fb-field-to-upper-bits-be-gadget-to-mod
+                   (bits (rev bits)))
+        (:instance fb-equal-rev-when-rev-equal
+                   (a (lookup-equal-list bits asg))
+                   (b (field-to-upper-bits-be-funspec
+                       (lookup-equal x asg) k)))))
 
 (defruled fb2-field-to-upper-bits-le-gadget-complete
   (implies (and (symbolp x)
@@ -275,6 +374,23 @@
             :pred fb2-field-to-upper-bits-1-pred
             :prime prime)
 
+(defruled fb2-top-bit-multiple-cases
+  (implies (and (fieldp x)
+                (equal (mod x (expt 2 (1- (base-field-size-in-bits)))) 0))
+           (or (equal x 0)
+               (equal x (expt 2 (1- (base-field-size-in-bits))))))
+  :do-not-induct t
+  :cases ((equal (floor x (expt 2 (1- (base-field-size-in-bits)))) 0)
+          (equal (floor x (expt 2 (1- (base-field-size-in-bits)))) 1))
+  :enable (fieldp
+           base-field-size-in-bits
+           fb-base-prime-below-2-253)
+  :use ((:instance fb2-shift-of-floor-when-mod-0
+                   (s (1- (base-field-size-in-bits))))
+        (:instance fb2-floor-shift-bound
+                   (s (1- (base-field-size-in-bits)))
+                   (k 1))))
+
 (defruled fb2-field-to-upper-bits-1-pred-to-be-funspec
   (implies (and (equal prime (base-prime))
                 (fieldp x)
@@ -283,13 +399,22 @@
                   (and (bitp b)
                        (equal (list b)
                               (field-to-upper-bits-be-funspec x 1)))))
+  :cases ((equal x 0)
+           (equal x (expt 2 (1- (base-field-size-in-bits)))))
   :enable (fb2-field-to-upper-bits-1-pred
            field-to-upper-bits-be-funspec
            base-field-size-in-bits
            fieldp
            bitp
            pfield::fep-fix-when-fep
-           fb-base-prime-below-2-253))
+           fb-base-prime-below-2-253)
+  :use fb2-top-bit-multiple-cases)
+
+(defruled fb2-equal-of-list-and-rev
+  (implies (true-listp x)
+           (equal (equal (list a) (rev x))
+                  (equal (list a) x)))
+  :enable rev)
 
 (defruled fb2-field-to-upper-bits-1-pred-to-le-funspec
   (implies (and (equal prime (base-prime))
@@ -300,7 +425,9 @@
                        (equal (list b)
                               (field-to-upper-bits-le-funspec x 1)))))
   :enable (field-to-upper-bits-le-funspec
-           fb2-field-to-upper-bits-1-pred-to-be-funspec))
+           fb2-field-to-upper-bits-1-pred-to-be-funspec
+           fb2-equal-of-list-and-rev)
+  :use (:instance return-type-of-field-to-upper-bits-be-funspec (k 1)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -327,27 +454,22 @@
                   (field-from-bits-le-funspec
                    (lookup-equal-list bits asg))))
   :do-not-induct t
+  :cases ((< (len bits) (integer-length p)))
   :enable (fb-field-from-bits-le-gadget
-           fb-field-from-bits-le-short-sound
+           lebits=>nat-less-when-len-less
            fb-integer-length-of-base-prime
-           fb-boolean-assert-bits-are-zero-gadget-to-funspec
-           fb-boolean-assert-lte-const-gadget-sound
+           fb-boolean-assert-lte-const-gadget
            field-from-bits-le-funspec
            base-field-size-in-bits
-           boolean-assert-bits-are-zero-funspec
            boolean-assert-less-than-or-equal-constant-funspec
            boolean-is-less-than-or-equal-constant-funspec
            lookup-equal-list-of-take
-           lookup-equal-list-of-nthcdr
-           acl2::lebits=>nat-of-nat=>lebits
-           nat=>lebits*
-           acl2::nat=>lendian*
-           acl2::nat=>lebits
-           acl2::nat=>lendian)
-  :use (:instance bits-lte-const-check-soundness
-                  (xs (take (integer-length p) bits))
-                  (cs (nat=>lebits* (1- p)))
-                  (rs rs)))
+           lookup-equal-list-of-nthcdr)
+  :use ((:instance fb-boolean-assert-bits-are-zero-gadget-to-funspec
+                   (bits (nthcdr (integer-length p) bits)))
+        (:instance fb-boolean-assert-lte-const-gadget-sound
+                   (xs (take (integer-length p) bits))
+                   (cs (nat=>lebits* (1- p))))))
 
 (defruled fb2-field-from-bits-le-complete
   (implies (and (symbol-listp bits)
@@ -381,17 +503,22 @@
                        (field-from-bits-le-funspec
                         (lookup-equal-list bits asg)))))
   :do-not-induct t
+  :cases ((< (len bits) (integer-length p)))
   :enable (fb-field-from-bits-le-gadget
-           fb-field-from-bits-le-short-sound
+           lebits=>nat-less-when-len-less
            fb-integer-length-of-base-prime
-           fb-boolean-assert-bits-are-zero-gadget-to-funspec
-           fb-boolean-assert-lte-const-gadget-complete
+           fb-boolean-assert-lte-const-gadget
            field-from-bits-le-funspec
            base-field-size-in-bits
+           boolean-assert-less-than-or-equal-constant-funspec
+           boolean-is-less-than-or-equal-constant-funspec
            lookup-equal-list-of-take
-           lookup-equal-list-of-nthcdr
-           nat=>lebits*-msb-is-1
-           fb2-pm1-lebits-have-a-zero))
+           lookup-equal-list-of-nthcdr)
+  :use ((:instance fb-boolean-assert-bits-are-zero-gadget-to-funspec
+                   (bits (nthcdr (integer-length p) bits)))
+        (:instance fb-boolean-assert-lte-const-gadget-complete
+                   (xs (take (integer-length p) bits))
+                   (cs (nat=>lebits* (1- p))))))
 
 (defruled fb2-field-from-bits-be-sound
   (implies (and (symbol-listp bits)
@@ -522,6 +649,21 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defruled fb2-fieldp-at-most-pm1
+  (implies (fieldp x)
+           (<= x (1- (base-prime))))
+  :enable fieldp)
+
+(defruled fb2-lebits=>nat-when-equal-field-bits-le
+  (implies (and (equal bs (field-bits-le x))
+                (fieldp x))
+           (and (equal (lebits=>nat bs) x)
+                (equal (len bs) (base-field-size-in-bits))))
+  :enable (field-bits-le
+           fieldp
+           fb-base-prime-below-2-253
+           acl2::lebits=>nat-of-nat=>lebits))
+
 (defruled fb2-field-write-bits-le-gadget-complete
   (implies (and (symbolp x)
                 (symbol-listp bits)
@@ -564,7 +706,23 @@
            nat=>lebits*-msb-is-1
            fb2-pm1-lebits-have-a-zero
            last-of-lookup-equal-list
-           car-of-lookup-equal-list))
+           car-of-lookup-equal-list
+           fb-symbolp-of-car-last
+           fb-valuation-bindsp-of-car-last
+           fb-consp-when-len-pos
+           boolean-is-less-than-or-equal-constant-funspec)
+  :use ((:instance fb-boolean-is-lte-const-gadget-complete
+                   (xs bits)
+                   (cs (nat=>lebits* (1- p))))
+        (:instance fb-bitp-of-car-last-when-fb-bits-lte-const-witness
+                   (vs (lookup-equal-list rs asg))
+                   (xs (lookup-equal-list bits asg))
+                   (cs (nat=>lebits* (1- p))))
+        (:instance fb2-lebits=>nat-when-equal-field-bits-le
+                   (bs (lookup-equal-list bits asg))
+                   (x (lookup-equal x asg)))
+        (:instance fb2-fieldp-at-most-pm1
+                   (x (lookup-equal x asg)))))
 
 (defruled fb2-field-write-bits-be-gadget-complete
   (implies (and (symbolp x)

@@ -28,8 +28,8 @@
 (defruled crv-address-to-field-gadget-sound
   (implies (and (ecurve::edwards-bls12-pointp p0)
                 (equal x (ecurve::point-finite->x p0)))
-           (equal x (address-to-field-funspec p0)))
-  :enable address-to-field-funspec)
+           (equal (address-to-field-funspec p0) x))
+  :enable (address-to-field-funspec group-to-x-coordinate-funspec))
 
 (defruled crv-address-to-field-gadget-complete
   (implies (and (equal p (base-prime))
@@ -38,8 +38,10 @@
                 (equal x (ecurve::point-finite->x p0)))
            (and (r1cs::r1cs-constraints-holdp
                  (crv-address-to-field-gadget) asg p)
-                (equal x (address-to-field-funspec p0))))
-  :enable (crv-address-to-field-gadget address-to-field-funspec))
+                (equal (address-to-field-funspec p0) x)))
+  :enable (crv-address-to-field-gadget
+           address-to-field-funspec
+           group-to-x-coordinate-funspec))
 
 (defconst *crv-address-to-field-sample* nil)
 
@@ -73,8 +75,10 @@
                 (ecurve::edwards-bls12-pointp p0)
                 (equal x (ecurve::point-finite->x p0))
                 (crv-address-to-field-pred prime))
-           (equal x (address-to-field-funspec p0)))
-  :enable (crv-address-to-field-pred address-to-field-funspec))
+           (equal (address-to-field-funspec p0) x))
+  :enable (crv-address-to-field-pred
+           address-to-field-funspec
+           group-to-x-coordinate-funspec))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -88,7 +92,7 @@
            (equal (list (ecurve::point-finite->x (first ck))
                         (ecurve::point-finite->x (second ck)))
                   (compute-key-to-fields-funspec ck)))
-  :enable compute-key-to-fields-funspec)
+  :enable (compute-key-to-fields-funspec group-to-x-coordinate-funspec))
 
 (defruled crv-compute-key-to-fields-gadget-complete
   (implies (and (equal p (base-prime))
@@ -100,7 +104,8 @@
                              (ecurve::point-finite->x (second ck)))
                        (compute-key-to-fields-funspec ck))))
   :enable (crv-compute-key-to-fields-gadget
-           compute-key-to-fields-funspec))
+           compute-key-to-fields-funspec
+           group-to-x-coordinate-funspec))
 
 (defconst *crv-compute-key-to-fields-sample* nil)
 
@@ -134,7 +139,9 @@
            (equal (list (ecurve::point-finite->x (first ck))
                         (ecurve::point-finite->x (second ck)))
                   (compute-key-to-fields-funspec ck)))
-  :enable (crv-compute-key-to-fields-pred compute-key-to-fields-funspec))
+  :enable (crv-compute-key-to-fields-pred
+           compute-key-to-fields-funspec
+           group-to-x-coordinate-funspec))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

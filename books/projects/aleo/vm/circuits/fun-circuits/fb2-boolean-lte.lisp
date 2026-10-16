@@ -31,6 +31,10 @@
 (include-book "std/util/defrule" :dir :system)
 
 (local (include-book "kestrel/prime-fields/prime-fields-rules" :dir :system))
+(local (include-book "kestrel/utilities/typed-lists/bit-listp" :dir :system))
+(local (include-book "std/lists/last" :dir :system))
+(local (include-book "std/lists/len" :dir :system))
+(local (include-book "std/lists/nthcdr" :dir :system))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -74,6 +78,104 @@
                   (cdr (lookup-equal-list keys alist))))
   :enable lookup-equal-list)
 
+(defruled fb-consp-when-len-pos
+  (implies (< 0 (len x))
+           (consp x)))
+
+(defruled fb-len-pos-when-consp
+  (implies (consp x)
+           (< 0 (len x)))
+  :rule-classes :linear)
+
+(defruled fb-cdr-of-lookup-equal-list
+  (equal (cdr (lookup-equal-list keys alist))
+         (lookup-equal-list (cdr keys) alist))
+  :enable lookup-equal-list)
+
+(defruled fb-bitp-of-lookup-car-when-bit-listp
+  (implies (and (bit-listp (lookup-equal-list keys alist))
+                (consp keys))
+           (bitp (lookup-equal (car keys) alist)))
+  :enable lookup-equal-list)
+
+(defruled fb-bitp-of-lookup-cadr-when-bit-listp
+  (implies (and (bit-listp (lookup-equal-list keys alist))
+                (consp (cdr keys)))
+           (bitp (lookup-equal (cadr keys) alist)))
+  :enable lookup-equal-list)
+
+(defruled fb-bit-listp-of-lookup-cdr-when-bit-listp
+  (implies (bit-listp (lookup-equal-list keys alist))
+           (bit-listp (lookup-equal-list (cdr keys) alist)))
+  :enable lookup-equal-list)
+
+(defruled fb-valuation-bindsp-of-cadr
+  (implies (and (r1cs::valuation-binds-allp asg vars)
+                (consp (cdr vars)))
+           (r1cs::valuation-bindsp asg (cadr vars)))
+  :enable r1cs::valuation-binds-allp)
+
+(defruled fb-bit-listp-of-fb-lte-aux-witness
+  (bit-listp (fb-lte-aux-witness xs cs))
+  :enable (fb-lte-aux-witness bitor bitand))
+
+(defruled fb-lookup-car-when-fb-lte-aux-witness
+  (implies (and (equal (lookup-equal-list rs asg)
+                       (fb-lte-aux-witness xsv cs))
+                (consp rs)
+                (consp cs))
+           (equal (lookup-equal (car rs) asg)
+                  (if (consp (cdr cs))
+                      (if (equal (car cs) 0)
+                          (bitor (car xsv) (lookup-equal (cadr rs) asg))
+                        (bitand (car xsv) (lookup-equal (cadr rs) asg)))
+                    (if (equal (car cs) 0)
+                        (bitor (car xsv) (cadr xsv))
+                      (bitand (car xsv) (cadr xsv))))))
+  :enable (fb-lte-aux-witness lookup-equal-list))
+
+(defruled fb-lookup-list-cdr-when-fb-lte-aux-witness
+  (implies (and (equal (lookup-equal-list rs asg)
+                       (fb-lte-aux-witness xsv cs))
+                (consp (cdr cs)))
+           (equal (lookup-equal-list (cdr rs) asg)
+                  (fb-lte-aux-witness (cdr xsv) (cdr cs))))
+  :enable (fb-lte-aux-witness lookup-equal-list))
+
+(defruled fb-consp-cdr-when-fb-lte-aux-witness
+  (implies (and (equal (lookup-equal-list rs asg)
+                       (fb-lte-aux-witness xsv cs))
+                (consp (cdr cs)))
+           (consp (cdr rs)))
+  :use (:instance consp-of-lookup-equal-list (keys (cdr rs)) (alist asg))
+  :enable (fb-lte-aux-witness lookup-equal-list))
+
+(defruled fb-bitp-of-lookup-cadr-when-fb-lte-aux-witness
+  (implies (and (equal (lookup-equal-list rs asg)
+                       (fb-lte-aux-witness xsv cs))
+                (consp (cdr cs)))
+           (bitp (lookup-equal (cadr rs) asg)))
+  :use ((:instance fb-bit-listp-of-fb-lte-aux-witness (xs xsv))
+        (:instance fb-bitp-of-lookup-cadr-when-bit-listp
+                   (keys rs) (alist asg))
+        fb-consp-cdr-when-fb-lte-aux-witness)
+  :disable bitp)
+
+(defruled fb-valuation-bindsp-of-cadr-when-fb-lte-aux-witness
+  (implies (and (equal (lookup-equal-list rs asg)
+                       (fb-lte-aux-witness xsv cs))
+                (consp (cdr cs))
+                (r1cs::valuation-binds-allp asg rs))
+           (r1cs::valuation-bindsp asg (cadr rs)))
+  :use fb-consp-cdr-when-fb-lte-aux-witness
+  :enable fb-valuation-bindsp-of-cadr)
+
+(defruled fb-bit-listp-of-lookup-when-fb-lte-aux-witness
+  (implies (equal (lookup-equal-list rs asg)
+                  (fb-lte-aux-witness xsv cs))
+           (bit-listp (lookup-equal-list rs asg)))
+  :enable fb-bit-listp-of-fb-lte-aux-witness)
+
 (defruled fb-lte-aux-witness-satisfies
   (implies (and (symbol-listp xs)
                 (symbol-listp rs)
@@ -93,17 +195,25 @@
   :hints (("Goal"
            :induct (fb-lte-aux-induct xs cs rs)
            :in-theory (e/d (fb-lte-aux-induct
-                            fb-lte-aux-witness
                             bits-lte-const-gadget-aux
-                            fb-lookup-equal-list-of-cdr
-                            lookup-equal-of-car
+                            fb-consp-when-len-pos
+                            fb-len-pos-when-consp
+                            fb-cdr-of-lookup-equal-list
+                            car-of-lookup-equal-list
+                            fb-bitp-of-lookup-car-when-bit-listp
+                            fb-bitp-of-lookup-cadr-when-bit-listp
+                            fb-bit-listp-of-lookup-cdr-when-bit-listp
+                            fb-valuation-bindsp-of-cadr
+                            fb-bitp-of-lookup-cadr-when-fb-lte-aux-witness
+                            fb-valuation-bindsp-of-cadr-when-fb-lte-aux-witness
+                            fb-lookup-car-when-fb-lte-aux-witness
+                            fb-lookup-list-cdr-when-fb-lte-aux-witness
+                            fb-bit-listp-of-lookup-when-fb-lte-aux-witness
+                            fb-bit-listp-of-fb-lte-aux-witness
                             boolean-and-gadget-to-bitand
-                            boolean-or-gadget-to-bitor
-                            bitand
-                            bitor
-                            bitp
-                            r1cs::valuation-binds-allp)
+                            boolean-or-gadget-to-bitor)
                            ((:definition pfield::sub)
+                            bitp
                             pfield::mul-of-sub-arg1
                             pfield::mul-of-sub-arg2)))))
 
@@ -188,7 +298,7 @@
            fb-r1cs-holdp-of-rev
            lookup-equal-list-of-rev
            lookup-equal-list-of-nthcdr
-           rev-of-rev
+           acl2::rev-of-rev
            fb-valuation-binds-allp-of-rev
            fb-valuation-binds-allp-of-nthcdr
            fb-symbol-listp-of-rev
@@ -200,6 +310,19 @@
                                    xs)))
                   (cs (rev (nthcdr (- (len cs) (bits-lte-const-rlen cs)) cs)))
                   (rs (rev rs))))
+
+(defruled fb-bitp-of-car-last-when-fb-bits-lte-const-witness
+  (implies (and (equal vs (fb-bits-lte-const-witness xs cs))
+                (bit-listp xs)
+                (bit-listp cs)
+                (equal (len xs) (len cs))
+                (member-equal 0 cs)
+                (equal (car (last cs)) 1))
+           (bitp (car (last vs))))
+  :do-not-induct t
+  :enable fb-consp-when-len-pos
+  :disable bitp
+  :use (:instance len-of-fb-bits-lte-const-witness))
 
 (defruled fb-boolean-is-lte-const-gadget-complete
   (implies (and (symbol-listp xs)
@@ -228,7 +351,21 @@
   :do-not-induct t
   :enable (fb-boolean-is-lte-const-gadget
            fb-bits-lte-const-witness-satisfies)
-  :use fb-boolean-is-lte-const-gadget-sound)
+  :use (fb-boolean-is-lte-const-gadget-sound
+        (:instance fb-bitp-of-car-last-when-fb-bits-lte-const-witness
+                   (vs (lookup-equal-list rs asg))
+                   (xs (lookup-equal-list xs asg)))))
+
+(defruled fb-symbolp-of-car-last
+  (implies (symbol-listp xs)
+           (symbolp (car (last xs))))
+  :enable last)
+
+(defruled fb-valuation-bindsp-of-car-last
+  (implies (and (r1cs::valuation-binds-allp asg xs)
+                (consp xs))
+           (r1cs::valuation-bindsp asg (car (last xs))))
+  :enable (last r1cs::valuation-binds-allp))
 
 (defruled fb-boolean-assert-lte-const-gadget-complete
   (implies (and (symbol-listp xs)
@@ -254,12 +391,19 @@
             (fb-boolean-assert-lte-const-gadget xs cs rs p) asg p))
   :do-not-induct t
   :enable (fb-boolean-assert-lte-const-gadget
+           fb-boolean-is-lte-const-gadget
            bits-lte-const-check-gadget
            bits-lte-const-check-rlen
            zero-gadget-list
            zero-gadget-to-equal-0
            last-of-lookup-equal-list
            car-of-lookup-equal-list
-           fb-boolean-is-lte-const-gadget-complete
+           fb-consp-when-len-pos
+           fb-symbolp-of-car-last
+           fb-valuation-bindsp-of-car-last
            bitp)
-  :disable ((:definition pfield::sub)))
+  :disable ((:definition pfield::sub))
+  :use (fb-boolean-is-lte-const-gadget-complete
+        (:instance fb-bitp-of-car-last-when-fb-bits-lte-const-witness
+                   (vs (lookup-equal-list rs asg))
+                   (xs (lookup-equal-list xs asg)))))

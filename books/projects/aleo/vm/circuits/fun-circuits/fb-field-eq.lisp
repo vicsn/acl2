@@ -236,7 +236,7 @@
                 (fieldp y)
                 (pfield::fep z prime)
                 (fb-field-is-equal-pred x y z prime))
-           (equal z (field-is-equal-funspec x y)))
+           (equal (field-is-equal-funspec x y) z))
   :enable (fb-field-is-equal-pred
            field-is-equal-funspec
            field-is-not-equal-funspec

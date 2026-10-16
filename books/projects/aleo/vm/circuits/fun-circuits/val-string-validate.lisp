@@ -166,7 +166,7 @@
                 (bitp b1) (bitp b2) (bitp b3) (bitp w) (bitp out)
                 (equal w (values-b-or b2 b1))
                 (is-invalid-digit-offset-pred b1 b2 b3 w out prime))
-           (equal out (is-invalid-digit-offset b1 b2 b3)))
+           (equal (is-invalid-digit-offset b1 b2 b3) out))
   :enable (is-invalid-digit-offset-pred
            is-invalid-digit-offset
            values-b-and
@@ -285,7 +285,7 @@
                 (equal (byte-validation-data->b4b3 data) b4b3)
                 (equal (byte-validation-data->b1b0 data) b1b0)
                 (is-invalid-uppercase-offset-pred b4b3 b1b0 b2 x out prime))
-           (equal out (is-invalid-uppercase-offset data b2)))
+           (equal (is-invalid-uppercase-offset data b2) out))
   :enable (is-invalid-uppercase-offset-pred
            is-invalid-uppercase-offset
            values-b-and
@@ -404,7 +404,7 @@
                 (equal (byte-validation-data->b4b3 data) b4b3)
                 (equal (byte-validation-data->b1b0 data) b1b0)
                 (is-invalid-lowercase-offset-pred b4b3 b1b0 b2 w out prime))
-           (equal out (is-invalid-lowercase-offset data b2)))
+           (equal (is-invalid-lowercase-offset data b2) out))
   :enable (is-invalid-lowercase-offset-pred
            is-invalid-lowercase-offset
            values-b-and
@@ -434,6 +434,31 @@
                  :a (val-sum-lc (list b0 b1 b2 b3 b4))
                  :b (val-not-lc r p)
                  :c nil))))
+
+(local
+ (defruled mul-of-+-arg1-becomes-add
+   (implies (and (integerp x) (integerp y) (posp p))
+            (equal (pfield::mul (+ x y) z p)
+                   (pfield::mul (pfield::add x y p) z p)))
+   :enable pfield::add
+   :use (:instance pfield::mul-of-mod-arg1 (x (+ x y)) (y z))))
+
+(local
+ (defruled mul-of-+-arg2-becomes-add
+   (implies (and (integerp x) (integerp y) (posp p))
+            (equal (pfield::mul z (+ x y) p)
+                   (pfield::mul z (pfield::add x y p) p)))
+   :enable pfield::add
+   :use (:instance pfield::mul-of-mod-arg2 (y (+ x y)) (x z))))
+
+(local
+ (defruled add-of-+-arg2-becomes-add
+   (implies (and (integerp x) (integerp y) (posp p))
+            (equal (pfield::add z (+ x y) p)
+                   (pfield::add z (pfield::add x y p) p)))
+   :in-theory (disable pfield::add pfield::add-of-mod-arg2)
+   :use ((:instance pfield::add-of-mod-arg2 (y (+ x y)) (x z) (pfield::p p))
+         (:instance pfield::add (x x) (y y) (pfield::p p)))))
 
 (defruled byte-validation-data-new-gadget-to-spec
   (implies (and (symbolp b0) (symbolp b1) (symbolp b2) (symbolp b3) (symbolp b4)
@@ -474,7 +499,10 @@
            val-sum-lc
            val-not-lc
            r1cs::r1cs-constraint-holdsp
-           r1cs::dot-product))
+           r1cs::dot-product
+           mul-of-+-arg1-becomes-add
+           mul-of-+-arg2-becomes-add
+           add-of-+-arg2-becomes-add))
 
 (defruled byte-validation-data-new-gadget-sound
   (implies (and (symbolp b0) (symbolp b1) (symbolp b2) (symbolp b3) (symbolp b4)
@@ -634,33 +662,6 @@
   :enable (byte-validation-data-new-pred values-b-and))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-; (1 - x) * (1 - y) = z.  AND of two negations, each a linear combination.
-
-(define val-and-nots-gadget ((x symbolp) (y symbolp) (z symbolp) (p primep))
-  :returns (constrs r1cs::r1cs-constraint-listp :hyp :guard)
-  (list (r1cs::make-r1cs-constraint
-         :a (val-not-lc x p)
-         :b (val-not-lc y p)
-         :c (list (list 1 z)))))
-
-(defruled val-and-nots-gadget-to-spec
-  (implies (and (symbolp x) (symbolp y) (symbolp z)
-                (primep p)
-                (r1cs::r1cs-valuationp asg p)
-                (r1cs::valuation-bindsp asg x)
-                (r1cs::valuation-bindsp asg y)
-                (r1cs::valuation-bindsp asg z))
-           (equal (r1cs::r1cs-constraints-holdp
-                   (val-and-nots-gadget x y z p) asg p)
-                  (equal (pfield::mul (pfield::sub 1 (lookup-equal x asg) p)
-                                      (pfield::sub 1 (lookup-equal y asg) p)
-                                      p)
-                         (lookup-equal z asg))))
-  :enable (val-and-nots-gadget
-           val-not-lc
-           r1cs::r1cs-constraint-holdsp
-           r1cs::dot-product))
 
 ; b6 * (1 - u) = z
 
@@ -888,17 +889,42 @@
                                        (lookup-equal b6 asg)
                                        (lookup-equal b7 asg))
                                  nil)))
-  :enable (validate-byte-gadget-to-pieces
-           validate-byte
-           byte-validation-data-new
-           is-invalid-digit-offset
-           is-invalid-uppercase-offset
-           is-invalid-lowercase-offset
-           values-b-and
-           values-b-or
-           values-b-xor
-           values-b-not
-           values-bool-to-bit))
+  :hints (("Goal"
+           :use ((:instance validate-byte-gadget-to-pieces)
+                 (:instance byte-validation-data-new-gadget-to-spec)
+                 (:instance byte-validation-data-new-gadget-sound)
+                 (:instance is-invalid-digit-offset-gadget-sound
+                            (w or-d) (out inv-d))
+                 (:instance is-invalid-uppercase-offset-gadget-sound
+                            (x xor-u) (out bad-u)
+                            (data (byte-validation-data-new (lookup-equal b0 asg)
+                                                            (lookup-equal b1 asg)
+                                                            (lookup-equal b2 asg)
+                                                            (lookup-equal b3 asg)
+                                                            (lookup-equal b4 asg))))
+                 (:instance is-invalid-lowercase-offset-gadget-sound
+                            (w or-l) (out bad-l)
+                            (data (byte-validation-data-new (lookup-equal b0 asg)
+                                                            (lookup-equal b1 asg)
+                                                            (lookup-equal b2 asg)
+                                                            (lookup-equal b3 asg)
+                                                            (lookup-equal b4 asg)))))
+           :in-theory (e/d (validate-byte
+                            byte-validation-data-new
+                            is-invalid-digit-offset
+                            is-invalid-uppercase-offset
+                            is-invalid-lowercase-offset
+                            values-b-and
+                            values-b-or
+                            values-b-xor
+                            values-b-not
+                            values-bool-to-bit
+                            bitp)
+                           (validate-byte-gadget
+                            byte-validation-data-new-gadget
+                            is-invalid-digit-offset-gadget
+                            is-invalid-uppercase-offset-gadget
+                            is-invalid-lowercase-offset-gadget)))))
 
 (defruled validate-byte-gadget-complete
   :short "R1CS-COMPLETE: the canonical gate witnesses satisfy validate_byte."
@@ -1020,6 +1046,120 @@
           (val-and-not-right-gadget b6 uscore letter p)
           (assert-gadget letter)))
 
+(local
+ (defruled validate-byte-first-when-letter
+   (implies (equal (values-b-and
+                    (bfix (nth 6 bits))
+                    (values-b-not
+                     (values-b-and (values-b-and (values-b-and (bfix (nth 4 bits))
+                                                               (bfix (nth 3 bits)))
+                                                 (values-b-and (bfix (nth 1 bits))
+                                                               (bfix (nth 0 bits))))
+                                   (bfix (nth 2 bits)))))
+                   1)
+            (equal (validate-byte bits t)
+                   (validate-byte bits nil)))
+   :enable (validate-byte byte-validation-data-new)))
+
+(local
+ (defruled validate-first-byte-letter-when-constraints
+   (implies (and (symbolp b0) (symbolp b1) (symbolp b2) (symbolp b3)
+                 (symbolp b4) (symbolp b6)
+                 (symbolp b4b3) (symbolp b1b0)
+                 (symbolp partial) (symbolp uscore) (symbolp letter)
+                 (equal p (base-prime))
+                 (r1cs::r1cs-valuationp asg p)
+                 (r1cs::valuation-bindsp asg b0)
+                 (r1cs::valuation-bindsp asg b1)
+                 (r1cs::valuation-bindsp asg b2)
+                 (r1cs::valuation-bindsp asg b3)
+                 (r1cs::valuation-bindsp asg b4)
+                 (r1cs::valuation-bindsp asg b6)
+                 (r1cs::valuation-bindsp asg b4b3)
+                 (r1cs::valuation-bindsp asg b1b0)
+                 (r1cs::valuation-bindsp asg partial)
+                 (r1cs::valuation-bindsp asg uscore)
+                 (r1cs::valuation-bindsp asg letter)
+                 (bitp (lookup-equal b0 asg))
+                 (bitp (lookup-equal b1 asg))
+                 (bitp (lookup-equal b2 asg))
+                 (bitp (lookup-equal b3 asg))
+                 (bitp (lookup-equal b4 asg))
+                 (bitp (lookup-equal b6 asg))
+                 (equal (lookup-equal b4b3 asg)
+                        (pfield::mul (lookup-equal b4 asg) (lookup-equal b3 asg) p))
+                 (equal (lookup-equal b1b0 asg)
+                        (pfield::mul (lookup-equal b1 asg) (lookup-equal b0 asg) p))
+                 (r1cs::r1cs-constraints-holdp
+                  (boolean-and-gadget b4b3 b1b0 partial) asg p)
+                 (r1cs::r1cs-constraints-holdp
+                  (boolean-and-gadget partial b2 uscore) asg p)
+                 (r1cs::r1cs-constraints-holdp
+                  (val-and-not-right-gadget b6 uscore letter p) asg p)
+                 (r1cs::r1cs-constraints-holdp (assert-gadget letter) asg p))
+            (equal (values-b-and
+                    (lookup-equal b6 asg)
+                    (values-b-not
+                     (values-b-and (values-b-and (values-b-and (lookup-equal b4 asg)
+                                                               (lookup-equal b3 asg))
+                                                 (values-b-and (lookup-equal b1 asg)
+                                                               (lookup-equal b0 asg)))
+                                   (lookup-equal b2 asg))))
+                   1))
+   :use ((:instance boolean-and-gadget-to-bitand
+                    (x b4b3) (y b1b0) (z partial))
+         (:instance boolean-and-gadget-to-bitand
+                    (x partial) (y b2) (z uscore))
+         (:instance assert-gadget-to-funspec (b letter)))
+   :enable (val-and-not-right-gadget
+            val-not-lc
+            r1cs::r1cs-constraint-holdsp
+            r1cs::dot-product
+            assert-funspec
+            enforce-funspec
+            values-b-and
+            values-b-not
+            bitand
+            bitp)))
+
+(local
+ (defruled byte-validation-data-new-holds-when-validate-byte
+   (implies (r1cs::r1cs-constraints-holdp
+             (validate-byte-gadget b0 b1 b2 b3 b4 b5 b6 b7
+                                  b4b3 b1b0 m r lower null
+                                  or-d inv-d xor-u bad-u or-l bad-l p)
+             asg p)
+            (r1cs::r1cs-constraints-holdp
+             (byte-validation-data-new-gadget b0 b1 b2 b3 b4 b4b3 b1b0 m r p)
+             asg p))
+   :enable (validate-byte-gadget
+            r1cs::r1cs-constraints-holdp-of-append)
+   :disable (byte-validation-data-new-gadget)))
+
+(local
+ (defruled byte-validation-data-new-gadget-ands
+   (implies (and (symbolp b0) (symbolp b1) (symbolp b2) (symbolp b3) (symbolp b4)
+                 (symbolp b4b3) (symbolp b1b0) (symbolp m) (symbolp r)
+                 (primep p)
+                 (r1cs::r1cs-valuationp asg p)
+                 (r1cs::valuation-bindsp asg b0)
+                 (r1cs::valuation-bindsp asg b1)
+                 (r1cs::valuation-bindsp asg b2)
+                 (r1cs::valuation-bindsp asg b3)
+                 (r1cs::valuation-bindsp asg b4)
+                 (r1cs::valuation-bindsp asg b4b3)
+                 (r1cs::valuation-bindsp asg b1b0)
+                 (r1cs::valuation-bindsp asg m)
+                 (r1cs::valuation-bindsp asg r)
+                 (r1cs::r1cs-constraints-holdp
+                  (byte-validation-data-new-gadget b0 b1 b2 b3 b4 b4b3 b1b0 m r p)
+                  asg p))
+            (and (equal (lookup-equal b4b3 asg)
+                        (pfield::mul (lookup-equal b4 asg) (lookup-equal b3 asg) p))
+                 (equal (lookup-equal b1b0 asg)
+                        (pfield::mul (lookup-equal b1 asg) (lookup-equal b0 asg) p))))
+   :use byte-validation-data-new-gadget-to-spec))
+
 (defruled validate-first-byte-gadget-sound
   (implies (and (symbolp b0) (symbolp b1) (symbolp b2) (symbolp b3)
                 (symbolp b4) (symbolp b5) (symbolp b6) (symbolp b7)
@@ -1080,14 +1220,31 @@
                                        (lookup-equal b6 asg)
                                        (lookup-equal b7 asg))
                                  t)))
-  :enable (validate-first-byte-gadget
-           validate-byte-gadget-sound
-           assert-gadget-to-funspec
-           boolean-and-gadget-to-bitand
-           val-and-not-right-gadget
-           validate-byte
-           values-b-and
-           values-b-not))
+  :hints (("Goal"
+           :use ((:instance validate-byte-gadget-sound)
+                 (:instance byte-validation-data-new-holds-when-validate-byte)
+                 (:instance byte-validation-data-new-gadget-ands)
+                 (:instance validate-first-byte-letter-when-constraints)
+                 (:instance validate-byte-first-when-letter
+                            (bits (list (lookup-equal b0 asg)
+                                        (lookup-equal b1 asg)
+                                        (lookup-equal b2 asg)
+                                        (lookup-equal b3 asg)
+                                        (lookup-equal b4 asg)
+                                        (lookup-equal b5 asg)
+                                        (lookup-equal b6 asg)
+                                        (lookup-equal b7 asg)))))
+           :in-theory (e/d (validate-first-byte-gadget
+                            r1cs::r1cs-constraints-holdp-of-append)
+                           (validate-byte
+                            validate-byte-gadget
+                            byte-validation-data-new-gadget
+                            boolean-and-gadget
+                            val-and-not-right-gadget
+                            assert-gadget
+                            values-b-and
+                            values-b-not
+                            pfield::mul)))))
 
 (defruled validate-first-byte-gadget-complete
   (implies (and (symbolp b0) (symbolp b1) (symbolp b2) (symbolp b3)
@@ -1227,8 +1384,8 @@
                                    b4b3 b1b0 m r lower null
                                    or-d inv-d xor-u bad-u or-l bad-l
                                    prime))
-           (equal null
-                  (validate-byte (list b0 b1 b2 b3 b4 b5 b6 b7) nil)))
+           (equal (validate-byte (list b0 b1 b2 b3 b4 b5 b6 b7) nil)
+                  null))
   :enable (validate-byte-pred
            validate-byte
            byte-validation-data-new
@@ -1257,6 +1414,8 @@
             (validate-trailing-nulls-gadget (cdr flags) p))))
 
 (define val-trailing-nulls-eqs ((bits true-listp) (p primep))
+  :guard (pfield::fe-listp bits p)
+  :guard-hints (("Goal" :in-theory (enable pfield::fe-listp)))
   :returns (yes/no booleanp)
   (if (or (endp bits) (endp (cdr bits)))
       t

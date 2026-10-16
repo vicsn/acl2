@@ -28,6 +28,8 @@
 (include-book "std/util/defrule" :dir :system)
 
 (local (include-book "kestrel/prime-fields/prime-fields-rules" :dir :system))
+(local (include-book "std/lists/len" :dir :system))
+(local (include-book "kestrel/arithmetic-light/mod" :dir :system))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -66,6 +68,81 @@
       nil
     (fb3-bits-lt-induct (cdr xs) (cdr ys) (cdr ds) (cdr rs))))
 
+(defruled fb3-consp-of-fb3-bits-lt-r
+  (equal (consp (fb3-bits-lt-r ds ys p))
+         (consp ds))
+  :expand ((fb3-bits-lt-r ds ys p)))
+
+(defruled fb3-consp-of-fb3-bits-lt-r-type
+  (implies (consp ds)
+           (consp (fb3-bits-lt-r ds ys p)))
+  :rule-classes :type-prescription
+  :enable fb3-consp-of-fb3-bits-lt-r)
+
+(defruled fb3-bits-lt-lookup-car-rs
+  (implies (and (equal (lookup-equal-list rs asg)
+                       (fb3-bits-lt-r ds ys p))
+                (consp ds))
+           (equal (lookup-equal (car rs) asg)
+                  (if (consp (cdr ds))
+                      (if (= (car ds) 1)
+                          (car ys)
+                        (lookup-equal (cadr rs) asg))
+                    (if0 (car ds) (car ys) p))))
+  :do-not-induct t
+  :cases ((consp (cdr rs)))
+  :expand ((fb3-bits-lt-r ds ys p))
+  :enable (lookup-equal-list fb3-consp-of-fb3-bits-lt-r
+                             fb3-consp-of-fb3-bits-lt-r-type))
+
+(defruled fb3-bits-lt-lookup-list-cdr-rs
+  (implies (and (equal (lookup-equal-list rs asg)
+                       (fb3-bits-lt-r ds ys p))
+                (consp (cdr ds)))
+           (equal (lookup-equal-list (cdr rs) asg)
+                  (fb3-bits-lt-r (cdr ds) (cdr ys) p)))
+  :enable (fb3-bits-lt-r lookup-equal-list))
+
+(defruled fb3-bits-lt-consp-cdr-rs
+  (implies (and (equal (lookup-equal-list rs asg)
+                       (fb3-bits-lt-r ds ys p))
+                (consp (cdr ds)))
+           (consp (cdr rs)))
+  :use (:instance consp-of-lookup-equal-list (keys (cdr rs)) (alist asg))
+  :enable (fb3-bits-lt-r lookup-equal-list fb3-consp-of-fb3-bits-lt-r))
+
+(defruled fb3-bits-lt-valuation-bindsp-cadr-rs
+  (implies (and (equal (lookup-equal-list rs asg)
+                       (fb3-bits-lt-r ds ys p))
+                (consp (cdr ds))
+                (r1cs::valuation-binds-allp asg rs))
+           (r1cs::valuation-bindsp asg (cadr rs)))
+  :use fb3-bits-lt-consp-cdr-rs
+  :enable fb-valuation-bindsp-of-cadr)
+
+(defruled fb3-bitxor-list-lookup-car
+  (implies (and (equal (lookup-equal-list ds asg)
+                       (bitxor-list a b))
+                (consp ds))
+           (equal (lookup-equal (car ds) asg)
+                  (bitxor (car a) (car b))))
+  :enable (bitxor-list lookup-equal-list))
+
+(defruled fb3-bitxor-list-lookup-list-cdr
+  (implies (equal (lookup-equal-list ds asg)
+                  (bitxor-list a b))
+           (equal (lookup-equal-list (cdr ds) asg)
+                  (bitxor-list (cdr a) (cdr b))))
+  :enable (bitxor-list lookup-equal-list))
+
+(defruled fb3-bitp-of-bitxor
+  (bitp (bitxor a b))
+  :enable bitxor)
+
+(defruled fb3-lookup-equal-list-of-nil
+  (equal (lookup-equal-list nil alist) nil)
+  :enable lookup-equal-list)
+
 (defruled fb3-bits-lt-aux-satisfies
   (implies (and (symbol-listp xs)
                 (symbol-listp ys)
@@ -94,19 +171,26 @@
   :hints (("Goal"
            :induct (fb3-bits-lt-induct xs ys ds rs)
            :in-theory (e/d (fb3-bits-lt-induct
-                            fb3-bits-lt-r
                             bits-lt-gadget-aux
-                            bitxor-list
-                            fb-lookup-equal-list-of-cdr
-                            lookup-equal-of-car
                             boolean-xor-gadget-to-bitxor
                             if0-gadget-to-if0
                             if-gadget-variant-to-if
-                            if0
-                            bitxor
-                            bitp
-                            r1cs::valuation-binds-allp)
+                            fb-consp-when-len-pos
+                            fb-len-pos-when-consp
+                            fb-cdr-of-lookup-equal-list
+                            car-of-lookup-equal-list
+                            fb-bitp-of-lookup-car-when-bit-listp
+                            fb-bit-listp-of-lookup-cdr-when-bit-listp
+                            fb3-bits-lt-lookup-car-rs
+                            fb3-bits-lt-lookup-list-cdr-rs
+                            fb3-bits-lt-valuation-bindsp-cadr-rs
+                            fb3-bitxor-list-lookup-car
+                            fb3-bitxor-list-lookup-list-cdr
+                            fb3-bitp-of-bitxor
+                            fb3-lookup-equal-list-of-nil
+                            if0)
                            ((:definition pfield::sub)
+                            bitp
                             pfield::mul-of-sub-arg1
                             pfield::mul-of-sub-arg2)))))
 
@@ -139,7 +223,7 @@
            fb3-bits-lt-rs
            fb-r1cs-holdp-of-rev
            lookup-equal-list-of-rev
-           rev-of-rev
+           acl2::rev-of-rev
            fb-valuation-binds-allp-of-rev
            fb-symbol-listp-of-rev
            fb-bit-listp-of-rev
@@ -157,6 +241,27 @@
   :hints (("Goal" :in-theory (enable bitp))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defruled fb3-len-of-fb3-bits-lt-rs
+  (equal (len (fb3-bits-lt-rs xs ys p))
+         (len xs))
+  :enable fb3-bits-lt-rs)
+
+(defruled fb3-bitp-of-car-last-when-bits-lt-rs
+  (implies (and (equal vs (fb3-bits-lt-rs xs ys p))
+                (bit-listp xs)
+                (bit-listp ys)
+                (equal (len xs) (len ys))
+                (consp xs)
+                (primep p))
+           (bitp (car (last vs))))
+  :do-not-induct t
+  :disable bitp
+  :use ((:instance bitp-of-car-of-last-when-bit-listp
+                   (bits (fb3-bits-lt-rs xs ys p)))
+        fb3-len-of-fb3-bits-lt-rs
+        (:instance fb-consp-when-len-pos
+                   (x (fb3-bits-lt-rs xs ys p)))))
 
 (defruled fb3-field-is-less-than-gadget-complete
   (implies (and (symbolp x)
@@ -217,6 +322,7 @@
                        (field-is-less-than-funspec
                         (lookup-equal x asg)
                         (lookup-equal y asg)))))
+  :do-not-induct t
   :enable (fb-field-is-less-than-gadget
            field-lt-gadget
            fb-field-write-bits-le-gadget
@@ -224,10 +330,15 @@
            bitp-of-car-of-last-when-bit-listp
            field-bits-le
            acl2::bit-listp-of-nat=>lebits)
-  :use ((:instance fb2-field-write-bits-le-gadget-complete
+  :use ((:instance fb3-bitp-of-car-last-when-bits-lt-rs
+                   (vs (lookup-equal-list rs asg))
+                   (xs (lookup-equal-list xs asg))
+                   (ys (lookup-equal-list ys asg)))
+        (:instance fb2-field-write-bits-le-gadget-complete
                    (x x) (bits xs) (rs xrs) (u u) (p p) (asg asg))
         (:instance fb2-field-write-bits-le-gadget-complete
                    (x y) (bits ys) (rs yrs) (u u) (p p) (asg asg))
+        fb3-bits-lt-gadget-complete
         fb-field-is-less-than-gadget-sound)
   :disable ((:definition pfield::sub)))
 
@@ -290,6 +401,7 @@
                        (field-is-greater-than-funspec
                         (lookup-equal x asg)
                         (lookup-equal y asg)))))
+  :do-not-induct t
   :enable (field-is-greater-than-gadget
            field-lt-gadget
            fb-field-write-bits-le-gadget
@@ -300,7 +412,11 @@
            field-bits-le
            bitp
            acl2::bit-listp-of-nat=>lebits)
-  :use ((:instance fb2-field-write-bits-le-gadget-complete
+  :use ((:instance fb3-bitp-of-car-last-when-bits-lt-rs
+                   (vs (lookup-equal-list rs asg))
+                   (xs (lookup-equal-list ys asg))
+                   (ys (lookup-equal-list xs asg)))
+        (:instance fb2-field-write-bits-le-gadget-complete
                    (x x) (bits xs) (rs xrs) (u u) (p p) (asg asg))
         (:instance fb2-field-write-bits-le-gadget-complete
                    (x y) (bits ys) (rs yrs) (u u) (p p) (asg asg))
@@ -370,6 +486,7 @@
                        (field-is-greater-than-or-equal-funspec
                         (lookup-equal x asg)
                         (lookup-equal y asg)))))
+  :do-not-induct t
   :enable (field-is-greater-than-or-equal-gadget
            field-lt-gadget
            fb-field-write-bits-le-gadget
@@ -377,10 +494,15 @@
            bitp-of-car-of-last-when-bit-listp
            field-bits-le
            acl2::bit-listp-of-nat=>lebits)
-  :use ((:instance fb2-field-write-bits-le-gadget-complete
+  :use ((:instance fb3-bitp-of-car-last-when-bits-lt-rs
+                   (vs (lookup-equal-list rs asg))
+                   (xs (lookup-equal-list xs asg))
+                   (ys (lookup-equal-list ys asg)))
+        (:instance fb2-field-write-bits-le-gadget-complete
                    (x x) (bits xs) (rs xrs) (u u) (p p) (asg asg))
         (:instance fb2-field-write-bits-le-gadget-complete
                    (x y) (bits ys) (rs yrs) (u u) (p p) (asg asg))
+        fb3-bits-lt-gadget-complete
         field-is-greater-than-or-equal-gadget-sound)
   :disable ((:definition pfield::sub)))
 
@@ -445,6 +567,7 @@
                        (field-is-less-than-or-equal-funspec
                         (lookup-equal x asg)
                         (lookup-equal y asg)))))
+  :do-not-induct t
   :enable (field-is-less-than-or-equal-gadget
            field-lt-gadget
            fb-field-write-bits-le-gadget
@@ -452,7 +575,11 @@
            bitp-of-car-of-last-when-bit-listp
            field-bits-le
            acl2::bit-listp-of-nat=>lebits)
-  :use ((:instance fb2-field-write-bits-le-gadget-complete
+  :use ((:instance fb3-bitp-of-car-last-when-bits-lt-rs
+                   (vs (lookup-equal-list rs asg))
+                   (xs (lookup-equal-list ys asg))
+                   (ys (lookup-equal-list xs asg)))
+        (:instance fb2-field-write-bits-le-gadget-complete
                    (x x) (bits xs) (rs xrs) (u u) (p p) (asg asg))
         (:instance fb2-field-write-bits-le-gadget-complete
                    (x y) (bits ys) (rs yrs) (u u) (p p) (asg asg))
@@ -711,6 +838,16 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defconst *fb3-base-prime-minus-1*
+  (1- primes::*bls12-377-scalar-field-prime*))
+
+(defruled fb3-sub-1-equal-minus-1
+  (implies (pfield::fep b primes::*bls12-377-scalar-field-prime*)
+           (equal (equal *fb3-base-prime-minus-1*
+                         (pfield::sub b 1 primes::*bls12-377-scalar-field-prime*))
+                  (equal b 0)))
+  :enable (pfield::sub pfield::add pfield::neg acl2::mod-sum-cases))
+
 (define fb3-field-is-less-than-2-circuit ()
   :returns (pdef pfcs::definitionp)
   :short "Two-bit PFCS for @('Field::is_less_than')."
@@ -780,7 +917,10 @@
            fb3-if-is-if
            fb3-two-bits-below-4
            fb3-lt2-is-funspec
-           fb3-bits-match-2)
+           fb3-bits-match-2
+           fb3-mod-when-fieldp
+           fb3-integerp-when-fieldp
+           fb3-sub-1-equal-minus-1)
   :disable ((:definition pfield::sub)
             pfield::mul-of-sub-arg1
             pfield::mul-of-sub-arg2
@@ -857,7 +997,10 @@
            fb3-if-is-if
            fb3-two-bits-below-4
            fb3-gt2-is-funspec
-           fb3-bits-match-2)
+           fb3-bits-match-2
+           fb3-mod-when-fieldp
+           fb3-integerp-when-fieldp
+           fb3-sub-1-equal-minus-1)
   :disable ((:definition pfield::sub)
             pfield::mul-of-sub-arg1
             pfield::mul-of-sub-arg2
@@ -940,7 +1083,10 @@
            fb3-two-bits-below-4
            fb3-lt2-is-funspec
            fb3-gte2-is-funspec
-           fb3-bits-match-2)
+           fb3-bits-match-2
+           fb3-mod-when-fieldp
+           fb3-integerp-when-fieldp
+           fb3-sub-1-equal-minus-1)
   :disable ((:definition pfield::sub)
             pfield::mul-of-sub-arg1
             pfield::mul-of-sub-arg2
@@ -1022,7 +1168,10 @@
            fb3-two-bits-below-4
            fb3-gt2-is-funspec
            fb3-lte2-is-funspec
-           fb3-bits-match-2)
+           fb3-bits-match-2
+           fb3-mod-when-fieldp
+           fb3-integerp-when-fieldp
+           fb3-sub-1-equal-minus-1)
   :disable ((:definition pfield::sub)
             pfield::mul-of-sub-arg1
             pfield::mul-of-sub-arg2

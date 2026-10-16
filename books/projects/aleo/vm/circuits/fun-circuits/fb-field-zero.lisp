@@ -60,7 +60,7 @@
                 (fieldp x)
                 (pfield::fep z prime)
                 (fb-field-is-zero-pred x z prime))
-           (equal z (field-is-zero-funspec x)))
+           (equal (field-is-zero-funspec x) z))
   :enable (fb-field-is-zero-pred
            field-is-zero-funspec
            field-is-equal-funspec
@@ -137,7 +137,7 @@
                 (fieldp x)
                 (pfield::fep z prime)
                 (fb-field-is-one-pred x z prime))
-           (equal z (field-is-one-funspec x)))
+           (equal (field-is-one-funspec x) z))
   :enable (fb-field-is-one-pred
            field-is-one-funspec
            field-is-equal-funspec

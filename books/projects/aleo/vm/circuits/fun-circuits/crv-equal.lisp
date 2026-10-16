@@ -751,11 +751,19 @@
                 (equal (pfield::sub 1 (lookup-equal r asg) p)
                        (scalar-is-equal-funspec (lookup-equal a asg)
                                                 (lookup-equal b asg)))))
-  :enable (crv-scalar-is-equal-gadget
-           crv-field-is-not-equal-gadget-complete
-           crv-fieldp-when-scalarp
-           scalar-is-equal-funspec
-           field-is-equal-funspec))
+  :hints (("Goal"
+           :use (:instance crv-field-is-not-equal-gadget-complete
+                           (x a) (y b) (m m) (r r))
+           :in-theory (e/d (crv-scalar-is-equal-gadget
+                            crv-fieldp-when-scalarp
+                            scalar-is-equal-funspec
+                            field-is-equal-funspec
+                            field-is-not-equal-funspec
+                            boolean-not-funspec)
+                           (crv-field-is-not-equal-gadget-complete
+                            (:definition pfield::sub)
+                            (:definition pfield::inv)
+                            pfield::mul-of-sub-arg1)))))
 
 (defconst *crv-scalar-is-equal-sample*
   '((a . 1) (b . 1) (m . 0) (r . 0)))
@@ -794,6 +802,17 @@
             :pred crv-scalar-is-equal-pred
             :prime prime)
 
+(defruled crv-scalar-is-equal-pred-is-field-pred
+  (equal (crv-scalar-is-equal-pred a b m r prime)
+         (crv-field-is-not-equal-pred a b m r prime))
+  :hints (("Goal"
+           :instructions
+           ((prove :hints
+                   (("Goal"
+                     :in-theory
+                     '((:definition crv-scalar-is-equal-pred)
+                       (:definition crv-field-is-not-equal-pred)))))))))
+
 (defruled crv-scalar-is-equal-pred-sound
   (implies (and (equal prime (base-prime))
                 (scalarp a) (scalarp b) (bitp r)
@@ -827,12 +846,15 @@
            (and (crv-scalar-is-equal-pred a b m r prime)
                 (equal (pfield::sub 1 r prime)
                        (scalar-is-equal-funspec a b))))
-  :enable (crv-scalar-is-equal-pred
-           crv-field-is-not-equal-pred
-           crv-field-is-not-equal-pred-complete
-           crv-fieldp-when-scalarp
-           scalar-is-equal-funspec
-           field-is-equal-funspec))
+  :hints (("Goal"
+           :use (:instance crv-field-is-not-equal-pred-complete
+                           (x a) (y b))
+           :in-theory (e/d (crv-scalar-is-equal-pred-is-field-pred
+                            crv-fieldp-when-scalarp
+                            scalar-is-equal-funspec)
+                           (crv-field-is-not-equal-pred-complete
+                            crv-field-is-not-equal-pred
+                            crv-scalar-is-equal-pred)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -956,6 +978,17 @@
                             (:definition pfield::sub)
                             pfield::mul-of-sub-arg1)))))
 
+(defruled crv-scalar-is-not-equal-pred-is-equal-pred
+  (equal (crv-scalar-is-not-equal-pred a b m r prime)
+         (crv-scalar-is-equal-pred a b m r prime))
+  :hints (("Goal"
+           :instructions
+           ((prove :hints
+                   (("Goal"
+                     :in-theory
+                     '((:definition crv-scalar-is-not-equal-pred)
+                       (:definition crv-scalar-is-equal-pred)))))))))
+
 (defruled crv-scalar-is-not-equal-pred-complete
   (implies (and (equal prime (base-prime))
                 (scalarp a) (scalarp b)
@@ -965,13 +998,15 @@
                            (pfield::inv (pfield::sub a b prime) prime))))
            (and (crv-scalar-is-not-equal-pred a b m r prime)
                 (equal (scalar-is-not-equal-funspec a b) r)))
-  :enable (crv-scalar-is-not-equal-pred
-           crv-scalar-is-equal-pred
-           crv-scalar-is-equal-pred-complete
-           scalar-is-not-equal-funspec
-           scalar-is-equal-funspec
-           boolean-not-funspec
-           crv-not-of-equal-bit))
+  :hints (("Goal"
+           :use (:instance crv-scalar-is-equal-pred-complete)
+           :in-theory (e/d (crv-scalar-is-not-equal-pred-is-equal-pred
+                            scalar-is-not-equal-funspec
+                            scalar-is-equal-funspec
+                            boolean-not-funspec)
+                           (crv-scalar-is-equal-pred-complete
+                            crv-scalar-is-equal-pred
+                            crv-scalar-is-not-equal-pred)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -993,13 +1028,19 @@
                  (crv-scalar-is-zero-gadget a m r p) asg p))
            (equal (pfield::sub 1 (lookup-equal r asg) p)
                   (scalar-is-zero-funspec (lookup-equal a asg))))
-  :enable (crv-scalar-is-zero-gadget
-           field-is-zero-gadget-sound
-           crv-fieldp-when-scalarp
-           scalar-is-zero-funspec
-           scalar-is-equal-funspec
-           field-is-zero-funspec
-           field-is-equal-funspec))
+  :hints (("Goal"
+           :use (:instance field-is-zero-gadget-sound (x a))
+           :in-theory (e/d (crv-scalar-is-zero-gadget
+                            crv-fieldp-when-scalarp
+                            scalar-is-zero-funspec
+                            scalar-is-equal-funspec
+                            field-is-zero-funspec
+                            field-is-equal-funspec
+                            field-is-not-equal-funspec
+                            boolean-not-funspec)
+                           (field-is-zero-gadget-sound
+                            (:definition pfield::sub)
+                            pfield::mul-of-sub-arg1)))))
 
 (defruled crv-scalar-is-zero-gadget-complete
   (implies (and (symbolp a) (symbolp m) (symbolp r)
@@ -1128,13 +1169,19 @@
                  (crv-scalar-is-one-gadget a m r p) asg p))
            (equal (pfield::sub 1 (lookup-equal r asg) p)
                   (scalar-is-one-funspec (lookup-equal a asg))))
-  :enable (crv-scalar-is-one-gadget
-           field-is-one-gadget-sound
-           crv-fieldp-when-scalarp
-           scalar-is-one-funspec
-           scalar-is-equal-funspec
-           field-is-one-funspec
-           field-is-equal-funspec))
+  :hints (("Goal"
+           :use (:instance field-is-one-gadget-sound (x a))
+           :in-theory (e/d (crv-scalar-is-one-gadget
+                            crv-fieldp-when-scalarp
+                            scalar-is-one-funspec
+                            scalar-is-equal-funspec
+                            field-is-one-funspec
+                            field-is-equal-funspec
+                            field-is-not-equal-funspec
+                            boolean-not-funspec)
+                           (field-is-one-gadget-sound
+                            (:definition pfield::sub)
+                            pfield::mul-of-sub-arg1)))))
 
 (defruled crv-scalar-is-one-gadget-complete
   (implies (and (symbolp a) (symbolp m) (symbolp r)
@@ -1241,13 +1288,27 @@
                            (pfield::inv (pfield::sub a 1 prime) prime))))
            (and (crv-scalar-is-one-pred a m r prime)
                 (equal (pfield::sub 1 r prime) (scalar-is-one-funspec a))))
-  :enable (crv-scalar-is-one-pred-to-mul
-           crv-field-is-not-equal-constraints-when-witness
-           crv-fieldp-when-scalarp
-           scalar-is-one-funspec
-           scalar-is-equal-funspec
-           field-is-equal-funspec
-           fieldp))
+  :hints (("Goal"
+           :use ((:instance crv-field-is-not-equal-constraints-when-witness
+                            (p prime) (x a) (y 1))
+                 (:instance crv-scalar-is-one-pred-to-mul)
+                 (:instance crv-fep-of-neq-witness
+                            (p prime) (x a) (y 1)))
+           :in-theory (e/d (crv-fieldp-when-scalarp
+                            scalar-is-one-funspec
+                            scalar-is-equal-funspec
+                            field-is-equal-funspec
+                            field-is-not-equal-funspec
+                            boolean-not-funspec
+                            fieldp)
+                           (crv-scalar-is-one-pred-to-mul
+                            crv-scalar-is-one-pred
+                            crv-field-is-not-equal-constraints-when-witness
+                            crv-fep-of-neq-witness
+                            (:definition pfield::sub)
+                            (:definition pfield::inv)
+                            pfield::mul-of-sub-arg1
+                            pfield::mul-of-sub-arg2)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1295,6 +1356,7 @@
                             field-is-zero-funspec
                             field-is-one-funspec
                             field-is-equal-funspec
+                            field-is-not-equal-funspec
                             boolean-and-funspec
                             boolean-not-funspec
                             crv-group-points-equal-iff-coordinates)
@@ -1452,6 +1514,7 @@
                             (pfield::inv (pfield::sub y 1 prime) prime)))
                 (equal out (group-is-zero-funspec p0)))
            (crv-group-is-zero-pred x y mx rx my ry out prime))
+  :use (:instance curve-edwards-bls12-coordinates-are-fields (p p0))
   :enable (crv-group-is-zero-pred
            crv-scalar-is-zero-pred-to-mul
            crv-scalar-is-one-pred-to-mul
@@ -1609,6 +1672,17 @@
             :pred crv-address-is-equal-pred
             :prime prime)
 
+(defruled crv-address-is-equal-pred-is-group-pred
+  (equal (crv-address-is-equal-pred x1 y1 x2 y2 mx rx my ry out prime)
+         (crv-group-is-equal-pred x1 y1 x2 y2 mx rx my ry out prime))
+  :hints (("Goal"
+           :instructions
+           ((prove :hints
+                   (("Goal"
+                     :in-theory
+                     '((:definition crv-address-is-equal-pred)
+                       (:definition crv-group-is-equal-pred)))))))))
+
 (defruled crv-address-is-equal-pred-sound
   (implies (and (equal prime (base-prime))
                 (fieldp x1) (fieldp y1) (fieldp x2) (fieldp y2)
@@ -1625,21 +1699,11 @@
            (equal (address-is-equal-funspec p1 p2) out))
   :hints (("Goal"
            :use (:instance crv-group-is-equal-pred-sound)
-           :in-theory (e/d (crv-address-is-equal-pred
-                            crv-group-is-equal-pred
+           :in-theory (e/d (crv-address-is-equal-pred-is-group-pred
                             address-is-equal-funspec)
-                           (crv-group-is-equal-pred-sound)))))
-
-(defruled crv-address-is-equal-pred-is-group-pred
-  (equal (crv-address-is-equal-pred x1 y1 x2 y2 mx rx my ry out prime)
-         (crv-group-is-equal-pred x1 y1 x2 y2 mx rx my ry out prime))
-  :hints (("Goal"
-           :instructions
-           ((prove :hints
-                   (("Goal"
-                     :in-theory
-                     '((:definition crv-address-is-equal-pred)
-                       (:definition crv-group-is-equal-pred)))))))))
+                           (crv-group-is-equal-pred-sound
+                            crv-group-is-equal-pred
+                            crv-address-is-equal-pred)))))
 
 (defruled crv-address-is-equal-pred-complete
   (implies (and (equal prime (base-prime))
@@ -1708,6 +1772,7 @@
   :hints (("Goal"
            :use (:instance crv-group-is-not-equal-gadget-sound)
            :in-theory (e/d (crv-address-is-not-equal-gadget
+                            crv-address-is-equal-gadget
                             crv-group-is-not-equal-gadget
                             address-is-not-equal-funspec
                             group-is-not-equal-funspec)
@@ -1761,10 +1826,13 @@
                  asg p)
                 (equal (pfield::sub 1 (lookup-equal out asg) p)
                        (address-is-not-equal-funspec p1 p2))))
-  :enable (crv-address-is-not-equal-gadget
-           crv-group-is-not-equal-gadget-complete
-           address-is-not-equal-funspec
-           group-is-not-equal-funspec))
+  :hints (("Goal"
+           :use (:instance crv-group-is-not-equal-gadget-complete)
+           :in-theory (e/d (crv-address-is-not-equal-gadget
+                            crv-address-is-equal-gadget
+                            crv-group-is-not-equal-gadget
+                            address-is-not-equal-funspec)
+                           (crv-group-is-not-equal-gadget-complete)))))
 
 (defconst *crv-address-is-not-equal-sample* *crv-group-is-equal-sample*)
 

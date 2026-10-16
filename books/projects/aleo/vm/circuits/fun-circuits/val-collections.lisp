@@ -358,7 +358,6 @@
            boolean-xor-gadget-to-bitxor
            val-and-nots-gadget-to-spec
            crypto-boolean-hash-is-equal
-           values-b-not
            bitxor))
 
 (defruled boolean-hash-is-equal-gadget-complete
@@ -440,7 +439,7 @@
                 (equal z0 (bitxor a0 b0))
                 (equal z1 (bitxor a1 b1))
                 (boolean-hash-is-equal-pred a0 a1 b0 b1 z0 z1 out prime))
-           (equal out (crypto-boolean-hash-is-equal (list a0 a1) (list b0 b1))))
+           (equal (crypto-boolean-hash-is-equal (list a0 a1) (list b0 b1)) out))
   :enable (boolean-hash-is-equal-pred
            crypto-boolean-hash-is-equal
            bitxor))
@@ -479,9 +478,12 @@
                   (crypto-boolean-hash-is-not-equal
                    (list (lookup-equal a0 asg) (lookup-equal a1 asg))
                    (list (lookup-equal b0 asg) (lookup-equal b1 asg)))))
-  :enable (boolean-hash-is-not-equal-gadget
-           boolean-hash-is-equal-gadget-sound
-           crypto-boolean-hash-is-not-equal))
+  :hints (("Goal"
+           :use boolean-hash-is-equal-gadget-sound
+           :in-theory (e/d (boolean-hash-is-not-equal-gadget
+                            crypto-boolean-hash-is-not-equal
+                            crypto-boolean-hash-is-equal)
+                           (boolean-hash-is-equal-gadget)))))
 
 (defruled boolean-hash-is-not-equal-gadget-complete
   (implies (and (symbolp a0) (symbolp a1) (symbolp b0) (symbolp b1)
@@ -852,11 +854,19 @@
                                   (lookup-equal 'hashed asg))
                            1
                          0))))
-  :enable (merkle-path-verify-gadget
-           merkle-path-left-gadget-to-spec
-           merkle-path-right-gadget-to-spec
-           merkle-path-order-when-bit
-           field-var-is-equal-gadget-sound))
+  :hints (("Goal"
+           :use ((:instance merkle-path-order-when-bit
+                            (bit (lookup-equal bit asg))
+                            (cur (lookup-equal cur asg))
+                            (sib (lookup-equal sib asg))
+                            (left (lookup-equal left asg))
+                            (right (lookup-equal right asg)))
+                 (:instance field-var-is-equal-gadget-sound
+                            (a root) (b 'hashed)))
+           :in-theory (e/d (merkle-path-verify-gadget
+                            merkle-path-left-gadget-to-spec
+                            merkle-path-right-gadget-to-spec)
+                           (field-var-is-equal-gadget)))))
 
 (defruled merkle-path-verify-gadget-complete
   (implies (and (symbolp bit) (symbolp cur) (symbolp sib)
@@ -961,12 +971,15 @@
                 (fieldp root) (fieldp hashed) (bitp r)
                 (pfield::fep m prime)
                 (merkle-path-verify-pred bit cur sib left right root hashed m r prime))
-           (and (equal left (if (equal bit 0) cur sib))
-                (equal right (if (equal bit 0) sib cur))
+           (and (equal (if (equal bit 0) cur sib) left)
+                (equal (if (equal bit 0) sib cur) right)
                 (equal (pfield::sub 1 r prime)
                        (if (equal root hashed) 1 0))))
-  :enable (merkle-path-verify-pred
-           field-var-is-equal-bit-when-constraints))
+  :hints (("Goal"
+           :use ((:instance merkle-path-order-when-bit (p prime))
+                 (:instance field-var-is-equal-bit-when-constraints
+                            (p prime) (a root) (b hashed)))
+           :in-theory (enable merkle-path-verify-pred))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1012,9 +1025,12 @@
                        (if (equal (lookup-equal root asg)
                                   (lookup-equal 'hashed asg))
                            1 0))))
-  :enable (kary-merkle-path-verify-gadget
-           if-gadget-to-if
-           field-var-is-equal-gadget-sound))
+  :hints (("Goal"
+           :use ((:instance field-var-is-equal-gadget-sound
+                            (a root) (b 'hashed)))
+           :in-theory (e/d (kary-merkle-path-verify-gadget
+                            if-gadget-to-if)
+                           (field-var-is-equal-gadget)))))
 
 (defruled kary-merkle-path-verify-gadget-complete
   (implies (and (symbolp bit) (symbolp cur) (symbolp sib) (symbolp w)
@@ -1102,11 +1118,14 @@
                 (fieldp root) (fieldp hashed) (bitp r)
                 (pfield::fep m prime)
                 (kary-merkle-path-verify-pred bit cur sib w root hashed m r prime))
-           (and (equal w (if (equal bit 1) cur sib))
+           (and (equal (if (equal bit 1) cur sib) w)
                 (equal (pfield::sub 1 r prime)
                        (if (equal root hashed) 1 0))))
-  :enable (kary-merkle-path-verify-pred
-           field-var-is-equal-bit-when-constraints))
+  :hints (("Goal"
+           :use ((:instance field-var-is-equal-bit-when-constraints
+                            (p prime) (a root) (b hashed)))
+           :in-theory (enable kary-merkle-path-verify-pred
+                              fieldp))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1115,15 +1134,6 @@
   :short "MerkleTree::new's constraints are the leaf and path hashes, which
           are abstract.  The tree shape is the funspec."
   nil)
-
-(defruled merkle-tree-new-gadget-sound
-  (implies (and (equal p (base-prime))
-                (r1cs::r1cs-valuationp asg p)
-                (r1cs::r1cs-constraints-holdp (merkle-tree-new-gadget) asg p))
-           (equal (crypto-merkle-tree-new lh ph depth leaves)
-                  (crypto-merkle-tree-new lh ph depth leaves)))
-  :hints (("Goal" :in-theory (enable merkle-tree-new-gadget
-                                     r1cs::r1cs-constraints-holdp))))
 
 (defruled merkle-tree-new-gadget-complete
   (implies (and (equal p (base-prime))

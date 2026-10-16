@@ -24,6 +24,7 @@
 (in-package "ALEOVM")
 
 (include-book "scalar-new-r1cs")
+(include-book "scalar-from-bits-r1cs")
 (include-book "../fun-specs/primitives-scalar")
 
 (local (include-book "kestrel/utilities/bits-as-digits" :dir :system))
@@ -127,3 +128,65 @@
                            (s s) (xs xs) (rs rs) (p p) (asg asg) (acc acc))
            :in-theory (e/d (scalar-write-bits-be-funspec)
                            (scalar-write-bits-le-gadget-sound)))))
+
+(defruled scalar-write-bits-le-gadget-complete
+  :short "R1CS-COMPLETE of @('Scalar::write_bits_le'): for every scalar, its
+          bits and the canonical @('bits-lte-const') fold witness satisfy
+          the constraints, and the bit wires are the funspec's output."
+  (implies (and (symbolp s)
+                (symbol-listp xs)
+                (symbol-listp rs)
+                (equal (len xs) 251)
+                (equal (len rs) 250)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg s)
+                (r1cs::valuation-binds-allp asg xs)
+                (r1cs::valuation-binds-allp asg rs)
+                (scalarp (lookup-equal s asg))
+                (equal (lookup-equal-list xs asg)
+                       (scalar-bits-le (lookup-equal s asg)))
+                (equal (lookup-equal-list rs asg)
+                       (crv-bits-lte-const-witness
+                        (lookup-equal-list xs asg)
+                        (scalar-modulus-minus-one-bits))))
+           (and (r1cs::r1cs-constraints-holdp
+                 (scalar-write-bits-le-gadget s xs rs p) asg p)
+                (equal (append acc (lookup-equal-list xs asg))
+                       (scalar-write-bits-le-funspec acc (lookup-equal s asg)))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use (:instance scalar-new-gadget-complete)
+           :in-theory (e/d (scalar-write-bits-le-gadget
+                            scalar-write-bits-le-funspec)
+                           (scalar-new-gadget-complete)))))
+
+(defruled scalar-write-bits-be-gadget-complete
+  :short "R1CS-COMPLETE of @('Scalar::write_bits_be'): the same witnesses as
+          @('write_bits_le'); the appended bits are their reverse."
+  (implies (and (symbolp s)
+                (symbol-listp xs)
+                (symbol-listp rs)
+                (equal (len xs) 251)
+                (equal (len rs) 250)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg s)
+                (r1cs::valuation-binds-allp asg xs)
+                (r1cs::valuation-binds-allp asg rs)
+                (scalarp (lookup-equal s asg))
+                (equal (lookup-equal-list xs asg)
+                       (scalar-bits-le (lookup-equal s asg)))
+                (equal (lookup-equal-list rs asg)
+                       (crv-bits-lte-const-witness
+                        (lookup-equal-list xs asg)
+                        (scalar-modulus-minus-one-bits))))
+           (and (r1cs::r1cs-constraints-holdp
+                 (scalar-write-bits-le-gadget s xs rs p) asg p)
+                (equal (append acc (rev (lookup-equal-list xs asg)))
+                       (scalar-write-bits-be-funspec acc (lookup-equal s asg)))))
+  :do-not-induct t
+  :hints (("Goal"
+           :use (:instance scalar-write-bits-le-gadget-complete)
+           :in-theory (e/d (scalar-write-bits-be-funspec)
+                           (scalar-write-bits-le-gadget-complete)))))

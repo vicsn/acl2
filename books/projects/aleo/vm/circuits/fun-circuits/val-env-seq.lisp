@@ -58,7 +58,8 @@
                       acc
                     (write-bits-le-seq-funspec (write-bits-le-impl acc (car elems))
                            (cdr elems)))))
-  :hints (("Goal" :expand ((write-bits-le-seq-funspec acc elems))
+  :hints (("Goal" :expand ((write-bits-le-seq-funspec acc elems)
+                          (write-bits-le-seq-funspec acc nil))
                   :in-theory (enable vec-write-bits-le-gadget
                                      r1cs::r1cs-constraints-holdp))))
 
@@ -127,7 +128,8 @@
                       acc
                     (write-bits-be-seq-funspec (write-bits-be-impl acc (car elems))
                            (cdr elems)))))
-  :hints (("Goal" :expand ((write-bits-be-seq-funspec acc elems))
+  :hints (("Goal" :expand ((write-bits-be-seq-funspec acc elems)
+                          (write-bits-be-seq-funspec acc nil))
                   :in-theory (enable vec-write-bits-be-gadget
                                      r1cs::r1cs-constraints-holdp))))
 
@@ -196,7 +198,8 @@
                       acc
                     (write-bits-raw-le-seq-funspec (write-bits-raw-le-impl acc (car elems))
                            (cdr elems)))))
-  :hints (("Goal" :expand ((write-bits-raw-le-seq-funspec acc elems))
+  :hints (("Goal" :expand ((write-bits-raw-le-seq-funspec acc elems)
+                          (write-bits-raw-le-seq-funspec acc nil))
                   :in-theory (enable vec-write-bits-raw-le-gadget
                                      r1cs::r1cs-constraints-holdp))))
 
@@ -265,7 +268,8 @@
                       acc
                     (write-bits-raw-be-seq-funspec (write-bits-raw-be-impl acc (car elems))
                            (cdr elems)))))
-  :hints (("Goal" :expand ((write-bits-raw-be-seq-funspec acc elems))
+  :hints (("Goal" :expand ((write-bits-raw-be-seq-funspec acc elems)
+                          (write-bits-raw-be-seq-funspec acc nil))
                   :in-theory (enable vec-write-bits-raw-be-gadget
                                      r1cs::r1cs-constraints-holdp))))
 
@@ -334,7 +338,8 @@
                       acc
                     (write-bits-le-seq-funspec (write-bits-le-impl acc (car elems))
                            (cdr elems)))))
-  :hints (("Goal" :expand ((write-bits-le-seq-funspec acc elems))
+  :hints (("Goal" :expand ((write-bits-le-seq-funspec acc elems)
+                          (write-bits-le-seq-funspec acc nil))
                   :in-theory (enable array-write-bits-le-gadget
                                      r1cs::r1cs-constraints-holdp))))
 
@@ -403,7 +408,8 @@
                       acc
                     (write-bits-be-seq-funspec (write-bits-be-impl acc (car elems))
                            (cdr elems)))))
-  :hints (("Goal" :expand ((write-bits-be-seq-funspec acc elems))
+  :hints (("Goal" :expand ((write-bits-be-seq-funspec acc elems)
+                          (write-bits-be-seq-funspec acc nil))
                   :in-theory (enable array-write-bits-be-gadget
                                      r1cs::r1cs-constraints-holdp))))
 
@@ -472,7 +478,8 @@
                       acc
                     (write-bits-raw-le-seq-funspec (write-bits-raw-le-impl acc (car elems))
                            (cdr elems)))))
-  :hints (("Goal" :expand ((write-bits-raw-le-seq-funspec acc elems))
+  :hints (("Goal" :expand ((write-bits-raw-le-seq-funspec acc elems)
+                          (write-bits-raw-le-seq-funspec acc nil))
                   :in-theory (enable array-write-bits-raw-le-gadget
                                      r1cs::r1cs-constraints-holdp))))
 
@@ -541,7 +548,8 @@
                       acc
                     (write-bits-raw-be-seq-funspec (write-bits-raw-be-impl acc (car elems))
                            (cdr elems)))))
-  :hints (("Goal" :expand ((write-bits-raw-be-seq-funspec acc elems))
+  :hints (("Goal" :expand ((write-bits-raw-be-seq-funspec acc elems)
+                          (write-bits-raw-be-seq-funspec acc nil))
                   :in-theory (enable array-write-bits-raw-be-gadget
                                      r1cs::r1cs-constraints-holdp))))
 
@@ -610,7 +618,8 @@
                       acc
                     (write-bits-le-seq-funspec (write-bits-le-impl acc (car elems))
                            (cdr elems)))))
-  :hints (("Goal" :expand ((write-bits-le-seq-funspec acc elems))
+  :hints (("Goal" :expand ((write-bits-le-seq-funspec acc elems)
+                          (write-bits-le-seq-funspec acc nil))
                   :in-theory (enable tuple-write-bits-le-gadget
                                      r1cs::r1cs-constraints-holdp))))
 
@@ -679,7 +688,8 @@
                       acc
                     (write-bits-be-seq-funspec (write-bits-be-impl acc (car elems))
                            (cdr elems)))))
-  :hints (("Goal" :expand ((write-bits-be-seq-funspec acc elems))
+  :hints (("Goal" :expand ((write-bits-be-seq-funspec acc elems)
+                          (write-bits-be-seq-funspec acc nil))
                   :in-theory (enable tuple-write-bits-be-gadget
                                      r1cs::r1cs-constraints-holdp))))
 
@@ -748,7 +758,8 @@
                       acc
                     (write-bits-raw-le-seq-funspec (write-bits-raw-le-impl acc (car elems))
                            (cdr elems)))))
-  :hints (("Goal" :expand ((write-bits-raw-le-seq-funspec acc elems))
+  :hints (("Goal" :expand ((write-bits-raw-le-seq-funspec acc elems)
+                          (write-bits-raw-le-seq-funspec acc nil))
                   :in-theory (enable tuple-write-bits-raw-le-gadget
                                      r1cs::r1cs-constraints-holdp))))
 
@@ -817,7 +828,8 @@
                       acc
                     (write-bits-raw-be-seq-funspec (write-bits-raw-be-impl acc (car elems))
                            (cdr elems)))))
-  :hints (("Goal" :expand ((write-bits-raw-be-seq-funspec acc elems))
+  :hints (("Goal" :expand ((write-bits-raw-be-seq-funspec acc elems)
+                          (write-bits-raw-be-seq-funspec acc nil))
                   :in-theory (enable tuple-write-bits-raw-be-gadget
                                      r1cs::r1cs-constraints-holdp))))
 

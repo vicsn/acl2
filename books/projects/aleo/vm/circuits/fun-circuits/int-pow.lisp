@@ -28,6 +28,8 @@
 (include-book "projects/pfcs/parser-interface" :dir :system)
 (include-book "projects/pfcs/r1cs-subset" :dir :system)
 
+(local (include-book "kestrel/arithmetic-light/mod" :dir :system))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define int-pow-checked-step-gadget ((xs symbol-listp)
@@ -68,16 +70,12 @@
   :returns (constrs r1cs::r1cs-constraint-listp :hyp :guard)
   (int-mul-wrapped-gadget xs ys lowlow highlow lowhigh zs zs-high p))
 
-(defruled int-pow-funspec-agrees
-  (equal (int-pow-checked-spec x e signedp n)
-         (int-pow-checked-spec x e signedp n)))
-
 (defruled int-pow-checked-zero-exponent
   (implies (and (int-valuep x signedp n)
                 (integer-widthp n)
                 (equal (nfix e) 0))
            (equal (int-pow-checked-spec x e signedp n) 1))
-  :enable (int-pow-checked-spec int-valuep))
+  :enable (int-pow-checked-spec int-valuep int-min int-max integer-widthp))
 
 (defruled int-pow-wrapped-zero-exponent
   (implies (and (int-valuep x signedp n)
@@ -85,7 +83,7 @@
                 (posp n)
                 (equal (nfix e) 0))
            (equal (int-pow-wrapped-spec x e signedp n) 1))
-  :enable (int-pow-wrapped-spec int-wrap))
+  :enable (int-pow-wrapped-spec int-wrap integer-widthp))
 
 (defconst *int-pow-sample* *int-mul-and-check-sample*)
 
@@ -128,4 +126,4 @@
                 (fieldp one))
            (equal (int-pow-pred one prime)
                   (equal one 1)))
-  :enable (int-pow-pred fieldp))
+  :enable (int-pow-pred fieldp pfield::fep acl2::mod-when-<))

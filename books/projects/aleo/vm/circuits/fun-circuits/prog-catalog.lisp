@@ -426,20 +426,25 @@
                   (literal-boolean
                    (pfield::sub 1 (lookup-equal r-o asg) p))))
   :hints (("Goal"
-           :in-theory (e/d (field-cast-to-boolean-gadget
-                            field-is-zero-gadget-sound
-                            field-is-one-gadget-sound
-                            prog-demorgan-or-gadget-to-mul
-                            prog-assert-gadget-to-funspec
-                            assert-funspec
-                            enforce-funspec
-                            field-cast-to-boolean-from-checks
-                            r1cs::r1cs-constraints-holdp-of-append
-                            r1cs::fep-of-lookup-equal
-                            bitp)
-                           ((:definition pfield::sub)
-                            pfield::mul-of-sub-arg1
-                            pfield::mul-of-sub-arg2)))))
+           :use ((:instance field-is-zero-gadget-sound (m m-z) (r r-z))
+                 (:instance field-is-one-gadget-sound (m m-o) (r r-o))
+                 (:instance prog-demorgan-or-gadget-to-mul
+                            (x r-z) (y r-o) (z or-bit))
+                 (:instance prog-assert-gadget-to-funspec (b or-bit))
+                 (:instance field-cast-to-boolean-from-checks
+                            (x (lookup-equal x asg))
+                            (rz (lookup-equal r-z asg))
+                            (ro (lookup-equal r-o asg))
+                            (orb (lookup-equal or-bit asg))))
+           :in-theory '(field-cast-to-boolean-gadget
+                        r1cs::r1cs-constraints-holdp-of-append
+                        assert-funspec
+                        enforce-funspec
+                        bitp
+                        (:e base-prime)
+                        (:e pfield::mul)
+                        (:e pfield::sub)
+                        primes::primep-of-bls12-377-scalar-field-prime-constant))))
 
 (defruled field-cast-to-boolean-or-product
   (implies (and (equal p (base-prime))

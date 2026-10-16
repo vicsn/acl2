@@ -115,23 +115,18 @@
                                     (field-lesser-square-root x)
                                     p)
                        x)))
-  :enable (field-lesser-square-root
-           field-square-root-bound
-           field-modulus-minus-one-div-two
-           fb3-square-root-bound-facts
-           fb3-neg-of-upper-half
-           fieldp
-           pfield::fep-fix-when-fep
-           pfield::mul-of-neg-arg1
-           pfield::mul-of-neg-arg2
-           pfield::neg-of-neg)
-  :disable ((:definition pfield::sub))
-  :use (:instance ecurve::pfield-squarep-necc
-                  (x x)
-                  (p (base-prime))))
+  :enable fb3-square-root-bound-facts
+  :use fb2-field-lesser-square-root-props)
 
-(defruled fb3-last-is-list-of-car
-  (implies (consp x)
+;; FALSE: x = (1 . 2) is a cons with (last x) = (1 . 2) but (list (car (last x))) = (1).
+;; (defruled fb3-last-is-list-of-car
+;;   (implies (consp x)
+;;            (equal (last x) (list (car (last x)))))
+;;   :hints (("Goal" :in-theory (enable last))))
+
+(defruled fb3-last-is-list-of-car-when-true-listp
+  (implies (and (consp x)
+                (true-listp x))
            (equal (last x) (list (car (last x)))))
   :hints (("Goal" :in-theory (enable last))))
 
@@ -155,33 +150,51 @@
                             (bits (acl2::nat=>lebits 253 n))))
            :in-theory (e/d (acl2::len-of-nat=>lebits
                             acl2::bit-listp-of-nat=>lebits
+                            fb-consp-when-len-pos
                             bitp)
                            (lebits=>nat-lower-bound-when-msb-is-1
                             acl2::lebits=>nat-of-nat=>lebits
-                            bitp-of-car-of-last-when-bit-listp)))))
+                            bitp-of-car-of-last-when-bit-listp
+                            acl2::bitp-of-car-when-bit-listp
+                            acl2::bit-listp-of-last)))))
 
 (defruled fb3-high-bit-of-small
   (implies (and (natp n)
                 (< n (expt 2 252)))
            (equal (nthcdr 252 (acl2::nat=>lebits 253 n))
                   '(0)))
-  :enable (fb3-msb-of-small-nat=>lebits
-           fb3-last-is-list-of-car
-           fb3-nthcdr-of-len-minus-1
-           acl2::len-of-nat=>lebits
-           acl2::bit-listp-of-nat=>lebits))
+  :do-not-induct t
+  :enable (acl2::len-of-nat=>lebits
+           acl2::bit-listp-of-nat=>lebits
+           fb-consp-when-len-pos)
+  :use (fb3-msb-of-small-nat=>lebits
+        (:instance fb3-last-is-list-of-car-when-true-listp
+                   (x (acl2::nat=>lebits 253 n)))
+        (:instance fb3-nthcdr-of-len-minus-1
+                   (x (acl2::nat=>lebits 253 n)))))
+
+(defruled fb3-lebits=>nat-of-take-when-high-zero
+  (implies (and (natp k)
+                (<= k (len x))
+                (equal (lebits=>nat (nthcdr k x)) 0))
+           (equal (lebits=>nat (take k x))
+                  (lebits=>nat x)))
+  :use (:instance acl2::lebits=>nat-of-append
+                  (acl2::lodigits (take k x))
+                  (acl2::hidigits (nthcdr k x))))
 
 (defruled fb3-low-252-value
   (implies (and (natp n)
                 (< n (expt 2 252)))
            (equal (lebits=>nat (take 252 (acl2::nat=>lebits 253 n)))
                   n))
+  :do-not-induct t
   :enable (fb3-high-bit-of-small
            acl2::lebits=>nat-of-nat=>lebits
-           acl2::lebits=>nat-of-append
-           acl2::len-of-nat=>lebits
-           append-of-take-and-nthcdr
-           lebits=>nat))
+           acl2::len-of-nat=>lebits)
+  :use (:instance fb3-lebits=>nat-of-take-when-high-zero
+                  (k 252)
+                  (x (acl2::nat=>lebits 253 n))))
 
 (defruled fb3-sqrt-comparison-bit
   (implies (and (equal p (base-prime))
@@ -198,6 +211,17 @@
            acl2::lebits=>nat-of-nat=>lebits*
            acl2::len-of-take
            acl2::len-of-nat=>lebits))
+
+(defruled fb3-sqrt-comparison-bit-when-equal
+  (implies (and (equal bs (acl2::nat=>lebits 253 y))
+                (equal p (base-prime))
+                (natp y)
+                (<= y (field-square-root-bound p)))
+           (equal (boolean-is-less-than-or-equal-constant-funspec
+                   (take 252 bs)
+                   (nat=>lebits* (field-square-root-bound p)))
+                  1))
+  :use fb3-sqrt-comparison-bit)
 
 (defruled fb3-field-square-root-square-holds
   (implies (and (equal p (base-prime))
@@ -237,21 +261,18 @@
                  (boolean-check-gadget-list ys p) asg p)
                 (r1cs::r1cs-constraints-holdp
                  (pow2sum-gadget y ys) asg p)))
+  :do-not-induct t
   :enable (boolean-check-gadget-list-to-bit-listp
            pow2sum-gadget-to-equal-of-mod-of-lebits=>nat
-           field-bits-le
-           fb-integer-length-of-base-prime
-           fb-base-prime-below-2-253
-           pfield::fep-fix-when-fep
-           fieldp
-           acl2::lebits=>nat-of-nat=>lebits
-           acl2::bit-listp-of-nat=>lebits
-           acl2::mod-when-<))
+           fb-integer-length-of-base-prime)
+  :use (:instance fb-mod-lebits=>nat-when-field-bits-le
+                  (bs (lookup-equal-list ys asg))
+                  (x (lookup-equal y asg))))
 
 (defruled fb3-symbol-listp-of-take
   (implies (symbol-listp xs)
            (symbol-listp (take n xs)))
-  :hints (("Goal" :in-theory (enable take symbol-listp))))
+  :hints (("Goal" :in-theory (enable take symbol-listp repeat))))
 
 (defruled fb3-bit-listp-of-take
   (implies (and (bit-listp xs)
@@ -285,13 +306,17 @@
              ys (nat=>lebits* (field-square-root-bound p)) rs p)
             asg p))
   :hints (("Goal"
-           :use (:instance fb-boolean-assert-lte-const-gadget-complete
-                           (xs (take 252 ys))
-                           (cs (nat=>lebits*
-                                (field-square-root-bound (base-prime))))
-                           (rs rs)
-                           (p p)
-                           (asg asg))
+           :do-not-induct t
+           :use ((:instance fb-boolean-assert-lte-const-gadget-complete
+                            (xs (take 252 ys))
+                            (cs (nat=>lebits*
+                                 (field-square-root-bound (base-prime))))
+                            (rs rs)
+                            (p p)
+                            (asg asg))
+                 (:instance fb3-sqrt-comparison-bit-when-equal
+                            (bs (lookup-equal-list ys asg))
+                            (y (lookup-equal y asg))))
            :in-theory (e/d (bits-lte-const-check-gadget
                             bits-lte-const-check-rlen
                             field-square-root-rlen
@@ -314,7 +339,7 @@
                             fb-integer-length-of-base-prime
                             base-field-size-in-bits
                             acl2::len-of-take
-                            len-of-nthcdr
+                            acl2::len-of-nthcdr
                             acl2::bit-listp-of-nat=>lebits
                             repeat
                             fb-base-prime-below-2-253)
@@ -348,13 +373,16 @@
                         (nat=>lebits* (field-square-root-bound p)))))
            (r1cs::r1cs-constraints-holdp
             (field-square-root-gadget x y ys rs p) asg p))
+  :do-not-induct t
   :enable (field-square-root-gadget
            fb3-field-square-root-square-holds
            fb3-field-square-root-bits-hold
-           fb3-lesser-root-in-range
-           field-square-root-funspec
-           fieldp)
-  :use (:instance fb3-field-square-root-range-holds))
+           field-square-root-funspec)
+  :use ((:instance fb3-field-square-root-range-holds)
+        (:instance fb3-field-square-root-bits-hold)
+        (:instance fb3-field-square-root-square-holds)
+        (:instance fb3-lesser-root-in-range
+                   (x (lookup-equal x asg)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -369,12 +397,9 @@
                                     p)
                        x)))
   :enable (field-even-square-root-funspec
+           ecurve::pfield-even-squarep
            fieldp
-           pfield::fep-fix-when-fep
-           evenp)
-  :use (:instance ecurve::pfield-even-squarep-necc
-                  (x x)
-                  (p (base-prime))))
+           pfield::fep-fix-when-fep))
 
 (defruled fb3-car-of-nat=>lebits-is-mod2
   (implies (and (posp width)
@@ -382,22 +407,14 @@
                 (< n (expt 2 width)))
            (equal (car (acl2::nat=>lebits width n))
                   (mod n 2)))
-  :hints (("Goal"
-           :use ((:instance acl2::lebits=>nat-of-nat=>lebits
-                            (width width)
-                            (nat n))
-                 (:instance acl2::lebits=>nat-of-cons
-                            (lodigit (car (acl2::nat=>lebits width n)))
-                            (hidigits (cdr (acl2::nat=>lebits width n)))))
-           :in-theory (e/d (acl2::bit-listp-of-nat=>lebits
-                            acl2::len-of-nat=>lebits
-                            bitp
-                            acl2::bfix
-                            acl2::mod-when-<)
-                           (acl2::lebits=>nat-of-nat=>lebits
-                            acl2::lebits=>nat-of-cons
-                            acl2::nat=>lebits
-                            acl2::nat=>lendian*)))))
+  :do-not-induct t
+  :cases ((zp n))
+  :expand ((acl2::nat=>lendian* 2 n)
+           (repeat width 0))
+  :enable (acl2::nat=>lebits
+           acl2::nat=>lendian
+           acl2::mod-when-<
+           repeat))
 
 (defruled fb3-even-lsb-is-zero
   (implies (and (equal p (base-prime))
@@ -411,6 +428,19 @@
            base-field-size-in-bits
            fb3-car-of-nat=>lebits-is-mod2
            evenp))
+
+(defruled fb3-not-reserrp-when-not-even-squarep
+  (implies (not (reserrp (field-even-square-root-funspec x)))
+           (ecurve::pfield-even-squarep x (base-prime)))
+  :enable field-even-square-root-funspec)
+
+(defruled fb3-even-lsb-is-zero-when-equal
+  (implies (and (equal bs (field-bits-le y))
+                (equal p (base-prime))
+                (fieldp y)
+                (evenp y))
+           (equal (car bs) 0))
+  :use fb3-even-lsb-is-zero)
 
 (defruled fb3-lsb-zero-constraint-holds
   (implies (and (primep p)
@@ -464,23 +494,28 @@
                         (nat=>lebits* (1- p)))))
            (r1cs::r1cs-constraints-holdp
             (fb-field-even-square-root-gadget x y ys rs u p) asg p))
+  :do-not-induct t
   :enable (fb-field-even-square-root-gadget
            fb-field-write-bits-le-gadget
            field-square-gadget-correctness
-           fb3-even-root-square-and-even
-           fb3-even-lsb-is-zero
            fb3-lsb-zero-constraint-holds
-           field-even-square-root-funspec
-           field-bits-le
            car-of-lookup-equal-list
-           fieldp)
-  :use (:instance fb2-field-write-bits-le-gadget-complete
-                  (x y)
-                  (bits ys)
-                  (rs rs)
-                  (u u)
-                  (p p)
-                  (asg asg))
+           r1cs::r1cs-constraint-holdsp
+           r1cs::dot-product)
+  :use ((:instance fb2-field-write-bits-le-gadget-complete
+                   (x y)
+                   (bits ys)
+                   (rs rs)
+                   (u u)
+                   (p p)
+                   (asg asg))
+        (:instance fb3-even-root-square-and-even
+                   (x (lookup-equal x asg)))
+        (:instance fb3-not-reserrp-when-not-even-squarep
+                   (x (lookup-equal x asg)))
+        (:instance fb3-even-lsb-is-zero-when-equal
+                   (bs (lookup-equal-list ys asg))
+                   (y (lookup-equal y asg))))
   :disable ((:definition pfield::sub)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -587,18 +622,19 @@
                 (equal r (bitand b1 b0))
                 (equal r 0))
            (equal (field-square-root-funspec x) y))
+  :do-not-induct t
   :enable (field-square-root-funspec
-           field-lesser-square-root
-           fb3-lesser-root-in-range
            fb3-three-bits-at-most-2
            fb3-square-root-bound-facts
-           fb2-lesser-square-root-unique
-           fieldp
-           pfield::fep-fix-when-fep)
-  :use (:instance ecurve::pfield-squarep-suff
-                  (r y)
-                  (x x)
-                  (p (base-prime))))
+           fieldp)
+  :use ((:instance ecurve::pfield-squarep-suff
+                   (r y)
+                   (x x)
+                   (p (base-prime)))
+        fb3-lesser-root-in-range
+        (:instance fb2-lesser-square-root-unique
+                   (a y)
+                   (b (field-lesser-square-root x)))))
 
 (defruled fb3-square-root-3-not-error
   (implies (and (equal p (base-prime))
@@ -615,8 +651,10 @@
                 (equal r (bitand b1 b0))
                 (equal r 0))
            (not (reserrp (field-square-root-funspec x))))
-  :enable (fb3-square-root-3-is-funspec
-           fb3-not-reserrp-when-fieldp))
+  :do-not-induct t
+  :use (fb3-square-root-3-is-funspec
+        (:instance fb3-not-reserrp-when-fieldp
+                   (y (field-square-root-funspec x)))))
 
 (defrule fb3-field-square-root-3-pred-sound
   (implies (and (equal prime (base-prime))
@@ -643,7 +681,9 @@
                 (equal (list b0 b1 b2)
                        (take 3 (field-bits-le y)))))
   :rule-classes nil
-  :enable (fb3-field-square-root-3-pred
+  :enable (fb3-mod-when-fieldp
+           fb3-integerp-when-fieldp
+           fb3-field-square-root-3-pred
            fb3-bool-check-is-bitp
            fb3-weighted-3
            fb3-mul1-equals-arg
@@ -652,6 +692,8 @@
            fb3-take-3-of-field-bits-le
            fb3-square-root-3-is-funspec
            fb3-square-root-3-not-error)
+  :use ((:instance fb3-square-root-3-is-funspec (p prime))
+        (:instance fb3-square-root-3-not-error (p prime)))
   :disable ((:definition pfield::sub)
             pfield::mul-of-sub-arg1
             pfield::mul-of-sub-arg2
@@ -681,7 +723,9 @@
                 (equal (list b0 b1 b2)
                        (take 3 (field-bits-le y))))
            (fb3-field-square-root-3-pred x y b0 b1 b2 r prime))
-  :enable (fb3-field-square-root-3-pred
+  :enable (fb3-mod-when-fieldp
+           fb3-integerp-when-fieldp
+           fb3-field-square-root-3-pred
            fb3-bool-check-is-bitp
            fb3-weighted-3
            fb3-mul1-equals-arg
@@ -806,16 +850,17 @@
                 (equal y (+ b0 (* 2 b1) (* 4 b2)))
                 (equal (pfield::mul y y p) x))
            (equal (field-even-square-root-funspec x) y))
+  :do-not-induct t
   :enable (fb3-even-three-bits-at-most-4
-           field-even-square-root-funspec
-           fb3-even-root-square-and-even
-           fb2-even-root-unique
-           fieldp
-           evenp)
-  :use (:instance ecurve::pfield-even-squarep-suff
-                  (r y)
-                  (x x)
-                  (p (base-prime))))
+           fieldp)
+  :use ((:instance ecurve::pfield-even-squarep-suff
+                   (r y)
+                   (x x)
+                   (p (base-prime)))
+        fb3-even-root-square-and-even
+        (:instance fb2-even-root-unique
+                   (a y)
+                   (b (field-even-square-root-funspec x)))))
 
 (defruled fb3-even-root-3-not-error
   (implies (and (equal p (base-prime))
@@ -865,7 +910,9 @@
                 (equal (list b0 b1 b2)
                        (take 3 (field-bits-le y)))))
   :rule-classes nil
-  :enable (fb3-field-even-square-root-3-pred
+  :enable (fb3-mod-when-fieldp
+           fb3-integerp-when-fieldp
+           fb3-field-even-square-root-3-pred
            fb3-bool-check-is-bitp
            fb3-lsb-equation-is-zero
            fb3-unit-is-one
@@ -878,6 +925,8 @@
            fb3-even-root-3-is-funspec
            fb3-even-root-3-not-error
            fb3-take-3-of-field-bits-le)
+  :use ((:instance fb3-even-root-3-is-funspec (p prime))
+        (:instance fb3-even-root-3-not-error (p prime)))
   :disable ((:definition pfield::sub)
             pfield::mul-of-sub-arg1
             pfield::mul-of-sub-arg2
@@ -913,7 +962,9 @@
                        (take 3 (field-bits-le y))))
            (fb3-field-even-square-root-3-pred
             x y b0 b1 b2 z0 z1 u prime))
-  :enable (fb3-field-even-square-root-3-pred
+  :enable (fb3-mod-when-fieldp
+           fb3-integerp-when-fieldp
+           fb3-field-even-square-root-3-pred
            fb3-bool-check-is-bitp
            fb3-lsb-equation-is-zero
            fb3-unit-is-one

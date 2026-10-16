@@ -28,6 +28,11 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defruled fep-of-base-prime-when-bitp
+  (implies (bitp r)
+           (pfield::fep r (base-prime)))
+  :enable bitp)
+
 (defruled values-b-and-is-boolean-and
   (implies (and (bitp a) (bitp b))
            (equal (values-b-and a b) (boolean-and-funspec a b)))
@@ -94,10 +99,11 @@
                  (identifier-is-equal-gadget x y m r p) asg p))
            (equal (pfield::sub 1 (lookup-equal r asg) p)
                   (identifier-is-equal a b)))
-  :enable (identifier-is-equal-gadget
-           prog-field-eq-gadget-sound
-           identifier-is-equal-is-field-eq
-           fieldp))
+  :hints (("Goal"
+           :use prog-field-eq-gadget-sound
+           :in-theory '(identifier-is-equal-gadget
+                        identifier-is-equal-is-field-eq
+                        fieldp-of-identifier->field))))
 
 (defruled identifier-is-equal-gadget-complete
   (implies (and (symbolp x) (symbolp y) (symbolp m) (symbolp r)
@@ -128,10 +134,11 @@
                  (identifier-is-equal-gadget x y m r p) asg p)
                 (equal (pfield::sub 1 (lookup-equal r asg) p)
                        (identifier-is-equal a b))))
-  :enable (identifier-is-equal-gadget
-           prog-field-eq-gadget-complete
-           identifier-is-equal-is-field-eq
-           fieldp))
+  :hints (("Goal"
+           :use prog-field-eq-gadget-complete
+           :in-theory '(identifier-is-equal-gadget
+                        identifier-is-equal-is-field-eq
+                        fieldp-of-identifier->field))))
 
 (define identifier-is-not-equal-gadget ((x symbolp)
                                         (y symbolp)
@@ -153,6 +160,14 @@
                               boolean-not-funspec
                               values-bool-to-bit))))
 
+(defruled identifier-is-not-equal-is-field-neq
+  (equal (identifier-is-not-equal x y)
+         (field-is-not-equal-funspec (identifier->field x)
+                                     (identifier->field y)))
+  :enable (identifier-is-not-equal
+           field-is-not-equal-funspec
+           values-bool-to-bit))
+
 (defruled identifier-is-not-equal-gadget-sound
   (implies (and (symbolp x) (symbolp y) (symbolp m) (symbolp r)
                 (equal p (base-prime))
@@ -170,13 +185,11 @@
                  (identifier-is-not-equal-gadget x y m r p) asg p))
            (equal (lookup-equal r asg)
                   (identifier-is-not-equal a b)))
-  :enable (identifier-is-not-equal-gadget
-           prog-field-neq-gadget-sound
-           identifier-is-not-equal-funspecs-match
-           identifier-is-equal-is-field-eq
-           prog-bit-not-is-sub
-           field-is-equal-funspec
-           fieldp))
+  :hints (("Goal"
+           :use prog-field-neq-gadget-sound
+           :in-theory '(identifier-is-not-equal-gadget
+                        identifier-is-not-equal-is-field-neq
+                        fieldp-of-identifier->field))))
 
 (defruled identifier-is-not-equal-gadget-complete
   (implies (and (symbolp x) (symbolp y) (symbolp m) (symbolp r)
@@ -207,13 +220,11 @@
                  (identifier-is-not-equal-gadget x y m r p) asg p)
                 (equal (lookup-equal r asg)
                        (identifier-is-not-equal a b))))
-  :enable (identifier-is-not-equal-gadget
-           prog-field-neq-gadget-complete
-           identifier-is-not-equal-funspecs-match
-           identifier-is-equal-is-field-eq
-           prog-bit-not-is-sub
-           field-is-equal-funspec
-           fieldp))
+  :hints (("Goal"
+           :use prog-field-neq-gadget-complete
+           :in-theory '(identifier-is-not-equal-gadget
+                        identifier-is-not-equal-is-field-neq
+                        fieldp-of-identifier->field))))
 
 (defconst *identifier-is-equal-sample-asg*
   '((x . 3) (y . 1) (m . 3) (r . 1)))
@@ -279,12 +290,15 @@
                 (identifier-is-equal-pred x y m r prime))
            (equal (pfield::sub 1 r prime)
                   (identifier-is-equal a b)))
-  :enable (identifier-is-equal-pred-to-mul
-           prog-field-neq-bit-when-constraints
-           prog-bit-not-is-sub
-           identifier-is-equal-is-field-eq
-           field-is-equal-funspec
-           fieldp))
+  :hints (("Goal"
+           :use ((:instance identifier-is-equal-pred-to-mul)
+                 (:instance prog-field-neq-bit-when-constraints (p prime))
+                 (:instance prog-bit-not-is-sub (p prime)))
+           :in-theory '(identifier-is-equal-is-field-eq
+                        field-is-equal-funspec
+                        fieldp
+                        primep-of-base-prime
+                        fep-of-base-prime-when-bitp))))
 
 (define identifier-is-not-equal-circuit ()
   :returns (pdef pfcs::definitionp)
@@ -306,6 +320,20 @@
             :pred identifier-is-not-equal-pred
             :prime prime)
 
+(defruled identifier-is-not-equal-pred-to-mul
+  (implies (and (primep prime)
+                (pfield::fep x prime)
+                (pfield::fep y prime)
+                (pfield::fep m prime)
+                (pfield::fep r prime))
+           (equal (identifier-is-not-equal-pred x y m r prime)
+                  (and (equal (pfield::mul (pfield::sub x y prime) m prime) r)
+                       (equal (pfield::mul (pfield::sub x y prime)
+                                           (pfield::sub 1 r prime)
+                                           prime)
+                              0))))
+  :enable identifier-is-not-equal-pred)
+
 (defruled identifier-is-not-equal-pred-to-funspec
   (implies (and (equal prime (base-prime))
                 (fieldp x)
@@ -317,15 +345,14 @@
                 (equal x (identifier->field a))
                 (equal y (identifier->field b))
                 (identifier-is-not-equal-pred x y m r prime))
-           (equal r (identifier-is-not-equal a b)))
-  :enable (identifier-is-not-equal-pred
-           identifier-is-equal-pred-to-mul
-           prog-field-neq-bit-when-constraints
-           identifier-is-not-equal-funspecs-match
-           identifier-is-equal-is-field-eq
-           prog-bit-not-is-sub
-           field-is-equal-funspec
-           fieldp))
+           (equal (identifier-is-not-equal a b) r))
+  :hints (("Goal"
+           :use ((:instance identifier-is-not-equal-pred-to-mul)
+                 (:instance prog-field-neq-bit-when-constraints (p prime)))
+           :in-theory '(identifier-is-not-equal-is-field-neq
+                        fieldp
+                        primep-of-base-prime
+                        fep-of-base-prime-when-bitp))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -389,18 +416,25 @@
                  asg p))
            (equal (lookup-equal z asg)
                   (program-id-is-equal a b)))
-  :enable (program-id-is-equal-gadget
-           prog-field-neq-gadget-to-spec
-           prog-eq-and-gadget-to-mul
-           prog-field-neq-bit-when-constraints
-           prog-eq-and-bit-when-mul
-           prog-bit-not-is-sub
-           program-id-is-equal-components
-           identifier-is-equal-is-field-eq
-           field-is-equal-funspec
-           fieldp
-           r1cs::fep-of-lookup-equal
-           r1cs::r1cs-constraints-holdp-of-append))
+  :hints (("Goal"
+           :use ((:instance prog-field-neq-gadget-sound
+                            (x xn) (y yn) (m mn) (r rn))
+                 (:instance prog-field-neq-gadget-sound
+                            (x xw) (y yw) (m mw) (r rw))
+                 (:instance prog-eq-and-gadget-to-mul
+                            (ra rn) (rb rw))
+                 (:instance prog-eq-and-mul-is-and
+                            (ra (lookup-equal rn asg))
+                            (rb (lookup-equal rw asg))))
+           :in-theory '(program-id-is-equal-gadget
+                        r1cs::r1cs-constraints-holdp-of-append
+                        program-id-is-equal-components
+                        identifier-is-equal-is-field-eq
+                        field-is-equal-funspec
+                        primep-of-base-prime
+                        identifierp-of-program-id->name
+                        identifierp-of-program-id->network
+                        fieldp-of-identifier->field))))
 
 (defruled program-id-is-equal-gadget-complete
   (implies (and (symbolp xn) (symbolp yn) (symbolp mn) (symbolp rn)
@@ -452,16 +486,24 @@
            (r1cs::r1cs-constraints-holdp
             (program-id-is-equal-gadget xn yn mn rn xw yw mw rw z p)
             asg p))
-  :enable (program-id-is-equal-gadget
-           prog-field-neq-gadget-complete
-           prog-eq-and-gadget-to-mul
-           prog-eq-and-bit-when-mul
-           field-is-not-equal-funspec
-           boolean-not-funspec
-           boolean-and-funspec
-           fieldp
-           bitp
-           r1cs::r1cs-constraints-holdp-of-append))
+  :hints (("Goal"
+           :use ((:instance prog-field-neq-gadget-complete
+                            (x xn) (y yn) (m mn) (r rn))
+                 (:instance prog-field-neq-gadget-complete
+                            (x xw) (y yw) (m mw) (r rw))
+                 (:instance prog-eq-and-gadget-to-mul
+                            (ra rn) (rb rw))
+                 (:instance prog-eq-and-mul-is-and
+                            (ra (lookup-equal rn asg))
+                            (rb (lookup-equal rw asg))))
+           :in-theory '(program-id-is-equal-gadget
+                        r1cs::r1cs-constraints-holdp-of-append
+                        field-is-not-equal-funspec
+                        bitp
+                        primep-of-base-prime
+                        identifierp-of-program-id->name
+                        identifierp-of-program-id->network
+                        fieldp-of-identifier->field))))
 
 (define program-id-is-not-equal-gadget ((xn symbolp) (yn symbolp)
                                         (mn symbolp) (rn symbolp)
@@ -520,16 +562,20 @@
                  asg p))
            (equal (lookup-equal z asg)
                   (program-id-is-not-equal a b)))
-  :enable (program-id-is-not-equal-gadget
-           prog-field-neq-gadget-sound
-           prog-bool-or-gadget-sound
-           program-id-is-not-equal-components
-           identifier-is-not-equal-funspecs-match
-           identifier-is-equal-is-field-eq
-           prog-bit-not-is-sub
-           field-is-equal-funspec
-           fieldp
-           r1cs::r1cs-constraints-holdp-of-append))
+  :hints (("Goal"
+           :use ((:instance prog-field-neq-gadget-sound
+                            (x xn) (y yn) (m mn) (r rn))
+                 (:instance prog-field-neq-gadget-sound
+                            (x xw) (y yw) (m mw) (r rw))
+                 (:instance prog-bool-or-gadget-sound
+                            (x rn) (y rw)))
+           :in-theory '(program-id-is-not-equal-gadget
+                        r1cs::r1cs-constraints-holdp-of-append
+                        program-id-is-not-equal-components
+                        identifier-is-not-equal-is-field-neq
+                        identifierp-of-program-id->name
+                        identifierp-of-program-id->network
+                        fieldp-of-identifier->field))))
 
 (defruled program-id-is-not-equal-gadget-complete
   (implies (and (symbolp xn) (symbolp yn) (symbolp mn) (symbolp rn)
@@ -580,13 +626,20 @@
            (r1cs::r1cs-constraints-holdp
             (program-id-is-not-equal-gadget xn yn mn rn xw yw mw rw z p)
             asg p))
-  :enable (program-id-is-not-equal-gadget
-           prog-field-neq-gadget-complete
-           prog-bool-or-gadget-complete
-           field-is-not-equal-funspec
-           bitp
-           fieldp
-           r1cs::r1cs-constraints-holdp-of-append))
+  :hints (("Goal"
+           :use ((:instance prog-field-neq-gadget-complete
+                            (x xn) (y yn) (m mn) (r rn))
+                 (:instance prog-field-neq-gadget-complete
+                            (x xw) (y yw) (m mw) (r rw))
+                 (:instance prog-bool-or-gadget-complete
+                            (x rn) (y rw)))
+           :in-theory '(program-id-is-not-equal-gadget
+                        r1cs::r1cs-constraints-holdp-of-append
+                        field-is-not-equal-funspec
+                        bitp
+                        identifierp-of-program-id->name
+                        identifierp-of-program-id->network
+                        fieldp-of-identifier->field))))
 
 (defconst *program-id-is-equal-sample-asg*
   '((xn . 1) (yn . 1) (mn . 1) (rn . 0)
@@ -645,6 +698,27 @@
             :pred program-id-is-equal-pred
             :prime prime)
 
+(defruled program-id-is-equal-pred-to-mul
+  (implies (primep prime)
+           (equal (program-id-is-equal-pred xn yn mn rn xw yw mw rw z prime)
+                  (and (equal (pfield::mul (pfield::sub xn yn prime) mn prime)
+                              rn)
+                       (equal (pfield::mul (pfield::sub xn yn prime)
+                                           (pfield::sub 1 rn prime)
+                                           prime)
+                              0)
+                       (equal (pfield::mul (pfield::sub xw yw prime) mw prime)
+                              rw)
+                       (equal (pfield::mul (pfield::sub xw yw prime)
+                                           (pfield::sub 1 rw prime)
+                                           prime)
+                              0)
+                       (equal (pfield::mul (pfield::sub 1 rn prime)
+                                           (pfield::sub 1 rw prime)
+                                           prime)
+                              z))))
+  :enable program-id-is-equal-pred)
+
 (defruled program-id-is-equal-pred-to-funspec
   (implies (and (equal prime (base-prime))
                 (fieldp xn) (fieldp yn) (pfield::fep mn prime) (bitp rn)
@@ -655,15 +729,22 @@
                 (equal xw (identifier->field (program-id->network a)))
                 (equal yw (identifier->field (program-id->network b)))
                 (program-id-is-equal-pred xn yn mn rn xw yw mw rw z prime))
-           (equal z (program-id-is-equal a b)))
-  :enable (program-id-is-equal-pred
-           prog-field-neq-bit-when-constraints
-           prog-eq-and-bit-when-mul
-           prog-bit-not-is-sub
-           program-id-is-equal-components
-           identifier-is-equal-is-field-eq
-           field-is-equal-funspec
-           fieldp))
+           (equal (program-id-is-equal a b) z))
+  :hints (("Goal"
+           :use ((:instance program-id-is-equal-pred-to-mul)
+                 (:instance prog-field-neq-bit-when-constraints
+                            (x xn) (y yn) (m mn) (r rn) (p prime))
+                 (:instance prog-field-neq-bit-when-constraints
+                            (x xw) (y yw) (m mw) (r rw) (p prime))
+                 (:instance prog-eq-and-bit-when-mul
+                            (ra rn) (rb rw) (p prime)))
+           :in-theory '(program-id-is-equal-components
+                        identifier-is-equal-is-field-eq
+                        field-is-equal-funspec
+                        primep-of-base-prime
+                        identifierp-of-program-id->name
+                        identifierp-of-program-id->network
+                        fieldp-of-identifier->field))))
 
 (define program-id-is-not-equal-circuit ()
   :returns (pdef pfcs::definitionp)
@@ -688,6 +769,28 @@
             :pred program-id-is-not-equal-pred
             :prime prime)
 
+(defruled program-id-is-not-equal-pred-to-mul
+  (implies (primep prime)
+           (equal (program-id-is-not-equal-pred
+                   xn yn mn rn xw yw mw rw z prime)
+                  (and (equal (pfield::mul (pfield::sub xn yn prime) mn prime)
+                              rn)
+                       (equal (pfield::mul (pfield::sub xn yn prime)
+                                           (pfield::sub 1 rn prime)
+                                           prime)
+                              0)
+                       (equal (pfield::mul (pfield::sub xw yw prime) mw prime)
+                              rw)
+                       (equal (pfield::mul (pfield::sub xw yw prime)
+                                           (pfield::sub 1 rw prime)
+                                           prime)
+                              0)
+                       (equal (pfield::mul (pfield::sub 1 rn prime)
+                                           (pfield::sub 1 rw prime)
+                                           prime)
+                              (pfield::sub 1 z prime)))))
+  :enable program-id-is-not-equal-pred)
+
 (defruled program-id-is-not-equal-pred-to-funspec
   (implies (and (equal prime (base-prime))
                 (fieldp xn) (fieldp yn) (pfield::fep mn prime) (bitp rn)
@@ -700,16 +803,21 @@
                 (equal yw (identifier->field (program-id->network b)))
                 (program-id-is-not-equal-pred
                  xn yn mn rn xw yw mw rw z prime))
-           (equal z (program-id-is-not-equal a b)))
-  :enable (program-id-is-not-equal-pred
-           prog-field-neq-bit-when-constraints
-           prog-bool-or-bit-when-mul
-           program-id-is-not-equal-components
-           identifier-is-not-equal-funspecs-match
-           identifier-is-equal-is-field-eq
-           prog-bit-not-is-sub
-           field-is-equal-funspec
-           fieldp))
+           (equal (program-id-is-not-equal a b) z))
+  :hints (("Goal"
+           :use ((:instance program-id-is-not-equal-pred-to-mul)
+                 (:instance prog-field-neq-bit-when-constraints
+                            (x xn) (y yn) (m mn) (r rn) (p prime))
+                 (:instance prog-field-neq-bit-when-constraints
+                            (x xw) (y yw) (m mw) (r rw) (p prime))
+                 (:instance prog-bool-or-bit-when-mul
+                            (x rn) (y rw) (p prime)))
+           :in-theory '(program-id-is-not-equal-components
+                        identifier-is-not-equal-is-field-neq
+                        primep-of-base-prime
+                        identifierp-of-program-id->name
+                        identifierp-of-program-id->network
+                        fieldp-of-identifier->field))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -757,18 +865,16 @@
                      (field-is-equal-funspec (dynamic-future->checksum x)
                                              (dynamic-future->checksum y)))))))
   :hints (("Goal"
-           :in-theory (enable dynamic-future-is-equal
-                              values-bool-to-bit
-                              boolean-and-funspec
-                              field-is-equal-funspec
-                              field-is-not-equal-funspec
-                              boolean-not-funspec
-                              dynamic-future-fix
-                              dynamic-future->program-name
-                              dynamic-future->program-network
-                              dynamic-future->function-name
-                              dynamic-future->checksum
-                              values-field-fix))))
+           :in-theory (e/d (dynamic-future-is-equal
+                            values-bool-to-bit
+                            boolean-and-funspec
+                            field-is-equal-funspec
+                            field-is-not-equal-funspec
+                            boolean-not-funspec
+                            dynamic-future-fix-redef
+                            equal-of-dynamic-future)
+                           (dynamic-future-fix-when-dynamic-futurep
+                            dynamic-future-of-fields)))))
 
 (define dynamic-future-is-not-equal-gadget
   ((xn symbolp) (yn symbolp) (mn symbolp) (rn symbolp)
@@ -898,28 +1004,35 @@
                 (equal yf (dynamic-future->function-name b))
                 (equal xc (dynamic-future->checksum a))
                 (equal yc (dynamic-future->checksum b)))
-           (equal z (dynamic-future-is-equal a b)))
+           (equal (dynamic-future-is-equal a b) z))
   :hints (("Goal"
-           :in-theory (e/d (prog-field-neq-bit-when-constraints
-                            prog-eq-and-mul-is-and
-                            prog-and-var-eq-mul-is-and
-                            boolean-not-of-field-neq
-                            boolean-and-left-assoc-4
-                            dynamic-future-is-equal-components
-                            bitp-of-boolean-and-funspec
-                            bitp-of-boolean-not-funspec
-                            bitp-of-field-is-equal-funspec
-                            bitp-of-field-is-not-equal-funspec
-                            fieldp)
-                           ((:definition pfield::sub)
-                            pfield::mul-of-sub-arg1
-                            pfield::mul-of-sub-arg2))
-           :use ((:instance prog-eq-and-bit-when-mul
-                            (ra rn) (rb rw) (z z1) (p p))
+           :use ((:instance prog-field-neq-bit-when-constraints
+                            (x xn) (y yn) (m mn) (r rn))
+                 (:instance prog-field-neq-bit-when-constraints
+                            (x xw) (y yw) (m mw) (r rw))
+                 (:instance prog-field-neq-bit-when-constraints
+                            (x xf) (y yf) (m mf) (r rf))
+                 (:instance prog-field-neq-bit-when-constraints
+                            (x xc) (y yc) (m mc) (r rc))
+                 (:instance prog-eq-and-bit-when-mul
+                            (ra rn) (rb rw) (z z1))
                  (:instance prog-and-var-eq-bit-when-mul
-                            (z z1) (r rf) (w z2) (p p))
+                            (z z1) (r rf) (w z2))
                  (:instance prog-and-var-eq-bit-when-mul
-                            (z z2) (r rc) (w z) (p p))))))
+                            (z z2) (r rc) (w z))
+                 (:instance boolean-and-left-assoc-4
+                            (a (boolean-not-funspec rn))
+                            (b (boolean-not-funspec rw))
+                            (c (boolean-not-funspec rf))
+                            (d (boolean-not-funspec rc)))
+                 (:instance dynamic-future-is-equal-components
+                            (x a) (y b)))
+           :in-theory '(field-is-equal-funspec
+                        bitp-of-boolean-not-funspec
+                        fieldp-of-dynamic-future->program-name
+                        fieldp-of-dynamic-future->program-network
+                        fieldp-of-dynamic-future->function-name
+                        fieldp-of-dynamic-future->checksum))))
 
 (defruled dynamic-future-is-equal-gadget-sound
   (implies (and (symbolp xn) (symbolp yn) (symbolp mn) (symbolp rn)
@@ -987,15 +1100,13 @@
            (equal (lookup-equal z asg)
                   (dynamic-future-is-equal a b)))
   :hints (("Goal"
-           :in-theory (e/d (dynamic-future-is-equal-gadget
-                            prog-field-neq-gadget-to-spec
-                            prog-eq-and-gadget-to-mul
-                            prog-and-var-eq-gadget-to-mul
-                            r1cs::r1cs-constraints-holdp-of-append
-                            r1cs::fep-of-lookup-equal)
-                           ((:definition pfield::sub)
-                            pfield::mul-of-sub-arg1
-                            pfield::mul-of-sub-arg2))
+           :in-theory '(dynamic-future-is-equal-gadget
+                        prog-field-neq-gadget-to-spec
+                        prog-eq-and-gadget-to-mul
+                        prog-and-var-eq-gadget-to-mul
+                        r1cs::r1cs-constraints-holdp-of-append
+                        r1cs::fep-of-lookup-equal
+                        primep-of-base-prime)
            :use ((:instance dynamic-future-eq-equations-to-funspec
                             (p p)
                             (xn (lookup-equal xn asg))
@@ -1017,6 +1128,84 @@
                             (z1 (lookup-equal z1 asg))
                             (z2 (lookup-equal z2 asg))
                             (z (lookup-equal z asg)))))))
+
+(defruled dynamic-future-eq-equations-when-witness
+  (implies (and (equal p (base-prime))
+                (fieldp xn) (fieldp yn) (fieldp xw) (fieldp yw)
+                (fieldp xf) (fieldp yf) (fieldp xc) (fieldp yc)
+                (equal rn (field-is-not-equal-funspec xn yn))
+                (equal rw (field-is-not-equal-funspec xw yw))
+                (equal rf (field-is-not-equal-funspec xf yf))
+                (equal rc (field-is-not-equal-funspec xc yc))
+                (equal mn (if (equal xn yn) 1 (pfield::inv (pfield::sub xn yn p) p)))
+                (equal mw (if (equal xw yw) 1 (pfield::inv (pfield::sub xw yw p) p)))
+                (equal mf (if (equal xf yf) 1 (pfield::inv (pfield::sub xf yf p) p)))
+                (equal mc (if (equal xc yc) 1 (pfield::inv (pfield::sub xc yc p) p)))
+                (equal z1 (boolean-and-funspec (boolean-not-funspec rn)
+                                               (boolean-not-funspec rw)))
+                (equal z2 (boolean-and-funspec z1 (boolean-not-funspec rf)))
+                (equal z (boolean-and-funspec z2 (boolean-not-funspec rc))))
+           (and (equal (pfield::mul (pfield::sub xn yn p) mn p) rn)
+                (equal (pfield::mul (pfield::sub xn yn p) (pfield::sub 1 rn p) p) 0)
+                (equal (pfield::mul (pfield::sub xw yw p) mw p) rw)
+                (equal (pfield::mul (pfield::sub xw yw p) (pfield::sub 1 rw p) p) 0)
+                (equal (pfield::mul (pfield::sub xf yf p) mf p) rf)
+                (equal (pfield::mul (pfield::sub xf yf p) (pfield::sub 1 rf p) p) 0)
+                (equal (pfield::mul (pfield::sub xc yc p) mc p) rc)
+                (equal (pfield::mul (pfield::sub xc yc p) (pfield::sub 1 rc p) p) 0)
+                (equal (pfield::mul (pfield::sub 1 rn p) (pfield::sub 1 rw p) p) z1)
+                (equal (pfield::mul z1 (pfield::sub 1 rf p) p) z2)
+                (equal (pfield::mul z2 (pfield::sub 1 rc p) p) z)))
+  :hints (("Goal"
+           :use ((:instance prog-field-neq-constraints-when-witness
+                            (x xn) (y yn) (m mn) (r rn))
+                 (:instance prog-field-neq-constraints-when-witness
+                            (x xw) (y yw) (m mw) (r rw))
+                 (:instance prog-field-neq-constraints-when-witness
+                            (x xf) (y yf) (m mf) (r rf))
+                 (:instance prog-field-neq-constraints-when-witness
+                            (x xc) (y yc) (m mc) (r rc))
+                 (:instance prog-eq-and-mul-is-and (ra rn) (rb rw))
+                 (:instance prog-and-var-eq-mul-is-and (z z1) (r rf))
+                 (:instance prog-and-var-eq-mul-is-and (z z2) (r rc)))
+           :in-theory '(field-is-not-equal-funspec
+                        bitp
+                        bitp-of-boolean-and-funspec
+                        bitp-of-boolean-not-funspec))))
+
+(defruled dynamic-future-eq-funspec-when-witness
+  (implies (and (equal p (base-prime))
+                (fieldp xn) (fieldp yn) (fieldp xw) (fieldp yw)
+                (fieldp xf) (fieldp yf) (fieldp xc) (fieldp yc)
+                (pfield::fep mn p) (pfield::fep mw p)
+                (pfield::fep mf p) (pfield::fep mc p)
+                (equal rn (field-is-not-equal-funspec xn yn))
+                (equal rw (field-is-not-equal-funspec xw yw))
+                (equal rf (field-is-not-equal-funspec xf yf))
+                (equal rc (field-is-not-equal-funspec xc yc))
+                (equal mn (if (equal xn yn) 1 (pfield::inv (pfield::sub xn yn p) p)))
+                (equal mw (if (equal xw yw) 1 (pfield::inv (pfield::sub xw yw p) p)))
+                (equal mf (if (equal xf yf) 1 (pfield::inv (pfield::sub xf yf p) p)))
+                (equal mc (if (equal xc yc) 1 (pfield::inv (pfield::sub xc yc p) p)))
+                (equal z1 (boolean-and-funspec (boolean-not-funspec rn)
+                                               (boolean-not-funspec rw)))
+                (equal z2 (boolean-and-funspec z1 (boolean-not-funspec rf)))
+                (equal z (boolean-and-funspec z2 (boolean-not-funspec rc)))
+                (dynamic-futurep a)
+                (dynamic-futurep b)
+                (equal xn (dynamic-future->program-name a))
+                (equal yn (dynamic-future->program-name b))
+                (equal xw (dynamic-future->program-network a))
+                (equal yw (dynamic-future->program-network b))
+                (equal xf (dynamic-future->function-name a))
+                (equal yf (dynamic-future->function-name b))
+                (equal xc (dynamic-future->checksum a))
+                (equal yc (dynamic-future->checksum b)))
+           (equal (dynamic-future-is-equal a b) z))
+  :hints (("Goal"
+           :use (dynamic-future-eq-equations-when-witness
+                 dynamic-future-eq-equations-to-funspec)
+           :in-theory '(bitp-of-field-is-not-equal-funspec))))
 
 (defruled dynamic-future-is-equal-gadget-complete
   (implies (and (symbolp xn) (symbolp yn) (symbolp mn) (symbolp rn)
@@ -1132,48 +1321,55 @@
                 (equal (lookup-equal z asg)
                        (dynamic-future-is-equal a b))))
   :hints (("Goal"
-           :use ((:instance prog-field-neq-constraints-when-witness
-                            (x (lookup-equal xn asg))
-                            (y (lookup-equal yn asg))
-                            (m (lookup-equal mn asg))
-                            (r (lookup-equal rn asg))
-                            (p p))
-                 (:instance prog-field-neq-constraints-when-witness
-                            (x (lookup-equal xw asg))
-                            (y (lookup-equal yw asg))
-                            (m (lookup-equal mw asg))
-                            (r (lookup-equal rw asg))
-                            (p p))
-                 (:instance prog-field-neq-constraints-when-witness
-                            (x (lookup-equal xf asg))
-                            (y (lookup-equal yf asg))
-                            (m (lookup-equal mf asg))
-                            (r (lookup-equal rf asg))
-                            (p p))
-                 (:instance prog-field-neq-constraints-when-witness
-                            (x (lookup-equal xc asg))
-                            (y (lookup-equal yc asg))
-                            (m (lookup-equal mc asg))
-                            (r (lookup-equal rc asg))
-                            (p p)))
-           :in-theory (e/d (dynamic-future-is-equal-gadget
-                            prog-field-neq-gadget-to-spec
-                            prog-eq-and-gadget-to-mul
-                            prog-eq-and-mul-is-and
-                            prog-and-var-eq-gadget-to-mul
-                            prog-and-var-eq-mul-is-and
-                            dynamic-future-eq-equations-to-funspec
-                            bitp-of-field-is-not-equal-funspec
-                            bitp-of-boolean-and-funspec
-                            bitp-of-boolean-not-funspec
-                            fieldp
-                            bitp
-                            r1cs::fep-of-lookup-equal
-                            r1cs::r1cs-constraints-holdp-of-append)
-                           ((:definition pfield::sub)
-                            pfield::mul-of-sub-arg1
-                            pfield::mul-of-sub-arg2
-                            prog-field-neq-constraints-when-witness)))))
+           :use ((:instance dynamic-future-eq-equations-when-witness
+                            (xn (lookup-equal xn asg))
+                            (yn (lookup-equal yn asg))
+                            (mn (lookup-equal mn asg))
+                            (rn (lookup-equal rn asg))
+                            (xw (lookup-equal xw asg))
+                            (yw (lookup-equal yw asg))
+                            (mw (lookup-equal mw asg))
+                            (rw (lookup-equal rw asg))
+                            (xf (lookup-equal xf asg))
+                            (yf (lookup-equal yf asg))
+                            (mf (lookup-equal mf asg))
+                            (rf (lookup-equal rf asg))
+                            (xc (lookup-equal xc asg))
+                            (yc (lookup-equal yc asg))
+                            (mc (lookup-equal mc asg))
+                            (rc (lookup-equal rc asg))
+                            (z1 (lookup-equal z1 asg))
+                            (z2 (lookup-equal z2 asg))
+                            (z (lookup-equal z asg)))
+                 (:instance dynamic-future-eq-funspec-when-witness
+                            (xn (lookup-equal xn asg))
+                            (yn (lookup-equal yn asg))
+                            (mn (lookup-equal mn asg))
+                            (rn (lookup-equal rn asg))
+                            (xw (lookup-equal xw asg))
+                            (yw (lookup-equal yw asg))
+                            (mw (lookup-equal mw asg))
+                            (rw (lookup-equal rw asg))
+                            (xf (lookup-equal xf asg))
+                            (yf (lookup-equal yf asg))
+                            (mf (lookup-equal mf asg))
+                            (rf (lookup-equal rf asg))
+                            (xc (lookup-equal xc asg))
+                            (yc (lookup-equal yc asg))
+                            (mc (lookup-equal mc asg))
+                            (rc (lookup-equal rc asg))
+                            (z1 (lookup-equal z1 asg))
+                            (z2 (lookup-equal z2 asg))
+                            (z (lookup-equal z asg)))
+                 (:instance fep-of-base-prime-when-bitp (r 1)))
+           :in-theory '(dynamic-future-is-equal-gadget
+                        (:e bitp)
+                        prog-field-neq-gadget-to-spec
+                        prog-eq-and-gadget-to-mul
+                        prog-and-var-eq-gadget-to-mul
+                        r1cs::r1cs-constraints-holdp-of-append
+                        r1cs::fep-of-lookup-equal
+                        primep-of-base-prime))))
 
 (defruled dynamic-future-is-not-equal-gadget-sound
   (implies (and (symbolp xn) (symbolp yn) (symbolp mn) (symbolp rn)
@@ -1241,12 +1437,15 @@
                  asg p))
            (equal (pfield::sub 1 (lookup-equal z asg) p)
                   (dynamic-future-is-not-equal a b)))
-  :enable (dynamic-future-is-not-equal-gadget
-           dynamic-future-is-equal-gadget-sound
-           dynamic-future-is-not-equal-funspecs-match
-           values-b-not-is-boolean-not
-           prog-bit-not-is-sub
-           bitp-of-dynamic-future-is-equal))
+  :hints (("Goal"
+           :use ((:instance dynamic-future-is-equal-gadget-sound)
+                 (:instance prog-bit-not-is-sub (r (lookup-equal z asg)))
+                 (:instance dynamic-future-is-not-equal-funspecs-match
+                            (x a) (y b))
+                 (:instance values-b-not-is-boolean-not
+                            (a (dynamic-future-is-equal a b))))
+           :in-theory '(dynamic-future-is-not-equal-gadget
+                        bitp-of-dynamic-future-is-equal))))
 
 (defruled dynamic-future-is-not-equal-gadget-complete
   (implies (and (symbolp xn) (symbolp yn) (symbolp mn) (symbolp rn)
@@ -1362,19 +1561,15 @@
                 (equal (pfield::sub 1 (lookup-equal z asg) p)
                        (dynamic-future-is-not-equal a b))))
   :hints (("Goal"
-           :use ((:instance dynamic-future-is-equal-gadget-complete
-                            (xn xn) (yn yn) (mn mn) (rn rn)
-                            (xw xw) (yw yw) (mw mw) (rw rw)
-                            (xf xf) (yf yf) (mf mf) (rf rf)
-                            (xc xc) (yc yc) (mc mc) (rc rc)
-                            (z1 z1) (z2 z2) (z z) (p p)
-                            (asg asg) (a a) (b b)))
-           :in-theory (e/d (dynamic-future-is-not-equal-gadget
-                            dynamic-future-is-not-equal-funspecs-match
-                            values-b-not-is-boolean-not
-                            prog-bit-not-is-sub
-                            bitp-of-dynamic-future-is-equal)
-                           (dynamic-future-is-equal-gadget-complete)))))
+           :use ((:instance dynamic-future-is-equal-gadget-complete)
+                 (:instance prog-bit-not-is-sub (r (lookup-equal z asg)))
+                 (:instance dynamic-future-is-not-equal-funspecs-match
+                            (x a) (y b))
+                 (:instance values-b-not-is-boolean-not
+                            (a (dynamic-future-is-equal a b))))
+           :in-theory '(dynamic-future-is-not-equal-gadget
+                        bitp-of-dynamic-future-is-equal
+                        bitp-of-boolean-and-funspec))))
 
 (define dynamic-future-is-equal-circuit ()
   :returns (pdef pfcs::definitionp)
@@ -1405,6 +1600,45 @@
             :pred dynamic-future-is-equal-pred
             :prime prime)
 
+(defruled dynamic-future-is-equal-pred-to-mul
+  (implies (primep prime)
+           (equal (dynamic-future-is-equal-pred xn yn mn rn xw yw mw rw
+                   xf yf mf rf xc yc mc rc
+                   z1 z2 z prime)
+                  (and (equal (pfield::mul (pfield::sub xn yn prime) mn prime)
+                              rn)
+                       (equal (pfield::mul (pfield::sub xn yn prime)
+                                           (pfield::sub 1 rn prime)
+                                           prime)
+                              0)
+                       (equal (pfield::mul (pfield::sub xw yw prime) mw prime)
+                              rw)
+                       (equal (pfield::mul (pfield::sub xw yw prime)
+                                           (pfield::sub 1 rw prime)
+                                           prime)
+                              0)
+                       (equal (pfield::mul (pfield::sub xf yf prime) mf prime)
+                              rf)
+                       (equal (pfield::mul (pfield::sub xf yf prime)
+                                           (pfield::sub 1 rf prime)
+                                           prime)
+                              0)
+                       (equal (pfield::mul (pfield::sub xc yc prime) mc prime)
+                              rc)
+                       (equal (pfield::mul (pfield::sub xc yc prime)
+                                           (pfield::sub 1 rc prime)
+                                           prime)
+                              0)
+                       (equal (pfield::mul (pfield::sub 1 rn prime)
+                                           (pfield::sub 1 rw prime)
+                                           prime)
+                              z1)
+                       (equal (pfield::mul z1 (pfield::sub 1 rf prime) prime)
+                              z2)
+                       (equal (pfield::mul z2 (pfield::sub 1 rc prime) prime)
+                              z))))
+  :enable dynamic-future-is-equal-pred)
+
 (defruled dynamic-future-is-equal-pred-to-funspec
   (implies (and (equal prime (base-prime))
                 (fieldp xn) (fieldp yn) (pfield::fep mn prime) (bitp rn)
@@ -1425,9 +1659,12 @@
                  xn yn mn rn xw yw mw rw
                  xf yf mf rf xc yc mc rc
                  z1 z2 z prime))
-           (equal z (dynamic-future-is-equal a b)))
-  :enable (dynamic-future-is-equal-pred
-           dynamic-future-eq-equations-to-funspec))
+           (equal (dynamic-future-is-equal a b) z))
+  :hints (("Goal"
+           :use ((:instance dynamic-future-is-equal-pred-to-mul)
+                 (:instance dynamic-future-eq-equations-to-funspec
+                            (p prime)))
+           :in-theory '(primep-of-base-prime))))
 
 (define dynamic-future-is-not-equal-circuit ()
   :returns (pdef pfcs::definitionp)
@@ -1458,6 +1695,45 @@
             :pred dynamic-future-is-not-equal-pred
             :prime prime)
 
+(defruled dynamic-future-is-not-equal-pred-to-mul
+  (implies (primep prime)
+           (equal (dynamic-future-is-not-equal-pred xn yn mn rn xw yw mw rw
+                   xf yf mf rf xc yc mc rc
+                   z1 z2 z prime)
+                  (and (equal (pfield::mul (pfield::sub xn yn prime) mn prime)
+                              rn)
+                       (equal (pfield::mul (pfield::sub xn yn prime)
+                                           (pfield::sub 1 rn prime)
+                                           prime)
+                              0)
+                       (equal (pfield::mul (pfield::sub xw yw prime) mw prime)
+                              rw)
+                       (equal (pfield::mul (pfield::sub xw yw prime)
+                                           (pfield::sub 1 rw prime)
+                                           prime)
+                              0)
+                       (equal (pfield::mul (pfield::sub xf yf prime) mf prime)
+                              rf)
+                       (equal (pfield::mul (pfield::sub xf yf prime)
+                                           (pfield::sub 1 rf prime)
+                                           prime)
+                              0)
+                       (equal (pfield::mul (pfield::sub xc yc prime) mc prime)
+                              rc)
+                       (equal (pfield::mul (pfield::sub xc yc prime)
+                                           (pfield::sub 1 rc prime)
+                                           prime)
+                              0)
+                       (equal (pfield::mul (pfield::sub 1 rn prime)
+                                           (pfield::sub 1 rw prime)
+                                           prime)
+                              z1)
+                       (equal (pfield::mul z1 (pfield::sub 1 rf prime) prime)
+                              z2)
+                       (equal (pfield::mul z2 (pfield::sub 1 rc prime) prime)
+                              z))))
+  :enable dynamic-future-is-not-equal-pred)
+
 (defruled dynamic-future-is-not-equal-pred-to-funspec
   (implies (and (equal prime (base-prime))
                 (fieldp xn) (fieldp yn) (pfield::fep mn prime) (bitp rn)
@@ -1481,12 +1757,17 @@
                  z1 z2 z prime))
            (equal (pfield::sub 1 z prime)
                   (dynamic-future-is-not-equal a b)))
-  :enable (dynamic-future-is-not-equal-pred
-           dynamic-future-eq-equations-to-funspec
-           dynamic-future-is-not-equal-funspecs-match
-           values-b-not-is-boolean-not
-           prog-bit-not-is-sub
-           bitp-of-dynamic-future-is-equal))
+  :hints (("Goal"
+           :use ((:instance dynamic-future-is-not-equal-pred-to-mul)
+                 (:instance dynamic-future-eq-equations-to-funspec
+                            (p prime))
+                 (:instance prog-bit-not-is-sub (r z) (p prime))
+                 (:instance dynamic-future-is-not-equal-funspecs-match
+                            (x a) (y b))
+                 (:instance values-b-not-is-boolean-not
+                            (a (dynamic-future-is-equal a b))))
+           :in-theory '(primep-of-base-prime
+                        bitp-of-dynamic-future-is-equal))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1554,11 +1835,21 @@
                  (crypto-record-is-hiding-gadget v m r p) asg p))
            (equal (lookup-equal r asg)
                   (crypto-record-is-hiding version)))
-  :enable (crypto-record-is-hiding-gadget-to-spec
-           crypto-record-is-hiding-is-nonzero
-           prog-field-neq-bit-when-constraints
-           fieldp
-           r1cs::fep-of-lookup-equal))
+  :hints (("Goal"
+           :use ((:instance crypto-record-is-hiding-gadget-to-spec)
+                 (:instance crypto-record-is-hiding-is-nonzero
+                            (v (lookup-equal v asg)))
+                 (:instance prog-field-neq-bit-when-constraints
+                            (x (lookup-equal v asg))
+                            (y 0)
+                            (m (lookup-equal m asg))
+                            (r (lookup-equal r asg))))
+           :in-theory (e/d (fieldp
+                            acl2::ubyte8p
+                            r1cs::fep-of-lookup-equal)
+                           (crypto-record-is-hiding-gadget-to-spec
+                            crypto-record-is-hiding-is-nonzero
+                            prog-field-neq-bit-when-constraints)))))
 
 (defruled crypto-record-is-hiding-gadget-complete
   (implies (and (symbolp v) (symbolp m) (symbolp r)
@@ -1625,7 +1916,7 @@
                 (acl2::ubyte8p version)
                 (equal v (acl2::ubyte8-fix version))
                 (crypto-record-is-hiding-pred v m r prime))
-           (equal r (crypto-record-is-hiding version)))
+           (equal (crypto-record-is-hiding version) r))
   :enable (crypto-record-is-hiding-pred
            prog-field-neq-bit-when-constraints
            crypto-record-is-hiding-is-nonzero

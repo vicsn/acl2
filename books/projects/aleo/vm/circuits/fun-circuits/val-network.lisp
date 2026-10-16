@@ -108,7 +108,8 @@
        ()
        :returns (pdef pfcs::definitionp)
        (pfcs::parse-def
-        ,(concatenate 'string pfcs-name "() := {\n    }"))
+        ,(concatenate 'string pfcs-name "() := {
+    }"))
        ///
        (more-returns
         (pdef pfcs::sr1cs-definitionp
@@ -197,7 +198,9 @@
                             (if (equal (lookup-equal bit asg) 0)
                                 (lookup-equal sib asg)
                               (lookup-equal cur asg)))))
-       :enable (,name merkle-path-verify-gadget-sound))
+       :hints (("Goal"
+                :use merkle-path-verify-gadget-sound
+                :in-theory (e/d (,name) (merkle-path-verify-gadget)))))
      (defruled ,(intern-in-package-of-symbol
                  (concatenate 'string (symbol-name name) "-COMPLETE")
                  name)
@@ -298,12 +301,14 @@
                         (concatenate 'string (symbol-name name) "-PRED")
                         name)
                       bit cur sib left right root hashed m r prime))
-                (and (equal left (if (equal bit 0) cur sib))
-                     (equal right (if (equal bit 0) sib cur))))
-       :enable (,(intern-in-package-of-symbol
-                  (concatenate 'string (symbol-name name) "-PRED")
-                  name)
-                merkle-path-verify-pred-to-funspec))))
+                (and (equal (if (equal bit 0) cur sib) left)
+                     (equal (if (equal bit 0) sib cur) right)))
+       :hints (("Goal"
+                :use merkle-path-verify-pred-to-funspec
+                :in-theory (enable ,(intern-in-package-of-symbol
+                                     (concatenate 'string (symbol-name name) "-PRED")
+                                     name)
+                                   merkle-path-verify-pred))))))
 
 (val-verify-bundle aleo-v0-verify-merkle-path-bhp-gadget
                    "aleo_v0_verify_merkle_path_bhp")

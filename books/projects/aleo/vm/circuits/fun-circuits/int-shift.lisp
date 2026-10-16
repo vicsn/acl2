@@ -28,8 +28,10 @@
 (include-book "int-support")
 (include-book "int-bits")
 
+(local (include-book "kestrel/arithmetic-light/expt" :dir :system))
 (local (include-book "kestrel/arithmetic-light/times" :dir :system))
 (local (include-book "kestrel/arithmetic-light/integer-length" :dir :system))
+(local (include-book "kestrel/arithmetic-light/mod" :dir :system))
 (local (include-book "std/lists/nthcdr" :dir :system))
 
 (include-book "projects/pfcs/convenience-constructors" :dir :system)
@@ -64,16 +66,6 @@
   :returns (constrs r1cs::r1cs-constraint-listp :hyp :guard)
   (int-shr-checked-bound-gadget excess))
 
-(defthm int-shl-funspec-agrees
-  (equal (int-shl-checked-spec x e signedp n)
-         (int-shl-checked-spec x e signedp n))
-  :rule-classes nil)
-
-(defthm int-shr-funspec-agrees
-  (equal (int-shr-checked-spec x e signedp n)
-         (int-shr-checked-spec x e signedp n))
-  :rule-classes nil)
-
 (defruled int-shr-checked-is-wrapped-when-in-range
   (implies (and (int-valuep x signedp n)
                 (integer-widthp n)
@@ -81,7 +73,10 @@
                 (< e n))
            (equal (int-shr-checked-spec x e signedp n)
                   (int-shr-wrapped-spec x e signedp n)))
-  :enable (int-shr-checked-spec int-shr-wrapped-spec))
+  :hints (("Goal" :in-theory (e/d (int-shr-checked-spec
+                                   int-shr-wrapped-spec
+                                   acl2::mod-when-<)
+                                  (floor mod)))))
 
 (defruled int-shl-checked-errors-when-exponent-wide
   (implies (and (integer-widthp n)

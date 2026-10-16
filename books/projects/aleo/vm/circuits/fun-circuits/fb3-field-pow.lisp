@@ -28,6 +28,8 @@
 
 (local (include-book "kestrel/prime-fields/prime-fields-rules" :dir :system))
 (local (include-book "kestrel/prime-fields/equal-of-add-cancel" :dir :system))
+(local (include-book "kestrel/arithmetic-light/mod" :dir :system))
+(local (include-book "std/lists/len" :dir :system))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -74,6 +76,74 @@
       nil
     (fb3-pow-induct (cdr ys) (cdr ss) (cdr ps) (cdr rs))))
 
+(defruled fb3-consp-of-fb3-pow-spr-rs
+  (equal (consp (mv-nth 2 (fb3-pow-spr x ys p)))
+         (consp ys))
+  :expand ((fb3-pow-spr x ys p)))
+
+(defruled fb3-consp-of-fb3-pow-spr-rs-type
+  (implies (consp ys)
+           (consp (mv-nth 2 (fb3-pow-spr x ys p))))
+  :rule-classes :type-prescription
+  :enable fb3-consp-of-fb3-pow-spr-rs)
+
+(defruled fb3-pow-lookup-car-ss
+  (implies (and (equal (lookup-equal-list ss asg)
+                       (mv-nth 0 (fb3-pow-spr x ys p)))
+                (equal (lookup-equal-list rs asg)
+                       (mv-nth 2 (fb3-pow-spr x ys p)))
+                (consp (cdr ys)))
+           (equal (lookup-equal (car ss) asg)
+                  (pfield::mul (lookup-equal (cadr rs) asg)
+                               (lookup-equal (cadr rs) asg)
+                               p)))
+  :do-not-induct t
+  :cases ((consp (cdr rs)))
+  :enable (fb3-pow-spr lookup-equal-list fb3-consp-of-fb3-pow-spr-rs
+                       fb3-consp-of-fb3-pow-spr-rs-type))
+
+(defruled fb3-pow-lookup-car-ps
+  (implies (and (equal (lookup-equal-list ss asg)
+                       (mv-nth 0 (fb3-pow-spr x ys p)))
+                (equal (lookup-equal-list ps asg)
+                       (mv-nth 1 (fb3-pow-spr x ys p)))
+                (consp (cdr ys)))
+           (equal (lookup-equal (car ps) asg)
+                  (pfield::mul (lookup-equal (car ss) asg) x p)))
+  :enable (fb3-pow-spr lookup-equal-list))
+
+(defruled fb3-pow-lookup-car-rs
+  (implies (and (equal (lookup-equal-list ss asg)
+                       (mv-nth 0 (fb3-pow-spr x ys p)))
+                (equal (lookup-equal-list ps asg)
+                       (mv-nth 1 (fb3-pow-spr x ys p)))
+                (equal (lookup-equal-list rs asg)
+                       (mv-nth 2 (fb3-pow-spr x ys p)))
+                (consp ys))
+           (equal (lookup-equal (car rs) asg)
+                  (if (consp (cdr ys))
+                      (if (= (car ys) 1)
+                          (lookup-equal (car ps) asg)
+                        (lookup-equal (car ss) asg))
+                    (if1 (car ys) x p))))
+  :enable (fb3-pow-spr lookup-equal-list))
+
+(defruled fb3-pow-lookup-list-cdr
+  (implies (and (equal (lookup-equal-list ss asg)
+                       (mv-nth 0 (fb3-pow-spr x ys p)))
+                (equal (lookup-equal-list ps asg)
+                       (mv-nth 1 (fb3-pow-spr x ys p)))
+                (equal (lookup-equal-list rs asg)
+                       (mv-nth 2 (fb3-pow-spr x ys p)))
+                (consp (cdr ys)))
+           (and (equal (lookup-equal-list (cdr ss) asg)
+                       (mv-nth 0 (fb3-pow-spr x (cdr ys) p)))
+                (equal (lookup-equal-list (cdr ps) asg)
+                       (mv-nth 1 (fb3-pow-spr x (cdr ys) p)))
+                (equal (lookup-equal-list (cdr rs) asg)
+                       (mv-nth 2 (fb3-pow-spr x (cdr ys) p)))))
+  :enable (fb3-pow-spr lookup-equal-list))
+
 (defruled fb3-pow-aux-satisfies
   (implies (and (symbolp x)
                 (symbol-listp ys)
@@ -110,18 +180,24 @@
   :hints (("Goal"
            :induct (fb3-pow-induct ys ss ps rs)
            :in-theory (e/d (fb3-pow-induct
-                            fb3-pow-spr
                             field-pow-bits-gadget-aux
                             if1-gadget-to-if1
                             if-gadget-to-if
                             field-mul-gadget-correctness
                             field-square-gadget-correctness
-                            fb-lookup-equal-list-of-cdr
-                            lookup-equal-of-car
-                            r1cs::valuation-binds-allp
-                            bitp
-                            if1)
+                            fb-consp-when-len-pos
+                            fb-len-pos-when-consp
+                            fb-cdr-of-lookup-equal-list
+                            car-of-lookup-equal-list
+                            fb-bitp-of-lookup-car-when-bit-listp
+                            fb-bit-listp-of-lookup-cdr-when-bit-listp
+                            fb-valuation-bindsp-of-cadr
+                            fb3-pow-lookup-car-ss
+                            fb3-pow-lookup-car-ps
+                            fb3-pow-lookup-car-rs
+                            fb3-pow-lookup-list-cdr)
                            ((:definition pfield::sub)
+                            bitp
                             pfield::mul-of-sub-arg1
                             pfield::mul-of-sub-arg2)))))
 
@@ -215,10 +291,11 @@
                 (equal (car (lookup-equal-list rs asg))
                        (field-pow-funspec (lookup-equal x asg)
                                           (lookup-equal y asg)))))
+  :do-not-induct t
   :enable (fb-field-pow-gadget
            field-pow-gadget
            fb-field-write-bits-le-gadget
-           fb3-pow-bits-holds
+           fb-consp-when-len-pos
            field-bits-le
            fieldp
            pfield::fep-fix-when-fep
@@ -230,6 +307,7 @@
                    (u unitvar)
                    (p p)
                    (asg asg))
+        fb3-pow-bits-holds
         fb-field-pow-gadget-sound)
   :disable ((:definition pfield::sub)))
 
@@ -356,6 +434,19 @@
                             pfield::mul-of-sub-arg1
                             pfield::mul-of-sub-arg2)))))
 
+(defruled fb3-equal-of-sub-same-arg2
+  (implies (and (pfield::fep x p)
+                (pfield::fep y p)
+                (integerp p))
+           (equal (equal (pfield::sub x z p) (pfield::sub y z p))
+                  (equal x y)))
+  :enable (pfield::sub pfield::add pfield::neg acl2::mod-sum-cases))
+
+(defruled fb3-fep-when-fieldp
+  (implies (fieldp x)
+           (pfield::fep x primes::*bls12-377-scalar-field-prime*))
+  :enable (fieldp base-prime))
+
 (defruled fb3-field-pow-2-pred-to-funspec
   (implies (and (equal prime (base-prime))
                 (primep prime)
@@ -386,7 +477,12 @@
            fb3-if-is-if
            fb3-pow-2-below-4
            fb3-pow-2-is-funspec
-           fb3-bits-match-2)
+           fb3-bits-match-2
+           fb3-mod-when-fieldp
+           fb3-integerp-when-fieldp
+           fb3-equal-of-sub-same-arg2
+           fb3-fep-when-fieldp)
+  :use (:instance fb3-pow-2-step (p prime))
   :disable ((:definition pfield::sub)
             pfield::mul-of-sub-arg1
             pfield::mul-of-sub-arg2

@@ -32,7 +32,11 @@
   :returns (lc true-listp :hyp :guard)
   :short "Linear combination @($1 - x$).  Boolean @('not') adds no witness."
   (list (list 1 1)
-        (list (1- p) x)))
+        (list (1- p) x))
+  ///
+  (defrule sparse-vectorp-of-val-not-lc
+    (implies (and (symbolp x) (primep p))
+             (r1cs::sparse-vectorp (val-not-lc x p)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -198,7 +202,6 @@
                             (x a)
                             (y b))
                  (:instance pfield::mul-of-0-arg1
-                            (x (pfield::sub a b p))
                             (y m))
                  (:instance pfield::mul-of-1-arg2
                             (x (pfield::sub a b p)))))))
@@ -256,7 +259,6 @@
                             (x a)
                             (y b))
                  (:instance pfield::mul-of-0-arg1
-                            (x (pfield::sub a b p))
                             (y m))
                  (:instance pfield::mul-of-0-arg2
                             (x (pfield::sub a b p)))))))
@@ -308,7 +310,11 @@
   (if (endp xs)
       nil
     (cons (list 1 (car xs))
-          (val-sum-lc (cdr xs)))))
+          (val-sum-lc (cdr xs))))
+  ///
+  (defrule sparse-vectorp-of-val-sum-lc
+    (implies (symbol-listp xs)
+             (r1cs::sparse-vectorp (val-sum-lc xs)))))
 
 ; (sum xs) * (1) = (0).  Used by Boolean::assert_bits_are_zero.
 
@@ -319,6 +325,35 @@
          :a (val-sum-lc xs)
          :b (list (list 1 1))
          :c nil)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; (1 - x) * (1 - y) = z.  AND of two negations, each a linear combination.
+
+(define val-and-nots-gadget ((x symbolp) (y symbolp) (z symbolp) (p primep))
+  :returns (constrs r1cs::r1cs-constraint-listp :hyp :guard)
+  (list (r1cs::make-r1cs-constraint
+         :a (val-not-lc x p)
+         :b (val-not-lc y p)
+         :c (list (list 1 z)))))
+
+(defruled val-and-nots-gadget-to-spec
+  (implies (and (symbolp x) (symbolp y) (symbolp z)
+                (primep p)
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg x)
+                (r1cs::valuation-bindsp asg y)
+                (r1cs::valuation-bindsp asg z))
+           (equal (r1cs::r1cs-constraints-holdp
+                   (val-and-nots-gadget x y z p) asg p)
+                  (equal (pfield::mul (pfield::sub 1 (lookup-equal x asg) p)
+                                      (pfield::sub 1 (lookup-equal y asg) p)
+                                      p)
+                         (lookup-equal z asg))))
+  :enable (val-and-nots-gadget
+           val-not-lc
+           r1cs::r1cs-constraint-holdsp
+           r1cs::dot-product))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -395,6 +430,19 @@
            r1cs::r1cs-constraint-holdsp
            r1cs::dot-product))
 
+(local
+ (defruled equal-of-sub-and-sub-cancel-2
+   (implies (and (pfield::fep x p)
+                 (pfield::fep y p)
+                 (integerp p))
+            (equal (equal (pfield::sub x z p) (pfield::sub y z p))
+                   (equal x y)))
+   :hints (("Goal" :use (:theorem
+                         (implies (equal (pfield::sub x z p)
+                                         (pfield::sub y z p))
+                                  (equal (pfield::add (pfield::sub x z p) z p)
+                                         (pfield::add (pfield::sub y z p) z p))))))))
+
 (defruled merkle-path-order-when-bit
   (implies (and (equal p (base-prime))
                 (bitp bit)
@@ -410,11 +458,11 @@
                                     (pfield::sub 1 bit p)
                                     p)
                        (pfield::sub right cur p)))
-           (and (equal left (if (equal bit 0) cur sib))
-                (equal right (if (equal bit 0) sib cur))))
+           (and (equal (if (equal bit 0) cur sib) left)
+                (equal (if (equal bit 0) sib cur) right)))
   :hints (("Goal"
            :cases ((equal bit 0))
-           :in-theory (e/d (fieldp bitp)
+           :in-theory (e/d (fieldp bitp equal-of-sub-and-sub-cancel-2)
                            ((:definition pfield::sub)
                             pfield::mul-of-sub-arg1
                             pfield::mul-of-sub-arg2))

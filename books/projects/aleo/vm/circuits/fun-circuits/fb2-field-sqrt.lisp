@@ -31,6 +31,7 @@
 (include-book "std/util/defrule" :dir :system)
 
 (local (include-book "kestrel/prime-fields/prime-fields-rules" :dir :system))
+(local (include-book "kestrel/arithmetic-light/mod" :dir :system))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -44,14 +45,25 @@
                   (pfield::mul (pfield::sub a b p)
                                (pfield::add a b p)
                                p)))
-  :enable (fieldp
-           pfield::mul
-           pfield::add
-           pfield::sub)
-  :disable (pfield::mul-of-add-arg1
-            pfield::mul-of-add-arg2
-            pfield::mul-of-sub-arg1
-            pfield::mul-of-sub-arg2))
+  :enable fieldp)
+
+(defthm fb2-add-zero-implies-neg
+  (implies (and (primep p)
+                (pfield::fep a p)
+                (pfield::fep b p)
+                (equal (pfield::add a b p) 0))
+           (equal (pfield::neg b p) a))
+  :rule-classes nil)
+
+(defthm fb2-sub-zero-implies-equal
+  (implies (and (primep p)
+                (pfield::fep a p)
+                (pfield::fep b p)
+                (equal (pfield::sub a b p) 0))
+           (equal b a))
+  :rule-classes nil
+  :hints (("Goal" :in-theory (enable pfield::sub pfield::add pfield::neg
+                                     acl2::mod-sum-cases))))
 
 (defruled fb2-equal-squares-implies-equal-or-neg
   (implies (and (equal p (base-prime))
@@ -61,17 +73,17 @@
                        (pfield::mul b b p)))
            (or (equal a b)
                (equal a (pfield::neg b p))))
-  :enable (fb2-diff-of-squares fieldp pfield::neg)
-  :disable ((:definition pfield::sub)
-            (:definition pfield::add)
-            pfield::mul-of-sub-arg1
-            pfield::mul-of-sub-arg2)
-  :use (:instance pfield::equal-of-0-and-mul
-                  (x (pfield::sub a b (base-prime)))
-                  (y (pfield::add a b (base-prime)))
-                  (p (base-prime))))
+  :do-not-induct t
+  :enable fieldp
+  :use ((:instance fb2-diff-of-squares)
+        (:instance pfield::equal-of-0-and-mul
+                   (x (pfield::sub a b (base-prime)))
+                   (y (pfield::add a b (base-prime)))
+                   (p (base-prime)))
+        (:instance fb2-add-zero-implies-neg (p (base-prime)))
+        (:instance fb2-sub-zero-implies-equal (p (base-prime)))))
 
-(defruled fb2-lesser-square-root-unique
+(defrule fb2-lesser-square-root-unique
   (implies (and (equal p (base-prime))
                 (fieldp a)
                 (fieldp b)
@@ -79,11 +91,37 @@
                 (<= b (field-modulus-minus-one-div-two))
                 (equal (pfield::mul a a p)
                        (pfield::mul b b p)))
-           (equal a b))
-  :enable (fb2-equal-squares-implies-equal-or-neg
-           field-modulus-minus-one-div-two
+           (equal b a))
+  :rule-classes nil
+  :enable (field-modulus-minus-one-div-two
            fieldp
-           pfield::neg))
+           pfield::neg)
+  :use fb2-equal-squares-implies-equal-or-neg)
+
+(defthm fb2-neg-at-most-half
+  (implies (and (pfield::fep r (base-prime))
+                (< (field-modulus-minus-one-div-two) r))
+           (<= (pfield::neg r (base-prime))
+               (field-modulus-minus-one-div-two)))
+  :rule-classes nil
+  :hints (("Goal" :in-theory (enable pfield::neg
+                                     field-modulus-minus-one-div-two))))
+
+(defruled fb2-field-lesser-square-root-props
+  (implies (and (fieldp x)
+                (ecurve::pfield-squarep x (base-prime)))
+           (and (<= (field-lesser-square-root x)
+                    (field-modulus-minus-one-div-two))
+                (equal (pfield::mul (field-lesser-square-root x)
+                                    (field-lesser-square-root x)
+                                    (base-prime))
+                       x)))
+  :enable (field-lesser-square-root
+           ecurve::pfield-squarep
+           fieldp
+           pfield::fep-fix-when-fep)
+  :use (:instance fb2-neg-at-most-half
+                  (r (ecurve::pfield-square->root x (base-prime)))))
 
 (defruled fb2-field-square-root-gadget-sound
   (implies (and (primep p)
@@ -107,16 +145,37 @@
            (equal (lookup-equal y asg)
                   (field-square-root-funspec (lookup-equal x asg))))
   :do-not-induct t
-  :enable (fb-field-square-root-gadget-bound
-           fb2-lesser-square-root-unique
-           field-square-root-funspec
-           field-lesser-square-root
-           fieldp
-           pfield::fep-fix-when-fep
-           ecurve::pfield-squarep-suff
-           ecurve::pfield-squarep))
+  :enable (field-square-root-funspec
+           fieldp)
+  :use (fb-field-square-root-gadget-bound
+        (:instance ecurve::pfield-squarep-suff
+                   (r (lookup-equal y asg))
+                   (x (lookup-equal x asg))
+                   (p (base-prime)))
+        (:instance fb2-field-lesser-square-root-props
+                   (x (lookup-equal x asg)))
+        (:instance fb2-lesser-square-root-unique
+                   (a (field-lesser-square-root (lookup-equal x asg)))
+                   (b (lookup-equal y asg)))))
 
-(defruled fb2-even-root-unique
+(defthm fb2-integerp-half-of-plus
+  (implies (and (integerp (* 1/2 a))
+                (integerp (* 1/2 b)))
+           (integerp (* 1/2 (+ a b))))
+  :rule-classes nil)
+
+(defthm fb2-not-evenp-of-neg
+  (implies (and (pfield::fep b (base-prime))
+                (not (equal b 0))
+                (evenp b))
+           (not (evenp (pfield::neg b (base-prime)))))
+  :rule-classes nil
+  :hints (("Goal" :in-theory (enable pfield::neg evenp)
+           :use (:instance fb2-integerp-half-of-plus
+                           (a (- (base-prime) b))
+                           (b b)))))
+
+(defrule fb2-even-root-unique
   (implies (and (equal p (base-prime))
                 (fieldp a)
                 (fieldp b)
@@ -124,12 +183,37 @@
                 (evenp b)
                 (equal (pfield::mul a a p)
                        (pfield::mul b b p)))
-           (equal a b))
-  :enable (fb2-equal-squares-implies-equal-or-neg
-           fieldp
-           pfield::neg
-           evenp
-           oddp))
+           (equal b a))
+  :rule-classes nil
+  :enable fieldp
+  :disable (evenp pfield::equal-of-neg)
+  :use (fb2-equal-squares-implies-equal-or-neg
+        fb2-not-evenp-of-neg))
+
+(defruled fb2-even-root-lsb-constraint
+  (implies (and (symbolp b)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg b)
+                (r1cs::r1cs-constraint-holdsp
+                 (r1cs::make-r1cs-constraint
+                  :a (list (list 1 1)
+                           (list (1- p) b))
+                  :b (list (list 1 1))
+                  :c (list (list 1 1)))
+                 asg p))
+           (equal (lookup-equal b asg) 0))
+  :enable (r1cs::r1cs-constraint-holdsp
+           r1cs::dot-product))
+
+(defruled fb2-evenp-of-lebits=>nat
+  (implies (and (bit-listp bs)
+                (consp bs)
+                (equal (car bs) 0))
+           (evenp (lebits=>nat bs)))
+  :enable (lebits=>nat evenp)
+  :expand ((acl2::lendian=>nat 2 bs))
+  :prep-books ((include-book "arithmetic/top" :dir :system)))
 
 (defruled fb2-field-even-square-root-gadget-sound
   (implies (and (symbolp x)
@@ -158,15 +242,31 @@
                   (field-even-square-root-funspec (lookup-equal x asg))))
   :do-not-induct t
   :enable (fb-field-even-square-root-gadget
-           field-square-gadget-correctness
-           field-to-bits-soundness
-           fb2-even-root-unique
            field-even-square-root-funspec
            fieldp
-           evenp
-           ecurve::pfield-even-squarep
-           ecurve::pfield-even-squarep-suff
-           pfield::fep-fix-when-fep))
+           pfield::fep-fix-when-fep
+           car-of-lookup-equal-list)
+  :disable (evenp
+            ecurve::pfield-even-squarep)
+  :use ((:instance field-square-gadget-correctness
+                   (x y) (r x))
+        (:instance field-to-bits-soundness
+                   (x y) (xs ys))
+        (:instance fb2-even-root-lsb-constraint
+                   (b (car ys)))
+        (:instance fb2-evenp-of-lebits=>nat
+                   (bs (lookup-equal-list ys asg)))
+        (:instance ecurve::pfield-even-squarep-suff
+                   (r (lookup-equal y asg))
+                   (x (lookup-equal x asg))
+                   (p (base-prime)))
+        (:instance ecurve::pfield-even-squarep
+                   (x (lookup-equal x asg))
+                   (p (base-prime)))
+        (:instance fb2-even-root-unique
+                   (a (ecurve::pfield-square->even-root (lookup-equal x asg)
+                                                        (base-prime)))
+                   (b (lookup-equal y asg)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -270,6 +370,8 @@
            field-is-not-equal-funspec
            boolean-not-funspec
            boolean-and-funspec
+           r1cs::r1cs-constraint-holdsp
+           r1cs::dot-product
            fieldp
            bitp)
   :disable ((:definition pfield::sub)

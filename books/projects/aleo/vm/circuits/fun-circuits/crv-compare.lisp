@@ -81,7 +81,9 @@
   :enable (crv-address-is-less-than-gadget
            address-is-less-than-funspec
            pfield::fep-fix-when-fep)
-  :use field-lt-gadget-soundness)
+  :use (:instance field-lt-gadget-soundness
+                  (x x1) (xs xs1) (xrs xrs1)
+                  (y x2) (ys xs2) (yrs xrs2)))
 
 (define crv-address-is-greater-than-gadget ((x1 symbolp)
                                             (xs1 symbol-listp)
@@ -221,7 +223,7 @@
   :returns (constrs r1cs::r1cs-constraint-listp :hyp :guard)
   :short "not is_less_than of the swapped addresses."
   (crv-address-is-greater-than-gadget
-   x2 xs2 xrs2 x1 xs1 xrs1 ds rs u p))
+   x1 xs1 xrs1 x2 xs2 xrs2 ds rs u p))
 
 (defruled crv-address-is-less-than-or-equal-gadget-sound
   (implies (and (symbolp x1) (symbol-listp xs1) (symbol-listp xrs1)
@@ -260,9 +262,9 @@
                              (address-is-less-than-or-equal-funspec p1 p2)))))
   :do-not-induct t
   :enable (crv-address-is-less-than-or-equal-gadget
+           crv-address-is-greater-than-or-equal-gadget
            crv-address-is-greater-than-gadget
-           address-is-less-than-or-equal-funspec
-           address-is-greater-than-or-equal-funspec)
+           address-is-less-than-or-equal-funspec)
   :use (:instance crv-address-is-greater-than-or-equal-gadget-sound
                   (x1 x2) (xs1 xs2) (xrs1 xrs2)
                   (x2 x1) (xs2 xs1) (xrs2 xrs1)

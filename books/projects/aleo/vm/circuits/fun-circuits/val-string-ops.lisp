@@ -33,6 +33,7 @@
 (include-book "std/util/define" :dir :system)
 (include-book "std/util/defrule" :dir :system)
 
+(local (include-book "kestrel/arithmetic-light/mod" :dir :system))
 (local (include-book "kestrel/prime-fields/prime-fields-rules" :dir :system))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -454,10 +455,12 @@
                  (identifier-is-equal-gadget x y m r p) asg p))
            (equal (pfield::sub 1 (lookup-equal r asg) p)
                   (identifier-literal-is-equal a b)))
-  :enable (identifier-is-equal-gadget
-           field-var-is-equal-gadget-sound
-           identifier-literal-is-equal
-           values-bool-to-bit))
+  :hints (("Goal"
+           :use (:instance field-var-is-equal-gadget-sound (a x) (b y))
+           :in-theory (e/d (identifier-is-equal-gadget
+                            identifier-literal-is-equal
+                            values-bool-to-bit)
+                           (field-var-is-equal-gadget)))))
 
 (defruled identifier-is-equal-gadget-complete
   (implies (and (symbolp x) (symbolp y) (symbolp m) (symbolp r)
@@ -532,10 +535,13 @@
                 (equal y (identifier-literal-to-field b)))
            (equal (pfield::sub 1 r prime)
                   (identifier-literal-is-equal a b)))
-  :enable (identifier-is-equal-pred
-           identifier-literal-is-equal
-           values-bool-to-bit
-           field-var-is-equal-bit-when-constraints))
+  :hints (("Goal"
+           :use (:instance field-var-is-equal-bit-when-constraints
+                           (p prime) (a x) (b y))
+           :in-theory (enable identifier-is-equal-pred
+                              identifier-literal-is-equal
+                              values-bool-to-bit
+                              fieldp))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -562,11 +568,14 @@
                  (identifier-is-not-equal-gadget x y m r p) asg p))
            (equal (lookup-equal r asg)
                   (identifier-literal-is-not-equal a b)))
-  :enable (identifier-is-not-equal-gadget
-           identifier-is-equal-gadget-sound
-           identifier-literal-is-not-equal
-           values-b-not
-           values-bool-to-bit))
+  :hints (("Goal"
+           :use identifier-is-equal-gadget-sound
+           :in-theory (e/d (identifier-is-not-equal-gadget
+                            identifier-literal-is-not-equal
+                            identifier-literal-is-equal
+                            values-bool-to-bit
+                            bitp)
+                           (identifier-is-equal-gadget)))))
 
 (defruled identifier-is-not-equal-gadget-complete
   (implies (and (symbolp x) (symbolp y) (symbolp m) (symbolp r)
@@ -641,13 +650,15 @@
                 (identifier-literalp a) (identifier-literalp b)
                 (equal x (identifier-literal-to-field a))
                 (equal y (identifier-literal-to-field b)))
-           (equal r (identifier-literal-is-not-equal a b)))
-  :enable (identifier-is-not-equal-pred
-           identifier-literal-is-not-equal
-           identifier-literal-is-equal
-           values-b-not
-           values-bool-to-bit
-           field-var-is-equal-bit-when-constraints))
+           (equal (identifier-literal-is-not-equal a b) r))
+  :hints (("Goal"
+           :use (:instance field-var-is-equal-bit-when-constraints
+                           (p prime) (a x) (b y))
+           :in-theory (enable identifier-is-not-equal-pred
+                              identifier-literal-is-not-equal
+                              values-bool-to-bit
+                              fieldp
+                              bitp))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -655,6 +666,11 @@
 ; One field element (the strings pack to a single field) is the sample shape.
 ; Boolean not of the size/field neq bits is a linear combination, and the
 ; final AND is (1 - rs) * (1 - rf) = out.
+
+(local
+ (defruled values-field-lists-zip-equal-same
+   (values-field-lists-zip-equal x x)
+   :enable values-field-lists-zip-equal))
 
 (define string-is-equal-gadget ((sa symbolp) (sb symbolp) (ms symbolp) (rs symbolp)
                                (fa symbolp) (fb symbolp) (mf symbolp) (rf symbolp)
@@ -697,15 +713,22 @@
                  (string-is-equal-gadget sa sb ms rs fa fb mf rf out p) asg p))
            (equal (lookup-equal out asg)
                   (string-type-is-equal s u)))
-  :enable (string-is-equal-gadget
-           field-var-is-equal-gadget-sound
-           string-type-is-equal
-           values-bool-to-bit
-           values-field-lists-zip-equal
-           values-b-and
-           val-not-lc
-           r1cs::r1cs-constraint-holdsp
-           r1cs::dot-product))
+  :hints (("Goal"
+           :use ((:instance field-var-is-equal-gadget-sound
+                            (a sa) (b sb) (m ms) (r rs))
+                 (:instance field-var-is-equal-gadget-sound
+                            (a fa) (b fb) (m mf) (r rf)))
+           :in-theory (e/d (string-is-equal-gadget
+                            string-type-is-equal
+                            values-bool-to-bit
+                            values-field-lists-zip-equal
+                            values-field-lists-zip-equal-same
+                            values-b-and
+                            val-not-lc
+                            r1cs::r1cs-constraint-holdsp
+                            r1cs::dot-product
+                            bitp)
+                           (field-var-is-equal-gadget)))))
 
 (defruled string-is-equal-gadget-complete
   (implies (and (symbolp sa) (symbolp sb) (symbolp ms) (symbolp rs)
@@ -812,12 +835,19 @@
                 (equal (list fa) (string-type-to-fields s))
                 (equal (list fb) (string-type-to-fields u))
                 (string-is-equal-pred sa sb ms rs fa fb mf rf out prime))
-           (equal out (string-type-is-equal s u)))
-  :enable (string-is-equal-pred
-           string-type-is-equal
-           values-field-lists-zip-equal
-           values-bool-to-bit
-           values-b-and))
+           (equal (string-type-is-equal s u) out))
+  :hints (("Goal"
+           :use ((:instance field-var-is-equal-bit-when-constraints
+                            (p prime) (a sa) (b sb) (m ms) (r rs))
+                 (:instance field-var-is-equal-bit-when-constraints
+                            (p prime) (a fa) (b fb) (m mf) (r rf)))
+           :in-theory (enable string-is-equal-pred
+                              string-type-is-equal
+                              values-field-lists-zip-equal
+                              values-field-lists-zip-equal-same
+                              values-bool-to-bit
+                              values-b-and
+                              bitp))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -861,10 +891,14 @@
                  (string-is-not-equal-gadget sa sb ms rs fa fb mf rf out p) asg p))
            (equal (pfield::sub 1 (lookup-equal out asg) p)
                   (string-type-is-not-equal s u)))
-  :enable (string-is-not-equal-gadget
-           string-is-equal-gadget-sound
-           string-type-is-not-equal
-           values-b-not))
+  :hints (("Goal"
+           :use string-is-equal-gadget-sound
+           :in-theory (e/d (string-is-not-equal-gadget
+                            string-type-is-not-equal
+                            values-b-not
+                            bitp)
+                           (string-is-equal-gadget
+                            string-type-is-equal)))))
 
 (defruled string-is-not-equal-gadget-complete
   (implies (and (symbolp sa) (symbolp sb) (symbolp ms) (symbolp rs)
@@ -943,6 +977,12 @@
             :pred string-is-not-equal-pred
             :prime prime)
 
+(local
+ (defruled string-is-not-equal-pred-is-string-is-equal-pred
+   (equal (string-is-not-equal-pred sa sb ms rs fa fb mf rf out prime)
+          (string-is-equal-pred sa sb ms rs fa fb mf rf out prime))
+   :enable (string-is-not-equal-pred string-is-equal-pred)))
+
 (defruled string-is-not-equal-pred-to-funspec
   (implies (and (equal prime (base-prime))
                 (string-typep s) (string-typep u)
@@ -956,13 +996,15 @@
                 (string-is-not-equal-pred sa sb ms rs fa fb mf rf out prime))
            (equal (pfield::sub 1 out prime)
                   (string-type-is-not-equal s u)))
-  :enable (string-is-not-equal-pred
-           string-type-is-not-equal
-           string-type-is-equal
-           values-b-not
-           values-bool-to-bit
-           values-b-and
-           values-field-lists-zip-equal))
+  :hints (("Goal"
+           :use (string-is-equal-pred-to-funspec
+                 string-is-not-equal-pred-is-string-is-equal-pred)
+           :in-theory (e/d (string-type-is-not-equal
+                            values-b-not
+                            bitp)
+                           (string-is-not-equal-pred
+                            string-is-equal-pred
+                            string-type-is-equal)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -978,8 +1020,69 @@
       nil
     (assert-bits-sum-zero-gadget excess)))
 
-(defruled identifier-from-bits-le-gadget-sound
+;; FALSE: excess = (repeat (base-prime) 'e0), asg = ((e0 . 1)): the bit sum is
+;; p = 0 mod p, so the constraint holds, but the bits are not all zero.
+;; (defruled identifier-from-bits-le-gadget-sound
+;;   (implies (and (symbol-listp excess)
+;;                 (equal p (base-prime))
+;;                 (r1cs::r1cs-valuationp asg p)
+;;                 (r1cs::valuation-binds-allp asg excess)
+;;                 (bit-listp (lookup-equal-list excess asg))
+;;                 (r1cs::r1cs-constraints-holdp
+;;                  (identifier-from-bits-le-gadget excess) asg p))
+;;            (values-bits-all-zero-p (lookup-equal-list excess asg)))
+;;   :enable (identifier-from-bits-le-gadget
+;;            assert-bits-sum-zero-gadget
+;;            val-sum-lc
+;;            values-bits-all-zero-p
+;;            r1cs::r1cs-constraint-holdsp
+;;            r1cs::dot-product
+;;            lookup-equal-list))
+
+(local
+ (defun val-bits-sum (xs)
+   (if (endp xs)
+       0
+     (+ (ifix (car xs)) (val-bits-sum (cdr xs))))))
+
+(local
+ (defruled dot-product-of-val-sum-lc
+   (implies (and (symbol-listp xs)
+                 (primep p)
+                 (r1cs::r1cs-valuationp asg p)
+                 (r1cs::valuation-binds-allp asg xs))
+            (equal (r1cs::dot-product (val-sum-lc xs) asg p)
+                   (mod (val-bits-sum (lookup-equal-list xs asg)) p)))
+   :induct (val-sum-lc xs)
+   :enable (val-sum-lc
+            r1cs::dot-product
+            lookup-equal-list
+            r1cs::valuation-binds-allp
+            pfield::add
+            acl2::mod-of-+-of-mod-arg2)))
+
+(local
+ (defthm natp-of-val-bits-sum
+   (implies (bit-listp l)
+            (natp (val-bits-sum l)))
+   :rule-classes :type-prescription))
+
+(local
+ (defruled val-bits-sum-bound
+   (implies (bit-listp l)
+            (<= (val-bits-sum l) (len l)))
+   :rule-classes :linear))
+
+(local
+ (defruled val-bits-sum-zero-iff-all-zero
+   (implies (bit-listp l)
+            (equal (equal (val-bits-sum l) 0)
+                   (values-bits-all-zero-p l)))
+   :enable values-bits-all-zero-p))
+
+(defruled identifier-from-bits-le-gadget-sound-bounded
   (implies (and (symbol-listp excess)
+                (< (len excess) (base-prime))
                 (equal p (base-prime))
                 (r1cs::r1cs-valuationp asg p)
                 (r1cs::valuation-binds-allp asg excess)
@@ -987,13 +1090,16 @@
                 (r1cs::r1cs-constraints-holdp
                  (identifier-from-bits-le-gadget excess) asg p))
            (values-bits-all-zero-p (lookup-equal-list excess asg)))
-  :enable (identifier-from-bits-le-gadget
-           assert-bits-sum-zero-gadget
-           val-sum-lc
-           values-bits-all-zero-p
-           r1cs::r1cs-constraint-holdsp
-           r1cs::dot-product
-           lookup-equal-list))
+  :hints (("Goal"
+           :use ((:instance val-bits-sum-bound
+                            (l (lookup-equal-list excess asg)))
+                 (:instance val-bits-sum-zero-iff-all-zero
+                            (l (lookup-equal-list excess asg))))
+           :in-theory (enable identifier-from-bits-le-gadget
+                              assert-bits-sum-zero-gadget
+                              dot-product-of-val-sum-lc
+                              r1cs::r1cs-constraint-holdsp
+                              r1cs::dot-product))))
 
 (defruled identifier-from-bits-le-gadget-complete
   (implies (and (symbol-listp excess)
@@ -1077,9 +1183,7 @@
                  (identifier-from-bits-be-gadget excess) asg p))
            (equal (identifier-literal-from-bits-be bits)
                   (identifier-literal-from-bits-le (rev bits))))
-  :enable (identifier-from-bits-be-gadget
-           identifier-from-bits-le-gadget-sound
-           identifier-literal-from-bits-be))
+  :enable identifier-literal-from-bits-be)
 
 (defruled identifier-from-bits-be-gadget-complete
   (implies (and (symbol-listp excess)

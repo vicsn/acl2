@@ -71,7 +71,8 @@
            boolean-check-gadget-list-to-bit-listp
            bit-listp-of-int->lebits-explicit
            int-new-spec
-           lebits->int-of-int->lebits))
+           int-valuep)
+  :use (:instance lebits->int-of-int->lebits (n (len xs))))
 
 (defconst *int-new-sample*
   '((b0 . 1) (b1 . 0)))

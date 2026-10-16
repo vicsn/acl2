@@ -93,7 +93,7 @@
                                     (pfield::sub 1 r p)
                                     p)
                        0))
-           (equal r (field-is-not-equal-funspec x y)))
+           (equal (field-is-not-equal-funspec x y) r))
   :hints (("Goal"
            :cases ((equal r 0))
            :in-theory (e/d (field-is-not-equal-funspec
@@ -112,7 +112,6 @@
                  (:instance pfield::mul-of-1-arg2
                             (x (pfield::sub x y p)))
                  (:instance pfield::mul-of-0-arg1
-                            (x (pfield::sub x y p))
                             (y m))))))
 
 (defruled prog-field-neq-gadget-sound
@@ -156,7 +155,7 @@
                                     (pfield::sub 1 r p)
                                     p)
                        0)
-                (equal r (field-is-not-equal-funspec x y))))
+                (equal (field-is-not-equal-funspec x y) r)))
   :hints (("Goal"
            :cases ((equal x y))
            :in-theory (e/d (field-is-not-equal-funspec
@@ -169,7 +168,6 @@
                  (:instance pfield::equal-of-0-and-sub
                             (x x) (y y) (p p))
                  (:instance pfield::mul-of-0-arg1
-                            (x (pfield::sub x y p))
                             (y m))
                  (:instance pfield::mul-of-0-arg2
                             (x (pfield::sub x y p)))))))
@@ -187,7 +185,7 @@
                            (pfield::inv x p))))
            (and (equal (pfield::mul x m p) r)
                 (equal (pfield::mul x (pfield::sub 1 r p) p) 0)
-                (equal r (field-is-not-equal-funspec x 0))))
+                (equal (field-is-not-equal-funspec x 0) r)))
   :hints (("Goal"
            :cases ((equal x 0))
            :in-theory (e/d (field-is-not-equal-funspec
@@ -196,7 +194,7 @@
                             pfield::mul-of-sub-arg1
                             pfield::mul-of-sub-arg2))
            :use ((:instance pfield::mul-of-inv-arg2 (x x))
-                 (:instance pfield::mul-of-0-arg1 (x x) (y m))
+                 (:instance pfield::mul-of-0-arg1 (y m))
                  (:instance pfield::mul-of-0-arg2 (x x))))))
 
 (defruled prog-field-neq-gadget-complete
@@ -265,11 +263,10 @@
            (equal (pfield::sub 1 (lookup-equal r asg) p)
                   (field-is-equal-funspec (lookup-equal x asg)
                                           (lookup-equal y asg))))
-  :enable (prog-field-neq-gadget-sound
-           prog-bit-not-is-sub
-           field-is-equal-funspec
-           field-is-not-equal-funspec
-           boolean-not-funspec))
+  :hints (("Goal"
+           :use (prog-field-neq-gadget-sound
+                 (:instance prog-bit-not-is-sub (r (lookup-equal r asg))))
+           :in-theory '(field-is-equal-funspec))))
 
 (defruled prog-field-eq-gadget-complete
   (implies (and (symbolp x) (symbolp y) (symbolp m) (symbolp r)
@@ -299,11 +296,10 @@
                 (equal (pfield::sub 1 (lookup-equal r asg) p)
                        (field-is-equal-funspec (lookup-equal x asg)
                                                (lookup-equal y asg)))))
-  :enable (prog-field-neq-gadget-complete
-           prog-bit-not-is-sub
-           field-is-equal-funspec
-           field-is-not-equal-funspec
-           boolean-not-funspec))
+  :hints (("Goal"
+           :use (prog-field-neq-gadget-complete
+                 (:instance prog-bit-not-is-sub (r (lookup-equal r asg))))
+           :in-theory '(field-is-equal-funspec bitp))))
 
 (defconst *prog-field-neq-sample-asg*
   '((x . 3) (y . 1) (m . 3) (r . 1)))
@@ -371,8 +367,8 @@
                                     p)
                        z))
            (and (bitp z)
-                (equal z (boolean-and-funspec (boolean-not-funspec ra)
-                                              (boolean-not-funspec rb)))))
+                (equal (boolean-and-funspec (boolean-not-funspec ra)
+                                              (boolean-not-funspec rb)) z)))
   :hints (("Goal"
            :cases ((equal ra 0) (equal rb 0))
            :in-theory (e/d (boolean-and-funspec
@@ -434,7 +430,7 @@
                 (bitp r)
                 (equal (pfield::mul z (pfield::sub 1 r p) p) w))
            (and (bitp w)
-                (equal w (boolean-and-funspec z (boolean-not-funspec r)))))
+                (equal (boolean-and-funspec z (boolean-not-funspec r)) w)))
   :hints (("Goal"
            :cases ((equal z 0) (equal r 0))
            :in-theory (e/d (boolean-and-funspec
@@ -501,7 +497,7 @@
                                     (pfield::sub 1 y p)
                                     p)
                        (pfield::sub 1 z p)))
-           (equal z (boolean-or-funspec x y)))
+           (equal (boolean-or-funspec x y) z))
   :hints (("Goal"
            :cases ((equal x 0) (equal y 0))
            :in-theory (e/d (boolean-or-funspec bitp pfield::sub pfield::mul)

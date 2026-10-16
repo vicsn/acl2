@@ -99,19 +99,12 @@
          (int-bitxor-gadget xs ys zs p))
   :enable (int-bitxor-assign-gadget int-bitxor-gadget))
 
-(defruled int-bitand-spec-agrees-with-assign
-  (equal (int-bitand-spec x y signedp n)
-         (int-bitand-spec x y signedp n)))
-
-(defruled int-bitor-spec-agrees-with-assign
-  (equal (int-bitor-spec x y signedp n)
-         (int-bitor-spec x y signedp n)))
-
-(defruled int-bitxor-spec-agrees-with-assign
-  (equal (int-bitxor-spec x y signedp n)
-         (int-bitxor-spec x y signedp n)))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defruledl int-bit-listp-when-equal-int->lebits
+  (implies (equal bits (int->lebits x n))
+           (bit-listp bits))
+  :enable bit-listp-of-int->lebits-explicit)
 
 (defruled int-bitand-gadget-to-bits
   (implies (and (primep p)
@@ -157,7 +150,8 @@
                   (int->lebits (int-bitand-spec x y signedp n) n)))
   :enable (int-bitand-gadget-to-bits
            int->lebits-of-int-bitand-spec
-           bit-listp-of-int->lebits-explicit))
+           bit-listp-of-int->lebits-explicit
+           int-bit-listp-when-equal-int->lebits))
 
 (defruled int-bitand-gadget-complete
   (implies (and (primep p)
@@ -182,7 +176,8 @@
             (int-bitand-gadget xs ys zs) asg p))
   :enable (int-bitand-gadget-to-bits
            int->lebits-of-int-bitand-spec
-           bit-listp-of-int->lebits-explicit))
+           bit-listp-of-int->lebits-explicit
+           int-bit-listp-when-equal-int->lebits))
 
 (defruled int-bitand-assign-gadget-sound
   (implies (and (primep p)
@@ -278,7 +273,8 @@
                   (int->lebits (int-bitor-spec x y signedp n) n)))
   :enable (int-bitor-gadget-to-bits
            int->lebits-of-int-bitor-spec
-           bit-listp-of-int->lebits-explicit))
+           bit-listp-of-int->lebits-explicit
+           int-bit-listp-when-equal-int->lebits))
 
 (defruled int-bitor-gadget-complete
   (implies (and (primep p)
@@ -303,7 +299,8 @@
             (int-bitor-gadget xs ys zs p) asg p))
   :enable (int-bitor-gadget-to-bits
            int->lebits-of-int-bitor-spec
-           bit-listp-of-int->lebits-explicit))
+           bit-listp-of-int->lebits-explicit
+           int-bit-listp-when-equal-int->lebits))
 
 (defruled int-bitor-assign-gadget-sound
   (implies (and (primep p)
@@ -399,7 +396,8 @@
                   (int->lebits (int-bitxor-spec x y signedp n) n)))
   :enable (int-bitxor-gadget-to-bits
            int->lebits-of-int-bitxor-spec
-           bit-listp-of-int->lebits-explicit))
+           bit-listp-of-int->lebits-explicit
+           int-bit-listp-when-equal-int->lebits))
 
 (defruled int-bitxor-gadget-complete
   (implies (and (primep p)
@@ -424,7 +422,8 @@
             (int-bitxor-gadget xs ys zs p) asg p))
   :enable (int-bitxor-gadget-to-bits
            int->lebits-of-int-bitxor-spec
-           bit-listp-of-int->lebits-explicit))
+           bit-listp-of-int->lebits-explicit
+           int-bit-listp-when-equal-int->lebits))
 
 (defruled int-bitxor-assign-gadget-sound
   (implies (and (primep p)

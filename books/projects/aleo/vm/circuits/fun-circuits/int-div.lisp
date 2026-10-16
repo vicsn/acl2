@@ -28,6 +28,7 @@
 (include-book "../r1cs/unsigned-small-div")
 
 (local (include-book "kestrel/arithmetic-light/truncate" :dir :system))
+(local (include-book "kestrel/arithmetic-light/mod" :dir :system))
 
 (include-book "projects/pfcs/convenience-constructors" :dir :system)
 (include-book "projects/pfcs/lifting" :dir :system)
@@ -172,16 +173,6 @@
   :returns (constrs r1cs::r1cs-constraint-listp :hyp :guard)
   (int-rem-wrapped-unsigned-gadget xs ys qs rs m ds d u p))
 
-(defthm int-div-checked-spec-agrees-with-div
-  (equal (int-div-checked-spec x y signedp n)
-         (int-div-checked-spec x y signedp n))
-  :rule-classes nil)
-
-(defthm int-rem-checked-spec-agrees-with-rem
-  (equal (int-rem-checked-spec x y signedp n)
-         (int-rem-checked-spec x y signedp n))
-  :rule-classes nil)
-
 (defruled int-modulo-unsigned-agrees-with-rem-wrapped
   (implies (not signedp)
            (equal (int-modulo-spec x y nil n)
@@ -192,6 +183,31 @@
   (implies signedp
            (equal (int-modulo-spec x y t n) (spec-error)))
   :enable int-modulo-spec)
+
+(defruledl lebits=>nat-of-int->lebits-when-unsigned
+  (implies (and (posp n)
+                (int-valuep x nil n))
+           (equal (lebits=>nat (int->lebits x n)) x))
+  :enable (lebits=>nat-of-int->lebits
+           int-valuep
+           int-min
+           int-max
+           acl2::mod-when-<))
+
+(defruledl int-wrapped-div-rem-unsigned
+  (implies (and (posp n)
+                (int-valuep x nil n)
+                (int-valuep y nil n)
+                (not (equal y 0)))
+           (and (equal (int-div-wrapped-spec x y nil n) (truncate x y))
+                (equal (int-rem-wrapped-spec x y nil n) (rem x y))))
+  :enable (int-div-wrapped-spec
+           int-rem-wrapped-spec
+           int-wrap
+           int-valuep
+           int-min
+           int-max
+           acl2::mod-when-<))
 
 (defruled int-unsigned-division-small-sound
   :short "Unsigned Euclidean soundness for widths other than 128."
@@ -236,20 +252,15 @@
                    (lebits=>nat (lookup-equal-list ys asg)))))
   :do-not-induct t
   :enable (int-unsigned-division-via-witness-gadget
-           int-div-wrapped-spec
-           int-rem-wrapped-spec
-           int-wrap
-           int-valuep
-           int-min
-           int-max
-           integer-widthp
+           int-wrapped-div-rem-unsigned
            integer-length-of-base-prime
-           int-width-div-fits
            posp-when-integer-widthp
-           lebits=>nat-of-int->lebits
+           lebits=>nat-of-int->lebits-when-unsigned
            bit-listp-of-int->lebits-explicit)
+  :disable (truncate rem floor mod)
   :use (unsigned-small-div-gadget-soundness
-        unsigned-small-div-gadget-euclidian))
+        unsigned-small-div-gadget-euclidian
+        int-width-div-fits))
 
 (defruled int-rem-checked-unsigned-agrees
   :short "For a nonzero unsigned divisor the checked remainder is the wrapped one."
@@ -756,17 +767,8 @@
    :hints (("Goal"
             :cases ((< x r))
             :do-not-induct t
-            :in-theory (disable mod floor))
-           ("Subgoal 1"
-            :use (:instance acl2::mod-when-<-of-0
-                            (x (- x r))
-                            (y p))
-            :in-theory (disable mod floor acl2::mod-when-<-of-0))
-           ("Subgoal 2"
-            :use (:instance acl2::mod-when-<
-                            (x (- x r))
-                            (y p))
-            :in-theory (disable mod floor acl2::mod-when-<)))))
+            :in-theory (e/d (acl2::mod-when-< acl2::mod-when-<-of-0)
+                            (mod floor))))))
 
 (defruled int-div-pred-to-euclid
   (implies (and (equal prime (base-prime))

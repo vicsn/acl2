@@ -39,6 +39,8 @@
 (include-book "projects/pfcs/r1cs-subset" :dir :system)
 
 (local (include-book "kestrel/prime-fields/prime-fields-rules" :dir :system))
+(local (include-book "kestrel/arithmetic-light/expt" :dir :system))
+(local (include-book "kestrel/arithmetic-light/mod" :dir :system))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -84,10 +86,6 @@
   :returns (constrs r1cs::r1cs-constraint-listp :hyp :guard)
   (int-mul-checked-unsigned-gadget xs ys zs p))
 
-(defruled int-mul-funspec-agrees
-  (equal (int-mul-checked-spec x y signedp n)
-         (int-mul-checked-spec x y signedp n)))
-
 (defruled int-mul-and-check-gadget-to-product
   (implies (and (primep p)
                 (symbol-listp xs) (symbol-listp ys) (symbol-listp zs)
@@ -111,9 +109,56 @@
            unsigned-small-mul-and-check-gadget
            boolean-check-gadget-list-to-bit-listp
            pow2sum-vector-to-mod-of-lebits=>nat
+           pfield::mul
            r1cs::r1cs-constraint-holdsp
            r1cs::dot-product
            r1cs::r1cs-constraints-holdp-of-append))
+
+(defruledl int-mul-product-below-double-width
+  (implies (and (natp x) (natp y)
+                (< x (expt 2 n))
+                (< y (expt 2 n)))
+           (< (* x y) (* (expt 2 n) (expt 2 n))))
+  :hints (("Goal" :nonlinearp t)))
+
+(defruledl int-mul-small-product-in-field
+  (implies (and (integer-widthp n)
+                (not (equal n 128))
+                (natp x)
+                (natp y)
+                (< x (expt 2 n))
+                (< y (expt 2 n)))
+           (< (* x y) (base-prime)))
+  :do-not-induct t
+  :hints (("Goal"
+           :use int-mul-product-below-double-width
+           :cases ((equal n 8) (equal n 16) (equal n 32) (equal n 64))
+           :in-theory (enable integer-widthp
+                              (:e expt)
+                              (:e base-prime)
+                              (:e ecurve::edwards-bls12-q)))))
+
+(defruledl lebits=>nat-of-int->lebits-when-unsigned
+  (implies (and (posp n)
+                (int-valuep x nil n))
+           (equal (lebits=>nat (int->lebits x n)) x))
+  :enable (lebits=>nat-of-int->lebits
+           int-valuep
+           int-min
+           int-max
+           acl2::mod-when-<))
+
+(defruledl lebits=>nat-when-lookup-is-int->lebits
+  (implies (and (equal (lookup-equal-list xs asg) (int->lebits x n))
+                (posp n)
+                (int-valuep x nil n))
+           (equal (lebits=>nat (lookup-equal-list xs asg)) x))
+  :enable lebits=>nat-of-int->lebits-when-unsigned)
+
+(defruledl bit-listp-when-lookup-is-int->lebits
+  (implies (equal (lookup-equal-list xs asg) (int->lebits x n))
+           (bit-listp (lookup-equal-list xs asg)))
+  :enable bit-listp-of-int->lebits-explicit)
 
 (defruled int-mul-checked-unsigned-small-sound
   :short "Unsigned only, and not 128-bit.  Not a full-width theorem."
@@ -139,16 +184,24 @@
            (and (not (equal (int-mul-checked-spec x y nil n) (spec-error)))
                 (equal (lebits=>nat (lookup-equal-list zs asg))
                        (int-mul-checked-spec x y nil n))))
+  :do-not-induct t
+  :use ((:instance int-mul-and-check-gadget-to-product (p (base-prime)))
+        (:instance int-mul-small-product-in-field (n (len xs)))
+        (:instance int-width-lt-prime-bits (n (len xs)))
+        (:instance lebits=>nat-less-when-len-less
+                   (bs (lookup-equal-list zs asg))
+                   (p (base-prime))))
   :enable (int-mul-checked-unsigned-gadget
-           int-mul-and-check-gadget-to-product
            int-mul-checked-spec
-           int-mul-and-check-spec
-           int-width-double-fits
-           lebits=>nat-of-int->lebits
-           bit-listp-of-int->lebits-explicit
+           lebits=>nat-when-lookup-is-int->lebits
+           bit-listp-when-lookup-is-int->lebits
+           integer-length-of-base-prime
+           posp-when-integer-widthp
+           acl2::mod-when-<
            int-valuep
            int-min
-           int-max))
+           int-max)
+  :disable (mod floor))
 
 (defruled int-mul-gadget-is-mul-checked
   (equal (int-mul-unsigned-gadget xs ys zs p)
@@ -291,6 +344,12 @@
             :pred int-mul-and-check-pred
             :prime prime)
 
+(defruledl int-width-double-below-data-bits
+  (implies (and (integer-widthp n)
+                (not (equal n 128)))
+           (< (* 2 n) 252))
+  :enable integer-widthp)
+
 (defruled int-mul-and-check-pred-to-funspec
   :short "Unsigned, product below the field, not the 128-bit Karatsuba case."
   (implies (and (equal prime (base-prime))
@@ -308,6 +367,10 @@
                        (equal z (int-mul-and-check-spec x y nil n)))))
   :enable (int-mul-and-check-pred
            int-mul-and-check-spec
+           pfield::mul
+           acl2::mod-when-<
+           posp-when-integer-widthp
+           int-width-double-below-data-bits
            int-spec-field-data-bits
            base-field-size-in-bits
            int-spec-unsigned
@@ -363,9 +426,29 @@
                                             pfcs::r1cs-polynomialp
                                             pfcs::r1cs-monomialp))))))
 
-(pfcs::lift (int-mul-with-flags-circuit)
-            :pred int-mul-with-flags-pred
-            :prime prime)
+; pfcs::lift proves its theorem in a fixed theory without fep-of-mul.
+; Here the first constraint binds the free pxy to (mul x y prime), so the
+; only-if lemma needs that rule.  This is pfcs::lift with it added.
+
+(local
+ (defun int-subst-equal (new old tree)
+   (declare (xargs :guard t))
+   (cond ((equal tree old) new)
+         ((atom tree) tree)
+         (t (cons (int-subst-equal new old (car tree))
+                  (int-subst-equal new old (cdr tree)))))))
+
+(make-event
+ (int-subst-equal '((:e no-duplicatesp-equal)
+                    (:e pfcs::namep)
+                    pfield::fep-of-mul
+                    acl2::primep-forward-to-posp)
+                  '((:e no-duplicatesp-equal)
+                    (:e pfcs::namep))
+                  (pfcs::lift-fn (int-mul-with-flags-circuit)
+                                 'int-mul-with-flags-pred
+                                 'prime
+                                 state)))
 
 ; pxy is free in the definition, so the lifted predicate quantifies it.
 ; The small-width flag agrees with int-mul-with-flags-spec only when that

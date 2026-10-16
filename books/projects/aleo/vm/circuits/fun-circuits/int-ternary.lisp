@@ -22,6 +22,8 @@
 (include-book "projects/pfcs/parser-interface" :dir :system)
 (include-book "projects/pfcs/r1cs-subset" :dir :system)
 
+(local (include-book "kestrel/prime-fields/prime-fields-rules" :dir :system))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define int-ternary-gadget ((c symbolp)
@@ -148,4 +150,9 @@
                 (< z (base-prime)))
            (equal (int-ternary-pred c x y z prime)
                   (equal z (int-ternary-spec c x y nil 8))))
-  :enable (int-ternary-pred int-ternary-spec))
+  :enable (int-ternary-pred
+           int-ternary-spec
+           int-valuep
+           int-min
+           int-max
+           pfield::fep))

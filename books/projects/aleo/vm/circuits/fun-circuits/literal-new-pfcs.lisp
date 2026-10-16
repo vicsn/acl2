@@ -19,9 +19,9 @@
 ; the abstract equality, not a constraint emitted here.
 ;
 ; R1CS-SOUND is in literal-new-r1cs.lisp and identifier-list-sound.lisp.
-; R1CS-COMPLETE stays open: the cofactor witness and the comparison-chain
-; witness are not constructed, and a string longer than u32 is a host
-; halt rather than an unsatisfiable constraint (fun-specs/README.md).
+; R1CS-COMPLETE stays open: the cofactor witness is not constructed, and
+; the string arm is out of scope because a string longer than u32 is a
+; host halt rather than an unsatisfiable constraint (fun-specs/README.md).
 
 (in-package "ALEOVM")
 

@@ -662,6 +662,98 @@
             (:e base-prime)
             (:e scalar-modulus-minus-one-bits)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; The patched Scalar::new (scalar-new-r1cs.lisp) is the boolean checks, the
+; weighted sum, and the 251-bit Scalar::from_bits_le range check.  For a
+; scalar, its bits and the canonical fold witness satisfy all three.
+
+(defruledl sfb-scalar-prime-below-2^251
+  (< (scalar-prime) (expt 2 251))
+  :in-theory '((:e scalar-prime)
+               (:e expt)
+               (:e <)
+               (:e ecurve::edwards-bls12-r)))
+
+(defruledl sfb-scalar-bits-facts
+  (implies (scalarp s)
+           (b* ((bits (scalar-bits-le s)))
+             (and (bit-listp bits)
+                  (equal (len bits) 251)
+                  (equal (lebits=>nat bits) s)
+                  (equal (sfb-low-bits bits) bits)
+                  (not (reserrp (scalar-from-bits-le-funspec bits)))
+                  (equal (mod s (base-prime)) s))))
+  :do-not-induct t
+  :use (sfb-scalar-prime-below-2^251
+        scalar-prime-less-than-base-prime
+        (:instance acl2::lebits=>nat-of-nat=>lebits (width 251) (nat s))
+        (:instance sfb-funspec-long (bits (scalar-bits-le s))))
+  :enable (scalar-bits-le
+           scalarp
+           pfield::fep
+           pfield::fep-fix-when-fep
+           sfb-scalar-field-size
+           sfb-low-bits)
+  :disable (acl2::lebits=>nat-of-nat=>lebits
+            sfb-funspec-long
+            (:e scalar-prime)
+            (:e base-prime)
+            (:e expt)))
+
+(defruledl sfb-scalar-new-gadget-split
+  (implies (and (symbol-listp xs)
+                (equal (len xs) 251))
+           (equal (r1cs::r1cs-constraints-holdp
+                   (scalar-new-gadget s xs rs p) asg p)
+                  (and (r1cs::r1cs-constraints-holdp
+                        (boolean-check-gadget-list xs p) asg p)
+                       (r1cs::r1cs-constraints-holdp
+                        (pow2sum-gadget s xs) asg p)
+                       (r1cs::r1cs-constraints-holdp
+                        (scalar-from-bits-le-gadget xs rs p) asg p))))
+  :enable (scalar-new-gadget
+           scalar-from-bits-le-gadget
+           sfb-take-all))
+
+(defruled scalar-new-gadget-complete
+  :short "R1CS-COMPLETE of the patched @('Scalar::new'): the bits of a
+          scalar and the canonical @('bits-lte-const') fold witness satisfy
+          @(tsee scalar-new-gadget)."
+  (implies (and (equal p (base-prime))
+                (symbolp s)
+                (symbol-listp xs)
+                (symbol-listp rs)
+                (equal (len xs) 251)
+                (equal (len rs) 250)
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg s)
+                (r1cs::valuation-binds-allp asg xs)
+                (r1cs::valuation-binds-allp asg rs)
+                (scalarp (lookup-equal s asg))
+                (equal (lookup-equal-list xs asg)
+                       (scalar-bits-le (lookup-equal s asg)))
+                (equal (lookup-equal-list rs asg)
+                       (crv-bits-lte-const-witness
+                        (lookup-equal-list xs asg)
+                        (scalar-modulus-minus-one-bits))))
+           (r1cs::r1cs-constraints-holdp
+            (scalar-new-gadget s xs rs p) asg p))
+  :do-not-induct t
+  :use ((:instance sfb-scalar-bits-facts (s (lookup-equal s asg)))
+        (:instance sfb-le-witness-holds)
+        (:instance boolean-check-gadget-list-to-bit-listp)
+        (:instance pow2sum-gadget-to-equal-of-mod-of-lebits=>nat (x s)))
+  :enable (sfb-scalar-new-gadget-split
+           primep-of-base-prime)
+  :disable (sfb-scalar-bits-facts
+            sfb-le-witness-holds
+            boolean-check-gadget-list-to-bit-listp
+            pow2sum-gadget-to-equal-of-mod-of-lebits=>nat
+            (:e scalar-prime)
+            (:e base-prime)
+            (:e scalar-modulus-minus-one-bits)))
+
 ; R1CS-SOUND stays 0.  bit-listp is assumed, not derived from the constraints.
 
 (defruled scalar-from-bits-le-gadget-implies-funspec

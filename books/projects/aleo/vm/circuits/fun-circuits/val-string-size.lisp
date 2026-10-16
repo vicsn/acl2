@@ -246,9 +246,8 @@
                  (string-type-from-bits-le-gadget k size) asg p))
            (equal (string-type-from-bits-le bits)
                   (make-string-type :bytes (values-lebits-to-bytes bits))))
-  :enable (string-type-from-bits-le-gadget
-           string-type-inject-size-gadget-sound
-           string-type-from-bits-le))
+  :enable (string-type-from-bits-le
+           string-type-inject-size-in-bytes))
 
 (defruled string-type-from-bits-le-gadget-complete
   (implies (and (bit-listp bits)
@@ -334,9 +333,8 @@
                  (string-type-from-bits-be-gadget k size) asg p))
            (equal (string-type-from-bits-be bits)
                   (make-string-type :bytes (values-bebits-to-bytes bits))))
-  :enable (string-type-from-bits-be-gadget
-           string-type-inject-size-gadget-sound
-           string-type-from-bits-be))
+  :enable (string-type-from-bits-be
+           string-type-inject-size-in-bytes))
 
 (defruled string-type-from-bits-be-gadget-complete
   (implies (and (bit-listp bits)

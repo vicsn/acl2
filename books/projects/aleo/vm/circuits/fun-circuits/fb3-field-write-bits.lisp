@@ -22,6 +22,7 @@
 (in-package "ALEOVM")
 
 (include-book "fb2-field-bits")
+(include-book "../r1cs/boolean-xor")
 (include-book "kestrel/prime-fields/bitp-idioms" :dir :system)
 (include-book "std/lists/nthcdr" :dir :system)
 (include-book "std/lists/take" :dir :system)
@@ -51,7 +52,7 @@
 
 (defrule fb3-base-prime-above-16
   (< 16 (base-prime))
-  :rule-classes :linear
+  :rule-classes ((:linear :trigger-terms ((base-prime))))
   :hints (("Goal" :use fb3-base-prime-above-16-exec)))
 
 (local (in-theory (enable (:e base-prime))))
@@ -490,6 +491,16 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defruled fb3-mod-when-fieldp
+  (implies (fieldp x)
+           (equal (mod x primes::*bls12-377-scalar-field-prime*) x))
+  :enable (fieldp base-prime))
+
+(defruled fb3-integerp-when-fieldp
+  (implies (fieldp x)
+           (integerp x))
+  :enable fieldp)
+
 (define fb3-field-write-bits-le-3-circuit ()
   :returns (pdef pfcs::definitionp)
   :short "Three-bit PFCS for @('Field::write_bits_le').
@@ -540,7 +551,7 @@
                        (equal z1 (bitand b2 z0))
                        (equal (list b0 b1 b2)
                               (take 3 (field-write-bits-le-funspec nil x)))
-                       (< x 5)))
+                       (< x 5))))
   :enable (fb3-field-write-bits-le-3-pred
            fb3-bool-check-is-bitp
            fb3-unit-is-one
@@ -549,8 +560,10 @@
            fb3-or-is-bitor
            fb3-mul-is-bitand
            fb3-bits-match-write-bits-le
-           fb3-three-bits-below-5)
-  :disable (bitp fieldp)))
+           fb3-three-bits-below-5
+           fb3-mod-when-fieldp
+           fb3-integerp-when-fieldp)
+  :disable (bitp fieldp))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -605,7 +618,7 @@
                        (equal (list w0 w1 w2)
                               (nthcdr 250
                                       (field-write-bits-be-funspec nil x)))
-                       (< x 5)))
+                       (< x 5))))
   :enable (fb3-field-write-bits-be-3-pred
            fb3-bool-check-is-bitp
            fb3-unit-is-one
@@ -614,5 +627,7 @@
            fb3-or-is-bitor
            fb3-mul-is-bitand
            fb3-bits-match-write-bits-be
-           fb3-three-bits-below-5)
-  :disable (bitp fieldp)))
+           fb3-three-bits-below-5
+           fb3-mod-when-fieldp
+           fb3-integerp-when-fieldp)
+  :disable (bitp fieldp))

@@ -68,6 +68,9 @@
 (local (include-book "kestrel/arithmetic-light/expt" :dir :system))
 (local (include-book "kestrel/arithmetic-light/mod" :dir :system))
 (local (include-book "kestrel/arithmetic-light/integer-length" :dir :system))
+(local (include-book "kestrel/utilities/typed-lists/bit-listp" :dir :system))
+(local (include-book "std/typed-lists/symbol-listp" :dir :system))
+(local (include-book "projects/pfcs/r1cs-lib-ext" :dir :system))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -115,6 +118,17 @@
            boolean-check-gadget-list-to-bit-listp
            pow2sum-gadget-to-equal-of-mod-of-lebits=>nat))
 
+(defruled fb-mod-lebits=>nat-when-field-bits-le
+  (implies (and (equal bs (field-bits-le x))
+                (fieldp x))
+           (equal (mod (lebits=>nat bs) (base-prime))
+                  x))
+  :enable (field-bits-le
+           fb-integer-length-of-base-prime
+           fb-base-prime-below-2-253
+           fieldp
+           acl2::lebits=>nat-of-nat=>lebits))
+
 (defruled fb-field-to-non-unique-bits-le-gadget-complete
   :short "The canonical 253 bits satisfy the gadget.  They are not the
           only solution; see bugs-fb.txt."
@@ -131,16 +145,12 @@
                         (lookup-equal x asg))))
            (r1cs::r1cs-constraints-holdp
             (fb-field-to-non-unique-bits-le-gadget x bits p) asg p))
+  :do-not-induct t
   :enable (fb-field-to-non-unique-bits-le-gadget-to-mod
-           field-to-non-unique-bits-le-funspec
-           field-bits-le
-           fb-integer-length-of-base-prime
-           fb-base-prime-below-2-253
-           fieldp
-           pfield::fep-fix-when-fep
-           acl2::lebits=>nat-of-nat=>lebits
-           acl2::bit-listp-of-nat=>lebits
-           acl2::len-of-nat=>lebits))
+           field-to-non-unique-bits-le-funspec)
+  :use (:instance fb-mod-lebits=>nat-when-field-bits-le
+                  (bs (lookup-equal-list bits asg))
+                  (x (lookup-equal x asg))))
 
 ; Prime 5, value 1, bits (1 0 0).  1 = 1 + 2*0 + 4*0.
 
@@ -192,6 +202,23 @@
            boolean-check-gadget-list-to-bit-listp
            pow2sum-gadget-to-equal-of-mod-of-lebits=>nat))
 
+(defruled fb-nat=>lebits-when-lebits=>nat
+  (implies (and (equal v (lebits=>nat bs))
+                (bit-listp bs))
+           (equal (acl2::nat=>lebits (len bs) v) bs))
+  :enable (acl2::nat=>lebits-of-lebits=>nat
+           acl2::bit-list-fix))
+
+(defruled fb-nat=>lebits-when-mod-lebits=>nat
+  (implies (and (equal v (mod (lebits=>nat bs) p))
+                (bit-listp bs)
+                (posp p)
+                (< (expt 2 (len bs)) p))
+           (and (< v (expt 2 (len bs)))
+                (equal (acl2::nat=>lebits (len bs) v) bs)))
+  :enable (acl2::nat=>lebits-of-lebits=>nat
+           acl2::bit-list-fix))
+
 (defruled fb-field-to-lower-bits-le-gadget-sound
   (implies (and (symbolp x)
                 (symbol-listp bits)
@@ -208,14 +235,15 @@
                  (fb-field-to-lower-bits-le-gadget x bits p) asg p))
            (equal (lookup-equal-list bits asg)
                   (field-to-lower-bits-le-funspec (lookup-equal x asg) k)))
+  :do-not-induct t
   :enable (fb-field-to-lower-bits-le-gadget-to-mod
            field-to-lower-bits-le-funspec
            base-field-size-in-bits
            fieldp
-           pfield::fep-fix-when-fep
-           acl2::lebits=>nat-upper-bound
-           acl2::nat=>lebits-of-lebits=>nat
-           acl2::bit-list-fix))
+           pfield::fep-fix-when-fep)
+  :use (:instance fb-nat=>lebits-when-mod-lebits=>nat
+                  (v (lookup-equal x asg))
+                  (bs (lookup-equal-list bits asg))))
 
 (defruled fb-field-to-lower-bits-le-gadget-complete
   (implies (and (symbolp x)
@@ -251,6 +279,17 @@
           @('bits') here are the big-endian output."
   (fb-field-to-lower-bits-le-gadget x (rev bits) p))
 
+(defthm fb-equal-rev-when-rev-equal
+  (implies (and (equal (rev a) b)
+                (true-listp a))
+           (equal a (rev b)))
+  :rule-classes nil)
+
+(defruled fb-not-reserrp-when-bit-listp
+  (implies (bit-listp x)
+           (not (reserrp x)))
+  :enable (reserrp bit-listp))
+
 (defruled fb-field-to-lower-bits-be-gadget-sound
   (implies (and (symbolp x)
                 (symbol-listp bits)
@@ -267,12 +306,19 @@
                  (fb-field-to-lower-bits-be-gadget x bits p) asg p))
            (equal (lookup-equal-list bits asg)
                   (field-to-lower-bits-be-funspec (lookup-equal x asg) k)))
+  :do-not-induct t
   :enable (fb-field-to-lower-bits-be-gadget
            field-to-lower-bits-be-funspec
-           field-to-lower-bits-le-funspec
-           lookup-equal-list-of-rev)
-  :use (:instance fb-field-to-lower-bits-le-gadget-sound
-                  (bits (rev bits))))
+           lookup-equal-list-of-rev
+           fb-not-reserrp-when-bit-listp)
+  :use ((:instance fb-field-to-lower-bits-le-gadget-sound
+                   (bits (rev bits)))
+        (:instance fb-field-to-lower-bits-le-gadget-to-mod
+                   (bits (rev bits)))
+        (:instance fb-equal-rev-when-rev-equal
+                   (a (lookup-equal-list bits asg))
+                   (b (field-to-lower-bits-le-funspec
+                       (lookup-equal x asg) k)))))
 
 (defruled fb-field-to-lower-bits-be-gadget-complete
   (implies (and (symbolp x)
@@ -292,11 +338,12 @@
                         (lookup-equal x asg) k)))
            (r1cs::r1cs-constraints-holdp
             (fb-field-to-lower-bits-be-gadget x bits p) asg p))
+  :do-not-induct t
   :enable (fb-field-to-lower-bits-be-gadget
-           fb-field-to-lower-bits-le-gadget-complete
            field-to-lower-bits-be-funspec
-           field-to-lower-bits-le-funspec
-           lookup-equal-list-of-rev))
+           lookup-equal-list-of-rev)
+  :use (:instance fb-field-to-lower-bits-le-gadget-complete
+                  (bits (rev bits))))
 
 (define fb-field-to-lower-bits-le-2-circuit ()
   :returns (pdef pfcs::definitionp)
@@ -330,6 +377,7 @@
                        (bitp b1)
                        (equal (list b0 b1)
                               (field-to-lower-bits-le-funspec x 2)))))
+  :cases ((equal x 0) (equal x 1) (equal x 2) (equal x 3))
   :enable (fb-field-to-lower-bits-le-2-pred
            field-to-lower-bits-le-funspec
            base-field-size-in-bits
@@ -427,12 +475,15 @@
                                 (mod (* (expt 2 (- n k))
                                         (lebits=>nat le$))
                                      p))))))
+  :do-not-induct t
   :enable (fb-field-to-upper-bits-be-gadget
            boolean-check-gadget-list-to-bit-listp
            r1cs::r1cs-constraint-holdsp
            r1cs::dot-product
-           pow2sum-vector-to-mod-of-lebits=>nat
-           lookup-equal-list-of-rev))
+           lookup-equal-list-of-rev)
+  :use (:instance pow2sum-vector-to-mod-of-lebits=>nat
+                  (xs (rev bits))
+                  (i (- n k))))
 
 ; Prime 5 has bit length 3.  Upper 1 bit of 4 = 100b is 1.
 ; Coefficient 2^(3-1) = 4.
@@ -518,7 +569,10 @@
            r1cs::fep-of-lookup-equal
            acl2::nat=>lebits-of-lebits=>nat
            acl2::bit-list-fix)
-  :use field-to-bits-soundness)
+  :use ((:instance field-to-bits-soundness (xs bits))
+        (:instance fb-nat=>lebits-when-lebits=>nat
+                   (v (lookup-equal x asg))
+                   (bs (lookup-equal-list bits asg)))))
 
 (define fb-field-write-bits-be-gadget ((x symbolp)
                                        (bits symbol-listp)
@@ -532,6 +586,12 @@
   :short "Constraints of @('Field::write_bits_be'): the little-endian
           gadget.  The written bits are that list reversed."
   (fb-field-write-bits-le-gadget x bits rs u p))
+
+(defthm fb-append-rev-of-equal
+  (implies (equal a b)
+           (equal (append acc (rev a))
+                  (append acc (rev b))))
+  :rule-classes nil)
 
 (defruled fb-field-write-bits-be-gadget-sound
   (implies (and (symbolp x)
@@ -554,10 +614,14 @@
                  (fb-field-write-bits-be-gadget x bits rs u p) asg p))
            (equal (append acc (rev (lookup-equal-list bits asg)))
                   (field-write-bits-be-funspec acc (lookup-equal x asg))))
+  :do-not-induct t
   :enable (fb-field-write-bits-be-gadget
-           fb-field-write-bits-le-gadget-sound
            field-write-bits-be-funspec
-           field-write-bits-le-funspec))
+           field-write-bits-le-funspec)
+  :use ((:instance fb-field-write-bits-le-gadget-sound (acc nil))
+        (:instance fb-append-rev-of-equal
+                   (a (lookup-equal-list bits asg))
+                   (b (field-bits-le (lookup-equal x asg))))))
 
 ; Value 1 at prime 5.  Bits (1 0 0).  Range-check witnesses z0 = 1, z1 = 0.
 
@@ -612,7 +676,10 @@
                          (bits-lte-const-check-rlen (nat=>lebits* (1- p)))
                        0)))
   :verify-guards nil
-  :returns (constrs r1cs::r1cs-constraint-listp :hyp :guard)
+  :returns (constrs r1cs::r1cs-constraint-listp
+                    :hyp :guard
+                    :hints (("Goal" :do-not-induct t
+                             :in-theory (enable nat=>lebits*-msb-is-1))))
   :short "Constraints of @('Field::from_bits_le').
           The weighted sum is the result linear combination."
   (b* ((size (integer-length p)))
