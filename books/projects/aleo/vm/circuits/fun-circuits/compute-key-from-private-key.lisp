@@ -20,7 +20,7 @@
 ; with g_powers()[i] = 2^i G.
 ;
 ; g-scalar-window is that fold.  g-scalar-window-of-scalar-from-zero
-; equates it to edwards-bls12-mul under twisted-edwards-add-associativity.
+; equates it to edwards-bls12-mul using twisted-edwards-add-associativity-holds.
 ; compute-key-from-private-key-is-scalar-windows applies the fold to both
 ; scalars and then compute-key-from-funspec, whose third component is the
 ; abstract Poseidon hash of the two x coordinates.
@@ -38,6 +38,7 @@
 
 (include-book "../fun-specs/curve-account")
 (include-book "../fun-specs/primitives-scalar")
+(include-book "../edwards-assoc/twisted-edwards-associativity")
 
 (local (include-book "kestrel/arithmetic-light/expt" :dir :system))
 (local (include-book "kestrel/arithmetic-light/times" :dir :system))
@@ -102,8 +103,7 @@
 (defruled g-scalar-window-step-acc
   :short "One ternary of @('acc + 2^i G') against @('acc') is multiplication
           by @('a + bit * 2^i'), using associativity only when the bit is 1."
-  (implies (and (ecurve::twisted-edwards-add-associativity)
-                (bitp b)
+  (implies (and (bitp b)
                 (natp a)
                 (natp i))
            (equal (group-ternary-funspec
@@ -163,8 +163,7 @@
 (defruled g-scalar-window-is-mul
   :short "The little-endian window, started at @('a G'), is
           @('(a + value(bits) * 2^i) G')."
-  (implies (and (ecurve::twisted-edwards-add-associativity)
-                (bit-listp bits)
+  (implies (and (bit-listp bits)
                 (natp a)
                 (natp i))
            (equal (g-scalar-window
@@ -211,10 +210,8 @@
 
 (defruled g-scalar-window-of-scalar-from-zero
   :short "Aleo::g_scalar_multiply's fold of a scalar's own bits, from
-          @('Group::zero()'), is @('s G').  Associativity is the only
-          hypothesis beyond @('scalarp')."
-  (implies (and (ecurve::twisted-edwards-add-associativity)
-                (scalarp s))
+          @('Group::zero()'), is @('s G').  The only hypothesis is @('scalarp')."
+  (implies (and (scalarp s))
            (equal (g-scalar-window (scalar-bits-le s)
                                    0
                                    (ecurve::twisted-edwards-zero))
@@ -231,8 +228,7 @@
 (defruled compute-key-from-private-key-is-scalar-windows
   :short "The two windows, then @('compute-key-from-funspec'), are
           @(tsee compute-key-from-private-key-funspec)."
-  (implies (and (ecurve::twisted-edwards-add-associativity)
-                (scalarp sk-sig)
+  (implies (and (scalarp sk-sig)
                 (scalarp r-sig))
            (equal (compute-key-from-funspec
                    (g-scalar-window (scalar-bits-le sk-sig)
