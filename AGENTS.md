@@ -7,7 +7,7 @@ Circuit work is recorded in two places that must move together:
 
 ## Status table
 
-Do not hand-edit flag columns in the CSV. `aleovm_circuit_functions_scan.py` regenerates the file from the snarkVM `circuit/` tree, from `ACL2_MODELS`, from `aleovm_circuit_function_funspec_map.tsv` (FUN-SPEC only), and from `aleovm_circuit_function_circspec_map.tsv` (the five circuit flags).
+Do not hand-edit flag columns in the CSV. `aleovm_circuit_functions_scan.py` regenerates the file from the snarkVM `circuit/` tree, from `ACL2_MODELS`, from `aleovm_circuit_function_funspec_map.tsv` (FUN-SPEC only), and from `aleovm_circuit_function_circspec_map.tsv` (the five circuit flags and `R1CS-SOUND-IF`).
 
 ```
 python3 aleovm_circuit_functions_scan.py <snarkVM>/circuit aleovm_circuit_function_formalisation_status.csv
@@ -27,7 +27,8 @@ The columns mean:
 
 - **R1CS-SPEC / PFCS-SPEC.** The formal constraints are the ones snarkVM emits. A fully constant triple is checked by the host and is not a constraint. Boolean NOT and field addition are linear combinations; do not add a constraint for them. A PFCS definition that lowers to that R1CS discharges both columns.
 - **R1CS-SAMPLES.** `python3 aleovm_sample_circuits.py --snarkvm <snarkVM>` rebuilds the scope dumps and checks their shapes. The sampler lives on `github.com/vicsn/snarkVM` branch `aleovm-scope-samples` and in `books/projects/aleo/vm/snarkVM-sample.patch` (plus `snarkVM-literal-new-sample.patch`). Where the formal circuit is a fix of snarkVM, the fix is a patch next to them (`snarkVM-scalar-new-range-check.patch`) and the checks only pass on the patched tree.
-- **R1CS-SOUND.** Every satisfying assignment of the formal circuit has I/O that matches the funspec. State it over the wires: build the output from the values in the assignment, prove the type predicate of those values (a constructor that fixes its argument hides an out-of-range wire), and prove the funspec returns that output. A theorem that takes a well-typed literal as a hypothesis is not R1CS-SOUND. To show a gap in snarkVM, prove a satisfying assignment of the unpatched gadget whose output fails the type predicate.
+- **R1CS-SOUND.** Every satisfying assignment of the formal circuit has I/O that matches the funspec. State it over the wires: build the output from the values in the assignment, prove the type predicate of those values (a constructor that fixes its argument hides an out-of-range wire), and prove the funspec returns that output. A theorem that takes a well-typed literal as a hypothesis is not unconditional R1CS-SOUND. To show a gap in snarkVM, prove a satisfying assignment of the unpatched gadget whose output fails the type predicate.
+- **R1CS-SOUND-IF.** Copied from the circspec map. It is not a 0/1 flag. Empty, with R1CS-SOUND 1, means the theorem is unconditional. A non-empty cell names the prior circuit that already constrained the same value, and R1CS-SOUND is then 1 only together with that circuit. The cell stays empty, and R1CS-SOUND stays 0, when no such circuit discharges the hypothesis. A mathematical hypothesis such as `edwards-bls12-cofactor-clears` is not a circuit conjunction. An incomplete proof (multiplication, exponentiation, shifts, signed or 128-bit division) stays 0 even if `Integer::new` would type the inputs.
 - **R1CS-COMPLETE.** Every funspec input that returns a value has a satisfying assignment, and an input on which the funspec returns `(spec-error)` has none.
 
 Higher-level gadgets call the lower-level ones (`boolean-check-gadget`, `boolean-check-gadget-list`, `enforce-gadget`, `assert-eq-gadget`, `assert-gadget`, and the gadgets under `fun-circuits/`) instead of restating them.
