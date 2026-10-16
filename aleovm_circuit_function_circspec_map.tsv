@@ -346,7 +346,7 @@ account	ComputeKey	Inject	new	0	0	0	0	0
 account	ComputeKey	Ternary	ternary	1	1	1	0	1			crv-ternary.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
 account	ComputeKey	ToBits	write_bits_be	0	0	0	0	0			
 account	ComputeKey	ToBits	write_bits_le	0	0	0	0	0			
-account	ComputeKey	ToFields	to_fields	1	1	1	0	1			crv-project.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+account	ComputeKey	ToFields	to_fields	1	1	1	1	1			crv-project.lisp; progx-account-to-fields.lisp: progx-compute-key-to-fields-sound and progx-compute-key-to-fields-complete over the wires with no type hypothesis (no constraints; the funspec reads only the x-coordinates of pk_sig, pr_sig, never sk_prf)
 account	PrivateKey		to_compute_key	0	0	0	0	0			
 account	PrivateKey		to_view_key	0	0	0	0	0			
 account	Signature		verify	0	0	0	0	0			
@@ -358,7 +358,7 @@ account	Signature	Inject	new	0	0	0	0	0
 account	Signature	Ternary	ternary	1	1	1	0	0			crv-ternary.lisp
 account	Signature	ToBits	write_bits_be	0	0	0	0	0			
 account	Signature	ToBits	write_bits_le	0	0	0	0	0			
-account	Signature	ToFields	to_fields	1	1	1	0	1			crv-project.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+account	Signature	ToFields	to_fields	1	1	1	1	1			crv-project.lisp; progx-account-to-fields.lisp: progx-signature-to-fields-sound and progx-signature-to-fields-complete over the wires with no type hypothesis (no constraints; the funspec reads only the x-coordinates of pk_sig, pr_sig and the challenge and response wires, never sk_prf)
 account	ViewKey		from_private_key	0	0	0	0	0			
 account	ViewKey		to_address	0	0	0	0	0			
 types/address	Address	Compare	is_greater_than	1	0	0	1	0	Address::new on each address input (public unit wire 1)		crv-compare.lisp; fsa-address-compare.lisp: fsa-address-is-greater-than-wire-sound states the result wire equals the funspec; the x-coordinate bits and every comparator wire are forced to bits by the constraints (no internal bitp hypothesis); the inputs are the x-coordinates of edwards-bls12-pointp points, which Address::new establishes; public unit wire 1. Completeness not proved
