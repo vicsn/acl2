@@ -434,12 +434,12 @@
 ; IdentifierLiteral::is_equal is Field::is_equal of the two to_field values.
 ; The result bit is 1 - r.
 
-(define identifier-is-equal-gadget ((x symbolp) (y symbolp)
+(define idlit-is-equal-gadget ((x symbolp) (y symbolp)
                                    (m symbolp) (r symbolp) (p primep))
   :returns (constrs r1cs::r1cs-constraint-listp :hyp :guard)
   (field-var-is-equal-gadget x y m r p))
 
-(defruled identifier-is-equal-gadget-sound
+(defruled idlit-is-equal-gadget-sound
   (implies (and (symbolp x) (symbolp y) (symbolp m) (symbolp r)
                 (identifier-literalp a) (identifier-literalp b)
                 (equal p (base-prime))
@@ -452,17 +452,17 @@
                 (equal (lookup-equal y asg) (identifier-literal-to-field b))
                 (bitp (lookup-equal r asg))
                 (r1cs::r1cs-constraints-holdp
-                 (identifier-is-equal-gadget x y m r p) asg p))
+                 (idlit-is-equal-gadget x y m r p) asg p))
            (equal (pfield::sub 1 (lookup-equal r asg) p)
                   (identifier-literal-is-equal a b)))
   :hints (("Goal"
            :use (:instance field-var-is-equal-gadget-sound (a x) (b y))
-           :in-theory (e/d (identifier-is-equal-gadget
+           :in-theory (e/d (idlit-is-equal-gadget
                             identifier-literal-is-equal
                             values-bool-to-bit)
                            (field-var-is-equal-gadget)))))
 
-(defruled identifier-is-equal-gadget-complete
+(defruled idlit-is-equal-gadget-complete
   (implies (and (symbolp x) (symbolp y) (symbolp m) (symbolp r)
                 (equal p (base-prime))
                 (r1cs::r1cs-valuationp asg p)
@@ -483,18 +483,18 @@
                                                    p)
                                       p))))
            (r1cs::r1cs-constraints-holdp
-            (identifier-is-equal-gadget x y m r p) asg p))
-  :enable (identifier-is-equal-gadget field-var-is-equal-gadget-complete))
+            (idlit-is-equal-gadget x y m r p) asg p))
+  :enable (idlit-is-equal-gadget field-var-is-equal-gadget-complete))
 
-(defconst *identifier-is-equal-sample*
+(defconst *idlit-is-equal-sample*
   '((x . 4) (y . 4) (m . 0) (r . 0)))
 
-(defruled identifier-is-equal-sample-holds
+(defruled idlit-is-equal-sample-holds
   (r1cs::r1cs-constraints-holdp
-   (identifier-is-equal-gadget 'x 'y 'm 'r (base-prime))
-   *identifier-is-equal-sample*
+   (idlit-is-equal-gadget 'x 'y 'm 'r (base-prime))
+   *idlit-is-equal-sample*
    (base-prime))
-  :enable (identifier-is-equal-gadget
+  :enable (idlit-is-equal-gadget
            field-var-is-equal-gadget
            r1cs::r1cs-constraints-holdp
            r1cs::r1cs-constraint-holdsp
@@ -505,7 +505,7 @@
            ecurve::edwards-bls12-q
            (:e primes::bls12-377-scalar-field-prime)))
 
-(define identifier-is-equal-circuit ()
+(define idlit-is-equal-circuit ()
   :returns (pdef pfcs::definitionp)
   (pfcs::parse-def
    "identifier_is_equal(x, y, m, r) := {
@@ -521,15 +521,15 @@
                                             pfcs::r1cs-polynomialp
                                             pfcs::r1cs-monomialp))))))
 
-(pfcs::lift (identifier-is-equal-circuit)
-            :pred identifier-is-equal-pred
+(pfcs::lift (idlit-is-equal-circuit)
+            :pred idlit-is-equal-pred
             :prime prime)
 
-(defruled identifier-is-equal-pred-to-funspec
+(defruled idlit-is-equal-pred-to-funspec
   (implies (and (equal prime (base-prime))
                 (fieldp x) (fieldp y) (bitp r)
                 (pfield::fep m prime)
-                (identifier-is-equal-pred x y m r prime)
+                (idlit-is-equal-pred x y m r prime)
                 (identifier-literalp a) (identifier-literalp b)
                 (equal x (identifier-literal-to-field a))
                 (equal y (identifier-literal-to-field b)))
@@ -538,7 +538,7 @@
   :hints (("Goal"
            :use (:instance field-var-is-equal-bit-when-constraints
                            (p prime) (a x) (b y))
-           :in-theory (enable identifier-is-equal-pred
+           :in-theory (enable idlit-is-equal-pred
                               identifier-literal-is-equal
                               values-bool-to-bit
                               fieldp))))
@@ -547,12 +547,12 @@
 
 ; is_not_equal is the r bit of is_equal (boolean not of 1 - r).
 
-(define identifier-is-not-equal-gadget ((x symbolp) (y symbolp)
+(define idlit-is-not-equal-gadget ((x symbolp) (y symbolp)
                                        (m symbolp) (r symbolp) (p primep))
   :returns (constrs r1cs::r1cs-constraint-listp :hyp :guard)
-  (identifier-is-equal-gadget x y m r p))
+  (idlit-is-equal-gadget x y m r p))
 
-(defruled identifier-is-not-equal-gadget-sound
+(defruled idlit-is-not-equal-gadget-sound
   (implies (and (symbolp x) (symbolp y) (symbolp m) (symbolp r)
                 (identifier-literalp a) (identifier-literalp b)
                 (equal p (base-prime))
@@ -565,19 +565,19 @@
                 (equal (lookup-equal y asg) (identifier-literal-to-field b))
                 (bitp (lookup-equal r asg))
                 (r1cs::r1cs-constraints-holdp
-                 (identifier-is-not-equal-gadget x y m r p) asg p))
+                 (idlit-is-not-equal-gadget x y m r p) asg p))
            (equal (lookup-equal r asg)
                   (identifier-literal-is-not-equal a b)))
   :hints (("Goal"
-           :use identifier-is-equal-gadget-sound
-           :in-theory (e/d (identifier-is-not-equal-gadget
+           :use idlit-is-equal-gadget-sound
+           :in-theory (e/d (idlit-is-not-equal-gadget
                             identifier-literal-is-not-equal
                             identifier-literal-is-equal
                             values-bool-to-bit
                             bitp)
-                           (identifier-is-equal-gadget)))))
+                           (idlit-is-equal-gadget)))))
 
-(defruled identifier-is-not-equal-gadget-complete
+(defruled idlit-is-not-equal-gadget-complete
   (implies (and (symbolp x) (symbolp y) (symbolp m) (symbolp r)
                 (equal p (base-prime))
                 (r1cs::r1cs-valuationp asg p)
@@ -598,20 +598,20 @@
                                                    p)
                                       p))))
            (r1cs::r1cs-constraints-holdp
-            (identifier-is-not-equal-gadget x y m r p) asg p))
-  :enable (identifier-is-not-equal-gadget
-           identifier-is-equal-gadget-complete))
+            (idlit-is-not-equal-gadget x y m r p) asg p))
+  :enable (idlit-is-not-equal-gadget
+           idlit-is-equal-gadget-complete))
 
-(defconst *identifier-is-not-equal-sample*
+(defconst *idlit-is-not-equal-sample*
   ;; 5 - 4 = 1, so the multiplier is 1 and the neq bit is 1.
   '((x . 5) (y . 4) (m . 1) (r . 1)))
 
-(defruled identifier-is-not-equal-sample-holds
+(defruled idlit-is-not-equal-sample-holds
   (r1cs::r1cs-constraints-holdp
-   (identifier-is-not-equal-gadget 'x 'y 'm 'r (base-prime))
-   *identifier-is-not-equal-sample*
+   (idlit-is-not-equal-gadget 'x 'y 'm 'r (base-prime))
+   *idlit-is-not-equal-sample*
    (base-prime))
-  :enable (identifier-is-not-equal-gadget
+  :enable (idlit-is-not-equal-gadget
            field-var-is-equal-gadget
            r1cs::r1cs-constraints-holdp
            r1cs::r1cs-constraint-holdsp
@@ -622,7 +622,7 @@
            ecurve::edwards-bls12-q
            (:e primes::bls12-377-scalar-field-prime)))
 
-(define identifier-is-not-equal-circuit ()
+(define idlit-is-not-equal-circuit ()
   :returns (pdef pfcs::definitionp)
   (pfcs::parse-def
    "identifier_is_not_equal(x, y, m, r) := {
@@ -638,15 +638,15 @@
                                             pfcs::r1cs-polynomialp
                                             pfcs::r1cs-monomialp))))))
 
-(pfcs::lift (identifier-is-not-equal-circuit)
-            :pred identifier-is-not-equal-pred
+(pfcs::lift (idlit-is-not-equal-circuit)
+            :pred idlit-is-not-equal-pred
             :prime prime)
 
-(defruled identifier-is-not-equal-pred-to-funspec
+(defruled idlit-is-not-equal-pred-to-funspec
   (implies (and (equal prime (base-prime))
                 (fieldp x) (fieldp y) (bitp r)
                 (pfield::fep m prime)
-                (identifier-is-not-equal-pred x y m r prime)
+                (idlit-is-not-equal-pred x y m r prime)
                 (identifier-literalp a) (identifier-literalp b)
                 (equal x (identifier-literal-to-field a))
                 (equal y (identifier-literal-to-field b)))
@@ -654,7 +654,7 @@
   :hints (("Goal"
            :use (:instance field-var-is-equal-bit-when-constraints
                            (p prime) (a x) (b y))
-           :in-theory (enable identifier-is-not-equal-pred
+           :in-theory (enable idlit-is-not-equal-pred
                               identifier-literal-is-not-equal
                               values-bool-to-bit
                               fieldp
@@ -1012,7 +1012,7 @@
 ; on the bits past the first 248.  The constraint is the unweighted sum
 ; of those bits times 1 equals 0.
 
-(define identifier-from-bits-le-gadget ((excess symbol-listp))
+(define idlit-from-bits-le-gadget ((excess symbol-listp))
   :returns (constrs r1cs::r1cs-constraint-listp :hyp :guard)
   :short "The extra constraint of from_bits_le: excess bits sum to 0.
           Byte validation is validate-byte / validate-trailing-nulls."
@@ -1022,16 +1022,16 @@
 
 ;; FALSE: excess = (repeat (base-prime) 'e0), asg = ((e0 . 1)): the bit sum is
 ;; p = 0 mod p, so the constraint holds, but the bits are not all zero.
-;; (defruled identifier-from-bits-le-gadget-sound
+;; (defruled idlit-from-bits-le-gadget-sound
 ;;   (implies (and (symbol-listp excess)
 ;;                 (equal p (base-prime))
 ;;                 (r1cs::r1cs-valuationp asg p)
 ;;                 (r1cs::valuation-binds-allp asg excess)
 ;;                 (bit-listp (lookup-equal-list excess asg))
 ;;                 (r1cs::r1cs-constraints-holdp
-;;                  (identifier-from-bits-le-gadget excess) asg p))
+;;                  (idlit-from-bits-le-gadget excess) asg p))
 ;;            (values-bits-all-zero-p (lookup-equal-list excess asg)))
-;;   :enable (identifier-from-bits-le-gadget
+;;   :enable (idlit-from-bits-le-gadget
 ;;            assert-bits-sum-zero-gadget
 ;;            val-sum-lc
 ;;            values-bits-all-zero-p
@@ -1080,7 +1080,7 @@
                    (values-bits-all-zero-p l)))
    :enable values-bits-all-zero-p))
 
-(defruled identifier-from-bits-le-gadget-sound-bounded
+(defruled idlit-from-bits-le-gadget-sound-bounded
   (implies (and (symbol-listp excess)
                 (< (len excess) (base-prime))
                 (equal p (base-prime))
@@ -1088,20 +1088,20 @@
                 (r1cs::valuation-binds-allp asg excess)
                 (bit-listp (lookup-equal-list excess asg))
                 (r1cs::r1cs-constraints-holdp
-                 (identifier-from-bits-le-gadget excess) asg p))
+                 (idlit-from-bits-le-gadget excess) asg p))
            (values-bits-all-zero-p (lookup-equal-list excess asg)))
   :hints (("Goal"
            :use ((:instance val-bits-sum-bound
                             (l (lookup-equal-list excess asg)))
                  (:instance val-bits-sum-zero-iff-all-zero
                             (l (lookup-equal-list excess asg))))
-           :in-theory (enable identifier-from-bits-le-gadget
+           :in-theory (enable idlit-from-bits-le-gadget
                               assert-bits-sum-zero-gadget
                               dot-product-of-val-sum-lc
                               r1cs::r1cs-constraint-holdsp
                               r1cs::dot-product))))
 
-(defruled identifier-from-bits-le-gadget-complete
+(defruled idlit-from-bits-le-gadget-complete
   (implies (and (symbol-listp excess)
                 (equal p (base-prime))
                 (r1cs::r1cs-valuationp asg p)
@@ -1109,8 +1109,8 @@
                 (bit-listp (lookup-equal-list excess asg))
                 (values-bits-all-zero-p (lookup-equal-list excess asg)))
            (r1cs::r1cs-constraints-holdp
-            (identifier-from-bits-le-gadget excess) asg p))
-  :enable (identifier-from-bits-le-gadget
+            (idlit-from-bits-le-gadget excess) asg p))
+  :enable (idlit-from-bits-le-gadget
            assert-bits-sum-zero-gadget
            val-sum-lc
            values-bits-all-zero-p
@@ -1118,15 +1118,15 @@
            r1cs::dot-product
            lookup-equal-list))
 
-(defconst *identifier-from-bits-le-sample*
+(defconst *idlit-from-bits-le-sample*
   '((e0 . 0)))
 
-(defruled identifier-from-bits-le-sample-holds
+(defruled idlit-from-bits-le-sample-holds
   (r1cs::r1cs-constraints-holdp
-   (identifier-from-bits-le-gadget '(e0))
-   *identifier-from-bits-le-sample*
+   (idlit-from-bits-le-gadget '(e0))
+   *idlit-from-bits-le-sample*
    (base-prime))
-  :enable (identifier-from-bits-le-gadget
+  :enable (idlit-from-bits-le-gadget
            assert-bits-sum-zero-gadget
            val-sum-lc
            r1cs::r1cs-constraints-holdp
@@ -1138,7 +1138,7 @@
            ecurve::edwards-bls12-q
            (:e primes::bls12-377-scalar-field-prime)))
 
-(define identifier-from-bits-le-circuit ()
+(define idlit-from-bits-le-circuit ()
   :returns (pdef pfcs::definitionp)
   (pfcs::parse-def
    "identifier_from_bits_le(e0) := {
@@ -1153,25 +1153,25 @@
                                             pfcs::r1cs-polynomialp
                                             pfcs::r1cs-monomialp))))))
 
-(pfcs::lift (identifier-from-bits-le-circuit)
-            :pred identifier-from-bits-le-pred
+(pfcs::lift (idlit-from-bits-le-circuit)
+            :pred idlit-from-bits-le-pred
             :prime prime)
 
-(defruled identifier-from-bits-le-pred-to-funspec
+(defruled idlit-from-bits-le-pred-to-funspec
   (implies (and (equal prime (base-prime))
                 (bitp e0)
-                (identifier-from-bits-le-pred e0 prime))
+                (idlit-from-bits-le-pred e0 prime))
            (values-bits-all-zero-p (list e0)))
-  :enable (identifier-from-bits-le-pred values-bits-all-zero-p))
+  :enable (idlit-from-bits-le-pred values-bits-all-zero-p))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define identifier-from-bits-be-gadget ((excess symbol-listp))
+(define idlit-from-bits-be-gadget ((excess symbol-listp))
   :returns (constrs r1cs::r1cs-constraint-listp :hyp :guard)
   :short "from_bits_be reverses, then from_bits_le.  Reversal adds nothing."
-  (identifier-from-bits-le-gadget excess))
+  (idlit-from-bits-le-gadget excess))
 
-(defruled identifier-from-bits-be-gadget-sound
+(defruled idlit-from-bits-be-gadget-sound
   (implies (and (bit-listp bits)
                 (symbol-listp excess)
                 (equal p (base-prime))
@@ -1180,12 +1180,12 @@
                 (bit-listp (lookup-equal-list excess asg))
                 (equal (lookup-equal-list excess asg) (nthcdr 248 (rev bits)))
                 (r1cs::r1cs-constraints-holdp
-                 (identifier-from-bits-be-gadget excess) asg p))
+                 (idlit-from-bits-be-gadget excess) asg p))
            (equal (identifier-literal-from-bits-be bits)
                   (identifier-literal-from-bits-le (rev bits))))
   :enable identifier-literal-from-bits-be)
 
-(defruled identifier-from-bits-be-gadget-complete
+(defruled idlit-from-bits-be-gadget-complete
   (implies (and (symbol-listp excess)
                 (equal p (base-prime))
                 (r1cs::r1cs-valuationp asg p)
@@ -1193,21 +1193,21 @@
                 (bit-listp (lookup-equal-list excess asg))
                 (values-bits-all-zero-p (lookup-equal-list excess asg)))
            (r1cs::r1cs-constraints-holdp
-            (identifier-from-bits-be-gadget excess) asg p))
-  :enable (identifier-from-bits-be-gadget
-           identifier-from-bits-le-gadget-complete))
+            (idlit-from-bits-be-gadget excess) asg p))
+  :enable (idlit-from-bits-be-gadget
+           idlit-from-bits-le-gadget-complete))
 
-(defconst *identifier-from-bits-be-sample* *identifier-from-bits-le-sample*)
+(defconst *idlit-from-bits-be-sample* *idlit-from-bits-le-sample*)
 
-(defruled identifier-from-bits-be-sample-holds
+(defruled idlit-from-bits-be-sample-holds
   (r1cs::r1cs-constraints-holdp
-   (identifier-from-bits-be-gadget '(e0))
-   *identifier-from-bits-be-sample*
+   (idlit-from-bits-be-gadget '(e0))
+   *idlit-from-bits-be-sample*
    (base-prime))
-  :enable (identifier-from-bits-be-gadget
-           identifier-from-bits-le-sample-holds))
+  :enable (idlit-from-bits-be-gadget
+           idlit-from-bits-le-sample-holds))
 
-(define identifier-from-bits-be-circuit ()
+(define idlit-from-bits-be-circuit ()
   :returns (pdef pfcs::definitionp)
   (pfcs::parse-def
    "identifier_from_bits_be(e0) := {
@@ -1222,54 +1222,54 @@
                                             pfcs::r1cs-polynomialp
                                             pfcs::r1cs-monomialp))))))
 
-(pfcs::lift (identifier-from-bits-be-circuit)
-            :pred identifier-from-bits-be-pred
+(pfcs::lift (idlit-from-bits-be-circuit)
+            :pred idlit-from-bits-be-pred
             :prime prime)
 
-(defruled identifier-from-bits-be-pred-to-funspec
+(defruled idlit-from-bits-be-pred-to-funspec
   (implies (and (equal prime (base-prime))
                 (bitp e0)
-                (identifier-from-bits-be-pred e0 prime))
+                (idlit-from-bits-be-pred e0 prime))
            (values-bits-all-zero-p (list e0)))
-  :enable (identifier-from-bits-be-pred values-bits-all-zero-p))
+  :enable (idlit-from-bits-be-pred values-bits-all-zero-p))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define identifier-from-field-gadget ((excess symbol-listp))
+(define idlit-from-field-gadget ((excess symbol-listp))
   :returns (constrs r1cs::r1cs-constraint-listp :hyp :guard)
   :short "from_field is from_bits_le of Field::to_bits_le.  The field
           decomposition is the field gadget; the extra check is the excess-zero assert."
-  (identifier-from-bits-le-gadget excess))
+  (idlit-from-bits-le-gadget excess))
 
-(defruled identifier-from-field-gadget-sound
+(defruled idlit-from-field-gadget-sound
   (implies (and (fieldp f)
                 (equal p (base-prime))
                 (r1cs::r1cs-valuationp asg p)
                 (r1cs::r1cs-constraints-holdp
-                 (identifier-from-field-gadget nil) asg p))
+                 (idlit-from-field-gadget nil) asg p))
            (equal (identifier-literal-from-field f)
                   (identifier-literal-from-bits-le (values-field-to-bits-le f))))
-  :enable (identifier-from-field-gadget
+  :enable (idlit-from-field-gadget
            identifier-literal-from-field
            r1cs::r1cs-constraints-holdp))
 
-(defruled identifier-from-field-gadget-complete
+(defruled idlit-from-field-gadget-complete
   (implies (and (equal p (base-prime))
                 (r1cs::r1cs-valuationp asg p))
            (r1cs::r1cs-constraints-holdp
-            (identifier-from-field-gadget nil) asg p))
-  :enable identifier-from-field-gadget)
+            (idlit-from-field-gadget nil) asg p))
+  :enable idlit-from-field-gadget)
 
-(defconst *identifier-from-field-sample* nil)
+(defconst *idlit-from-field-sample* nil)
 
-(defruled identifier-from-field-sample-holds
+(defruled idlit-from-field-sample-holds
   (r1cs::r1cs-constraints-holdp
-   (identifier-from-field-gadget nil)
-   *identifier-from-field-sample*
+   (idlit-from-field-gadget nil)
+   *idlit-from-field-sample*
    (base-prime))
-  :enable (identifier-from-field-gadget val-string-empty-sample-holds))
+  :enable (idlit-from-field-gadget val-string-empty-sample-holds))
 
-(define identifier-from-field-circuit ()
+(define idlit-from-field-circuit ()
   :returns (pdef pfcs::definitionp)
   (pfcs::parse-def
    "identifier_from_field() := {
@@ -1283,14 +1283,14 @@
                                             pfcs::r1cs-polynomialp
                                             pfcs::r1cs-monomialp))))))
 
-(pfcs::lift (identifier-from-field-circuit)
-            :pred identifier-from-field-pred
+(pfcs::lift (idlit-from-field-circuit)
+            :pred idlit-from-field-pred
             :prime prime)
 
-(defruled identifier-from-field-pred-to-funspec
+(defruled idlit-from-field-pred-to-funspec
   (implies (and (equal prime (base-prime))
                 (fieldp f)
-                (identifier-from-field-pred prime))
+                (idlit-from-field-pred prime))
            (equal (identifier-literal-from-field f)
                   (identifier-literal-from-bits-le (values-field-to-bits-le f))))
-  :enable (identifier-from-field-pred identifier-literal-from-field))
+  :enable (idlit-from-field-pred identifier-literal-from-field))
