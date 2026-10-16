@@ -64,7 +64,7 @@ types/group	Group	Ternary	ternary	1	1	1	0	1	crv-ternary.lisp R1CS-SOUND cleared:
 types/group	Group	ToBits	write_bits_be	1	1	0	0	1	crv-bits.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. R1CS-SAMPLES cleared: the assignment is an ACL2 prime-5 check, not an aleovm_sample_circuits.py snarkVM dump.
 types/group	Group	ToBits	write_bits_le	1	1	0	0	1	crv-bits.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. R1CS-SAMPLES cleared: the assignment is an ACL2 prime-5 check, not an aleovm_sample_circuits.py snarkVM dump.
 types/group	Group	Zero	is_zero	1	1	1	0	1	crv-equal.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
-types/scalar	Scalar		from_field_lossy	0	0	0	0	0	
+types/scalar	Scalar		from_field_lossy	1	0	0	1	0	fun-circuits/scalar-from-field-lossy-r1cs.lisp. R1CS is Field::to_bits_le. scalar-from-field-lossy-gadget-sound builds the scalar from the low 250 bit wires and proves scalarp. The public unit wire is 1. PFCS and the bits-below-prime completeness witness are open.
 types/scalar	Scalar	Add	add	0	0	0	0	0	
 types/scalar	Scalar	AddAssign	add_assign	0	0	0	0	0	
 types/scalar	Scalar	Compare	is_greater_than	1	1	0	0	1	crv-scalar.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. R1CS-SAMPLES cleared: the assignment is an ACL2 prime-5 check, not an aleovm_sample_circuits.py snarkVM dump. Same parity gap as is_less_than, operands swapped.

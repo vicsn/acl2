@@ -30,3 +30,4 @@
 (include-book "int-top")
 (include-book "crv-top")
 (include-book "scalar-range-gap")
+(include-book "scalar-from-field-lossy-r1cs")
