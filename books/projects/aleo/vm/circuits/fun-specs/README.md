@@ -81,6 +81,8 @@ R1CS-SOUND is over the wires. A theorem that takes `int-valuep`, `scalarp`, or `
 
 `Scalar::from_field` is `Scalar::from_bits_le` of `Field::to_bits_le` (`fun-circuits/scalar-from-field-r1cs.lisp`). `scalar-from-field-gadget-sound` proves the two excess bits are 0, the low 251 bits are at most `r - 1`, and that value is a scalar equal to `scalar-from-field-funspec`. The unit wire is the public one. PFCS and R1CS-COMPLETE stay open: the bits-below-prime witness and the `bits-lte-const` witness are not constructed.
 
+Unsigned integer division at widths 8, 16, 32, and 64 (`fun-circuits/int-div-pfcs.lisp`) lowers `INT_UNSIGNED_DIV_n` to `unsigned-small-div-gadget`. That is the constraint list of `div`, `div_assign`, `div_checked`, `div_wrapped`, `rem`, `rem_assign`, `rem_checked`, `rem_wrapped`, `modulo`, and `unsigned_division_via_witness`. Quotient and remainder bits are boolean-checked. Dividend and divisor bits are not, so R1CS-SOUND stays 0. Signed division and width 128 are different circuits. R1CS-COMPLETE is open.
+
 ACL2 `defruled` samples, including prime-5 write-bits and scalar-comparison assignments, are not `R1CS-SAMPLES`. That flag requires `aleovm_sample_circuits.py` against a snarkVM scope dump.
 
 The signature arm's hash stays abstract. `literal-signature-new-sound` takes that equality as a hypothesis:
