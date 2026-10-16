@@ -17,6 +17,7 @@
 (in-package "ALEOVM")
 
 (include-book "crv-add-complete")
+(include-book "../edwards-assoc/twisted-edwards-associativity")
 
 (local (include-book "kestrel/prime-fields/prime-fields-rules" :dir :system))
 (local (include-book "kestrel/arithmetic-light/mod" :dir :system))
@@ -465,3 +466,237 @@
                         curve-coordinatesp-when-edwards-bls12-pointp
                         curve-fep-of-edwards-bls12-d
                         primep-of-base-prime))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; enforce_double: the double is an input point, not a fresh witness.
+
+(defruled crv-group-enforce-double-gadget-sound
+  (implies (and (symbolp x) (symbolp y)
+                (symbolp xy) (symbolp x2) (symbolp y2)
+                (symbolp x3) (symbolp y3)
+                (equal p (base-prime))
+                (primep p)
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg x)
+                (r1cs::valuation-bindsp asg y)
+                (r1cs::valuation-bindsp asg xy)
+                (r1cs::valuation-bindsp asg x2)
+                (r1cs::valuation-bindsp asg y2)
+                (r1cs::valuation-bindsp asg x3)
+                (r1cs::valuation-bindsp asg y3)
+                (ecurve::edwards-bls12-pointp pt)
+                (curve-coordinatesp dbl)
+                (equal (lookup-equal x asg) (ecurve::point-finite->x pt))
+                (equal (lookup-equal y asg) (ecurve::point-finite->y pt))
+                (equal (lookup-equal x3 asg) (ecurve::point-finite->x dbl))
+                (equal (lookup-equal y3 asg) (ecurve::point-finite->y dbl))
+                (r1cs::r1cs-constraints-holdp
+                 (crv-group-enforce-double-gadget x y xy x2 y2 x3 y3 p)
+                 asg p))
+           (equal (group-enforce-double-funspec pt dbl) nil))
+  :use crv-group-double-gadget-sound
+  :enable (crv-group-enforce-double-gadget
+           group-enforce-double-funspec
+           group-double-funspec
+           ecurve::point-finite-of-point-finite->x/y)
+  :disable crv-group-double-gadget-sound)
+
+(defruled crv-group-enforce-double-gadget-complete
+  (implies (and (symbolp x) (symbolp y)
+                (symbolp xy) (symbolp x2) (symbolp y2)
+                (symbolp x3) (symbolp y3)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg x)
+                (r1cs::valuation-bindsp asg y)
+                (r1cs::valuation-bindsp asg xy)
+                (r1cs::valuation-bindsp asg x2)
+                (r1cs::valuation-bindsp asg y2)
+                (r1cs::valuation-bindsp asg x3)
+                (r1cs::valuation-bindsp asg y3)
+                (ecurve::edwards-bls12-pointp pt)
+                (equal (group-enforce-double-funspec pt dbl) nil)
+                (equal (lookup-equal x asg) (ecurve::point-finite->x pt))
+                (equal (lookup-equal y asg) (ecurve::point-finite->y pt))
+                (equal (lookup-equal xy asg)
+                       (pfield::mul (lookup-equal x asg) (lookup-equal y asg) p))
+                (equal (lookup-equal x2 asg)
+                       (pfield::mul (lookup-equal x asg) (lookup-equal x asg) p))
+                (equal (lookup-equal y2 asg)
+                       (pfield::mul (lookup-equal y asg) (lookup-equal y asg) p))
+                (equal (lookup-equal x3 asg) (ecurve::point-finite->x dbl))
+                (equal (lookup-equal y3 asg) (ecurve::point-finite->y dbl)))
+           (r1cs::r1cs-constraints-holdp
+            (crv-group-enforce-double-gadget x y xy x2 y2 x3 y3 p)
+            asg p))
+  :use crv-group-double-gadget-complete
+  :enable (crv-group-enforce-double-gadget
+           group-enforce-double-funspec
+           group-double-funspec)
+  :disable crv-group-double-gadget-complete)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; enforce_on_curve over the wires: any two field wires form curve
+; coordinates, so crv-group-enforce-on-curve-gadget-sound needs no prior
+; circuit.
+
+(defruled crv-group-enforce-on-curve-wire-sound
+  (implies (and (symbolp x) (symbolp y) (symbolp x2) (symbolp y2)
+                (equal p (base-prime))
+                (primep p)
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg x)
+                (r1cs::valuation-bindsp asg y)
+                (r1cs::valuation-bindsp asg x2)
+                (r1cs::valuation-bindsp asg y2)
+                (r1cs::r1cs-constraints-holdp
+                 (crv-group-enforce-on-curve-gadget x y x2 y2 p)
+                 asg p))
+           (b* ((pt (ecurve::point-finite (lookup-equal x asg)
+                                          (lookup-equal y asg))))
+             (and (curve-coordinatesp pt)
+                  (equal (group-enforce-on-curve-funspec pt) nil)
+                  (ecurve::edwards-bls12-pointp pt))))
+  :use ((:instance crv-group-enforce-on-curve-gadget-sound
+                   (pt (ecurve::point-finite (lookup-equal x asg)
+                                             (lookup-equal y asg)))))
+  :enable (r1cs::fep-of-lookup-equal fieldp group-enforce-on-curve-funspec)
+  :disable crv-group-enforce-on-curve-gadget-sound)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; mul_by_cofactor: two doublings give 2P + 2P = 4P.
+
+(defruledl crv-mul-add-of-mul
+  (implies (and (ecurve::edwards-bls12-pointp pt)
+                (integerp a)
+                (integerp b))
+           (equal (ecurve::edwards-bls12-add (ecurve::edwards-bls12-mul a pt)
+                                             (ecurve::edwards-bls12-mul b pt))
+                  (ecurve::edwards-bls12-mul (+ a b) pt)))
+  :use (:instance ecurve::twisted-edwards-mul-of-scalar-addition-converse
+                  (scalar1 a)
+                  (scalar2 b)
+                  (point pt)
+                  (curve (ecurve::edwards-bls12-curve)))
+  :enable (ecurve::edwards-bls12-add
+           ecurve::edwards-bls12-mul
+           ecurve::edwards-bls12-pointp))
+
+(defruledl crv-mul-1
+  (implies (ecurve::edwards-bls12-pointp pt)
+           (equal (ecurve::edwards-bls12-mul 1 pt) pt))
+  :enable (ecurve::edwards-bls12-mul ecurve::edwards-bls12-pointp))
+
+(defruled crv-mul-by-cofactor-is-double-double
+  (implies (ecurve::edwards-bls12-pointp pt)
+           (equal (group-mul-by-cofactor-funspec pt)
+                  (group-double-funspec (group-double-funspec pt))))
+  :use ((:instance crv-mul-add-of-mul (a 1) (b 1))
+        (:instance crv-mul-add-of-mul (a 2) (b 2))
+        crv-mul-1)
+  :enable (group-mul-by-cofactor-funspec group-double-funspec (:e ecurve::edwards-bls12-h))
+  :disable (crv-mul-add-of-mul crv-mul-1))
+
+(defruled crv-group-mul-by-cofactor-gadget-sound
+  (implies (and (symbolp x) (symbolp y)
+                (symbolp xy1) (symbolp x21) (symbolp y21)
+                (symbolp x4) (symbolp y4)
+                (symbolp xy2) (symbolp x22) (symbolp y22)
+                (symbolp x3) (symbolp y3)
+                (equal p (base-prime))
+                (primep p)
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg x)
+                (r1cs::valuation-bindsp asg y)
+                (r1cs::valuation-bindsp asg xy1)
+                (r1cs::valuation-bindsp asg x21)
+                (r1cs::valuation-bindsp asg y21)
+                (r1cs::valuation-bindsp asg x4)
+                (r1cs::valuation-bindsp asg y4)
+                (r1cs::valuation-bindsp asg xy2)
+                (r1cs::valuation-bindsp asg x22)
+                (r1cs::valuation-bindsp asg y22)
+                (r1cs::valuation-bindsp asg x3)
+                (r1cs::valuation-bindsp asg y3)
+                (ecurve::edwards-bls12-pointp pt)
+                (equal (lookup-equal x asg) (ecurve::point-finite->x pt))
+                (equal (lookup-equal y asg) (ecurve::point-finite->y pt))
+                (r1cs::r1cs-constraints-holdp
+                 (crv-group-mul-by-cofactor-gadget
+                  x y xy1 x21 y21 x4 y4 xy2 x22 y22 x3 y3 p)
+                 asg p))
+           (equal (ecurve::point-finite (lookup-equal x3 asg)
+                                        (lookup-equal y3 asg))
+                  (group-mul-by-cofactor-funspec pt)))
+  :use (crv-mul-by-cofactor-is-double-double
+        (:instance crv-group-double-gadget-sound
+                   (xy xy1) (x2 x21) (y2 y21) (x3 x4) (y3 y4))
+        (:instance crv-group-double-gadget-sound
+                   (x x4) (y y4) (xy xy2) (x2 x22) (y2 y22)
+                   (pt (group-double-funspec pt))))
+  :enable (crv-group-mul-by-cofactor-gadget
+           r1cs::r1cs-constraints-holdp-of-append
+           r1cs::fep-of-lookup-equal)
+  :disable (crv-group-double-gadget-sound
+            crv-mul-by-cofactor-is-double-double))
+
+(defruled crv-group-mul-by-cofactor-gadget-complete
+  (implies (and (symbolp x) (symbolp y)
+                (symbolp xy1) (symbolp x21) (symbolp y21)
+                (symbolp x4) (symbolp y4)
+                (symbolp xy2) (symbolp x22) (symbolp y22)
+                (symbolp x3) (symbolp y3)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg x)
+                (r1cs::valuation-bindsp asg y)
+                (r1cs::valuation-bindsp asg xy1)
+                (r1cs::valuation-bindsp asg x21)
+                (r1cs::valuation-bindsp asg y21)
+                (r1cs::valuation-bindsp asg x4)
+                (r1cs::valuation-bindsp asg y4)
+                (r1cs::valuation-bindsp asg xy2)
+                (r1cs::valuation-bindsp asg x22)
+                (r1cs::valuation-bindsp asg y22)
+                (r1cs::valuation-bindsp asg x3)
+                (r1cs::valuation-bindsp asg y3)
+                (ecurve::edwards-bls12-pointp pt)
+                (equal (lookup-equal x asg) (ecurve::point-finite->x pt))
+                (equal (lookup-equal y asg) (ecurve::point-finite->y pt))
+                (equal (lookup-equal xy1 asg)
+                       (pfield::mul (lookup-equal x asg) (lookup-equal y asg) p))
+                (equal (lookup-equal x21 asg)
+                       (pfield::mul (lookup-equal x asg) (lookup-equal x asg) p))
+                (equal (lookup-equal y21 asg)
+                       (pfield::mul (lookup-equal y asg) (lookup-equal y asg) p))
+                (equal (lookup-equal x4 asg)
+                       (ecurve::point-finite->x (group-double-funspec pt)))
+                (equal (lookup-equal y4 asg)
+                       (ecurve::point-finite->y (group-double-funspec pt)))
+                (equal (lookup-equal xy2 asg)
+                       (pfield::mul (lookup-equal x4 asg) (lookup-equal y4 asg) p))
+                (equal (lookup-equal x22 asg)
+                       (pfield::mul (lookup-equal x4 asg) (lookup-equal x4 asg) p))
+                (equal (lookup-equal y22 asg)
+                       (pfield::mul (lookup-equal y4 asg) (lookup-equal y4 asg) p))
+                (equal (lookup-equal x3 asg)
+                       (ecurve::point-finite->x (group-mul-by-cofactor-funspec pt)))
+                (equal (lookup-equal y3 asg)
+                       (ecurve::point-finite->y (group-mul-by-cofactor-funspec pt))))
+           (r1cs::r1cs-constraints-holdp
+            (crv-group-mul-by-cofactor-gadget
+             x y xy1 x21 y21 x4 y4 xy2 x22 y22 x3 y3 p)
+            asg p))
+  :use (crv-mul-by-cofactor-is-double-double
+        (:instance crv-group-double-gadget-complete
+                   (xy xy1) (x2 x21) (y2 y21) (x3 x4) (y3 y4))
+        (:instance crv-group-double-gadget-complete
+                   (x x4) (y y4) (xy xy2) (x2 x22) (y2 y22)
+                   (pt (group-double-funspec pt))))
+  :enable (crv-group-mul-by-cofactor-gadget
+           r1cs::r1cs-constraints-holdp-of-append)
+  :disable (crv-group-double-gadget-complete
+            crv-mul-by-cofactor-is-double-double))
