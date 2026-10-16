@@ -14,6 +14,8 @@ A call becomes an edge only when its callee is determined:
 Every other call goes to a dispatch node named after the call, which lists the candidate
 implementations. An `X_assign` function is never an edge source to its own `X` operator: the
 operator calls `X_assign`, and the arithmetic inside `X_assign` acts on linear combinations.
+Likewise, when two operators of one type reach each other only through operator edges, the one
+that emits constraints itself is not an edge source: its operators act on its coordinates.
 The resolved graph must be acyclic; the script exits with status 1 and prints the cycle if not.
 
 Usage: python3 aleovm_circuit_call_graph.py <snarkVM>/circuit [status.csv] [canvas.tsx]
@@ -140,10 +142,12 @@ def build(root, status_csv):
     if missing:
         print("status rows the scan does not find as constraint-generating:", missing)
 
-    edges, disp = defaultdict(set), {}
+    edges, disp, op_edges, direct = defaultdict(set), {}, set(), set()
     for d in defs:
         if not gen[id(d)] or key(d) not in status:
             continue
+        if d["direct"]:
+            direct.add(key(d))
         body = S.CLOSURE_RE.sub(" ", d["body"])
         methods = set(d["methods"]) | set(d["self_methods"])
         for r, c in candidates(d):
@@ -172,10 +176,13 @@ def build(root, status_csv):
                     disp[(key(d), r)] = ks
             elif len(ks) == 1:
                 edges[key(d)].add(ks[0])
+                if r.startswith("op "):
+                    op_edges.add((key(d), ks[0]))
             elif r.startswith("op "):
                 own = [k for k in ks if k[1] in (d["type"], "Boolean")]
                 if d["crate"].startswith("types/") and own:
                     edges[key(d)].update(own)
+                    op_edges.update((key(d), k) for k in own)
                 else:
                     disp[(key(d), r)] = ks
             else:
@@ -200,6 +207,9 @@ def build(root, status_csv):
     for s in list(edges):
         for t in list(edges[s]):
             if s[1] == t[1] and s[3] == t[3] + "_assign" and s in edges.get(t, ()):
+                edges[s].discard(t)
+            elif (s[1] == t[1] and s in direct and (s, t) in op_edges and (t, s) in op_edges
+                  and s in edges.get(t, ())):
                 edges[s].discard(t)
     return status, edges, disp
 
