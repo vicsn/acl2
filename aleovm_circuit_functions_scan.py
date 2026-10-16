@@ -83,7 +83,7 @@ ACL2_MODELS = {
     ("Field", "inv"): ("111111", "r1cs/field-inverse; pfcs/field-inv-checked; samples/field-inverse"),
     ("Field", "div"): ("111111", "r1cs/field-div (field-div-spec, soundness incl. error); pfcs/field-div-checked; samples/field-div"),
     ("Field", "div_assign"): ("111111", "r1cs/field-div; pfcs/field-div-checked; samples/field-div"),
-    ("Field", "div_unchecked"): ("111011", "r1cs/field-div-unchecked (soundness); pfcs/field-div-unchecked (iff). div_unchecked JSON sample not checked"),
+    ("Field", "div_unchecked"): ("111001", "r1cs/field-div-unchecked (soundness); pfcs/field-div-unchecked (iff). div_unchecked JSON sample not checked"),
     ("Field", "is_not_equal"): ("111111", "r1cs/field-neq (soundness) + samples/field-neq; pfcs/field-neq (sound+complete)"),
     ("Field", "is_equal"): ("111011", "pfcs/field-eq (sound+complete); r1cs via field-neq with negated output. Equal sample not checked"),
     ("Field", "ternary"): ("111111", "r1cs/field-ternary (soundness); pfcs/field-if (iff); samples/field-ternary"),

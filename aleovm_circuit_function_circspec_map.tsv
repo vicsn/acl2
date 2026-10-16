@@ -8,34 +8,34 @@ environment	TestnetCircuit	Environment	enforce	1	1	1	1	1			fun-circuits/environm
 network	AleoCanaryV0	Environment	enforce	1	1	1	1	1			fun-circuits/environment-pfcs.lisp (env_enforce); AleoV0::enforce is E::enforce | fun-circuits/val-env-enforce.lisp (enforce-gadget, sample a=2 b=3 c=6)
 network	AleoTestnetV0	Environment	enforce	1	1	1	1	1			fun-circuits/environment-pfcs.lisp (env_enforce); AleoV0::enforce is E::enforce | fun-circuits/val-env-enforce.lisp (enforce-gadget, sample a=2 b=3 c=6)
 network	AleoV0	Environment	enforce	1	1	1	1	1			fun-circuits/environment-pfcs.lisp (env_enforce); AleoV0::enforce is E::enforce | fun-circuits/val-env-enforce.lisp (enforce-gadget, sample a=2 b=3 c=6)
-types/boolean	Boolean	Adder	adder	1	1	1	1	1			fun-circuits/boolean-adder-r1cs.lisp (boolean-adder-gadget, sound+complete); sample checked by aleovm_sample_circuits.py; fun-circuits/fb-boolean-adder.lisp (reuses boolean-adder-gadget sound+complete; pfcs+sample)
-types/boolean	Boolean	Subtractor	subtractor	1	1	1	1	1			fun-circuits/boolean-adder-r1cs.lisp (boolean-subtractor-gadget, sound+complete); sample checked by aleovm_sample_circuits.py; fun-circuits/fb-boolean-adder.lisp (reuses boolean-subtractor-gadget sound+complete; pfcs inlines negation; sample)
+types/boolean	Boolean	Adder	adder	1	1	1	1	1	Boolean::new on each input bit		fun-circuits/boolean-adder-r1cs.lisp (boolean-adder-gadget, sound+complete); sample checked by aleovm_sample_circuits.py; fun-circuits/fb-boolean-adder.lisp (reuses boolean-adder-gadget sound+complete; pfcs+sample)
+types/boolean	Boolean	Subtractor	subtractor	1	1	1	1	1	Boolean::new on each input bit		fun-circuits/boolean-adder-r1cs.lisp (boolean-subtractor-gadget, sound+complete); sample checked by aleovm_sample_circuits.py; fun-circuits/fb-boolean-adder.lisp (reuses boolean-subtractor-gadget sound+complete; pfcs inlines negation; sample)
 types/field	Field	From	from	1	1	1	1	1			fun-circuits/field-zero-r1cs.lisp (empty field-from-gadget, sound+complete); fun-circuits/fb-field-from.lisp (empty gadget from field-zero-r1cs sound+complete; pfcs+sample)
-types/field	Field	FromBoolean	from_boolean	1	1	1	1	1			fun-circuits/field-zero-r1cs.lisp (empty field-from-boolean-gadget, sound+complete); fun-circuits/fb-field-from.lisp (empty gadget from field-zero-r1cs sound+complete; pfcs+sample)
+types/field	Field	FromBoolean	from_boolean	1	1	1	1	1	Boolean::new on the input bit		fun-circuits/field-zero-r1cs.lisp (empty field-from-boolean-gadget, sound+complete); fun-circuits/fb-field-from.lisp (empty gadget from field-zero-r1cs sound+complete; pfcs+sample)
 types/field	Field	Zero	is_zero	1	1	1	1	1			fun-circuits/field-zero-r1cs.lisp (field-is-zero-gadget, sound+complete); sample checked by aleovm_sample_circuits.py; fun-circuits/fb-field-zero.lisp (gadget from field-zero-r1cs sound+complete; pfcs+sample)
 types/field	Field	One	is_one	1	1	1	1	1			fun-circuits/field-zero-r1cs.lisp (field-is-one-gadget, sound+complete); sample checked by aleovm_sample_circuits.py; fun-circuits/fb-field-zero.lisp (gadget from field-zero-r1cs sound+complete; pfcs+sample)
 types/field	Field	Compare	is_greater_than	1	1	1	1	1			fun-circuits/field-compare-r1cs.lisp reuses field-lt-gadget-soundness; completeness not claimed; fun-circuits/field-compare-r1cs.lisp (existing soundness); completeness, PFCS, and a defrule sample were not proved | fun-circuits/fb3-field-compare.lisp (swapped bits-lt witness, complete, sample 2>1 at p=5, 2-bit PFCS iff funspec with both inputs < 4) plus field-compare-r1cs.lisp sound
 types/field	Field	Compare	is_greater_than_or_equal	1	1	1	1	1			fun-circuits/field-compare-r1cs.lisp reuses field-lt-gadget-soundness; completeness not claimed; fun-circuits/field-compare-r1cs.lisp (existing soundness); completeness, PFCS, and a defrule sample were not proved | fun-circuits/fb3-field-compare.lisp (same witness as is_less_than, result 1-r, complete, sample, 2-bit PFCS) plus field-compare-r1cs.lisp sound
 types/field	Field	Compare	is_less_than_or_equal	1	1	1	1	1			fun-circuits/field-compare-r1cs.lisp reuses field-lt-gadget-soundness; completeness not claimed; fun-circuits/field-compare-r1cs.lisp (existing soundness); completeness, PFCS, and a defrule sample were not proved | fun-circuits/fb3-field-compare.lisp (swapped witness, result 1-r, complete, sample, 2-bit PFCS) plus field-compare-r1cs.lisp sound
-types/boolean	Boolean		assert_bits_are_zero	1	1	1	1	1			fun-circuits/fb-boolean-bits.lisp (sum assert_eq gadget, sound+complete+pfcs+sample; pfcs is the two-bit instance of the same constraint)
-types/boolean	Boolean		assert_less_than_or_equal_constant	1	1	1	1	1			fun-circuits/fb-boolean-bits.lisp (bits-lte-const-check, sound+sample; pfcs for constant bits (0 1); completeness witnesses not constructed) | fun-circuits/fb2-boolean-lte.lisp (fold witness, complete) plus fb-boolean-bits.lisp (sound+sample+pfcs for bits (0 1)) | fb2-boolean-lte.lisp completeness witness
-types/boolean	Boolean		is_less_than_or_equal_constant	1	1	1	1	1			fun-circuits/fb-boolean-bits.lisp (bits-lte-const, output 1-r, sound+sample; pfcs for constant bits (0 1); completeness witnesses not constructed) | fun-circuits/fb2-boolean-lte.lisp (fold witness, output 1-r, complete) plus fb-boolean-bits.lisp (sound+sample+pfcs for bits (0 1)) | fb2-boolean-lte.lisp completeness witness
+types/boolean	Boolean		assert_bits_are_zero	1	1	1	1	1	Boolean::new on each input bit		fun-circuits/fb-boolean-bits.lisp (sum assert_eq gadget, sound+complete+pfcs+sample; pfcs is the two-bit instance of the same constraint)
+types/boolean	Boolean		assert_less_than_or_equal_constant	1	1	1	1	1	Boolean::new on each input bit		fun-circuits/fb-boolean-bits.lisp (bits-lte-const-check, sound+sample; pfcs for constant bits (0 1); completeness witnesses not constructed) | fun-circuits/fb2-boolean-lte.lisp (fold witness, complete) plus fb-boolean-bits.lisp (sound+sample+pfcs for bits (0 1)) | fb2-boolean-lte.lisp completeness witness
+types/boolean	Boolean		is_less_than_or_equal_constant	1	1	1	1	1	Boolean::new on each input bit		fun-circuits/fb-boolean-bits.lisp (bits-lte-const, output 1-r, sound+sample; pfcs for constant bits (0 1); completeness witnesses not constructed) | fun-circuits/fb2-boolean-lte.lisp (fold witness, output 1-r, complete) plus fb-boolean-bits.lisp (sound+sample+pfcs for bits (0 1)) | fb2-boolean-lte.lisp completeness witness
 types/field	Field		even_square_root	1	1	1	1	1			fun-circuits/fb-field-sqrt.lisp (square + to-bits + assert LSB 0, sample at p=5; funspec uniqueness not proved) | fun-circuits/fb2-field-sqrt.lisp (sound: unique even root) plus fb-field-sqrt.lisp (gadget+sample); no PFCS or completeness witness | fun-circuits/fb3-field-sqrt.lisp (canonical even root, complete; 3-bit PFCS iff funspec and root <= 4) plus fb2-field-sqrt.lisp sound and fb-field-sqrt.lisp sample
 types/field	Field		square_roots_flagged_nondeterministic	1	0	0	0	0			fun-circuits/fb-field-sqrt.lisp (pow-const + is_one + ternary + square + is_zero + and; ordering not enforced, witnesses not proved) | fun-circuits/fb2-field-sqrt.lisp (fb2-flagged-roots-unordered only; ordered funspec soundness stays 0, see bugs)
 types/field	Field		to_non_unique_bits_le	1	0	1	0	1			fun-circuits/fb-field-bits.lisp (boolean checks + pow2sum, complete for canonical bits, sample; soundness false, see bugs)
 types/field	Field	Compare	is_less_than	1	1	1	1	1			fun-circuits/fb-field-compare.lisp (field-lt-gadget, sound to funspec when the result bit is boolean); completeness and PFCS not proved | fun-circuits/fb3-field-compare.lisp (canonical bits and bits-lt fold, complete, sample 1<2 at p=5, 2-bit PFCS iff funspec with both inputs < 4) plus fb-field-compare.lisp sound
-types/field	Field	DivUnchecked	div_unchecked	1	1	1	1	1			fun-circuits/fb-field-div-unchecked.lisp (existing gadget and pfcs, sound when y≠0, complete for the snarkVM witness including 0/0, sample); 0/0 is not unique, see bugs
+types/field	Field	DivUnchecked	div_unchecked	1	1	1	0	1			fun-circuits/fb-field-div-unchecked.lisp (existing gadget and pfcs, sound when y≠0, complete for the snarkVM witness including 0/0, sample); 0/0 is not unique, see bugs; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
 types/field	Field	Equal	is_equal	1	1	1	1	1			fun-circuits/fb-field-eq.lisp (two snarkVM enforces, output 1-r, sound+complete+pfcs+sample)
-types/field	Field	FromBits	from_bits_be	1	1	1	1	1			fun-circuits/fb-field-bits.lisp (le gadget on the reversed list; short lists sound; full-width bridge not proved; sample of a short list) | fun-circuits/fb2-field-bits.lisp (sound+complete via the le gadget on the reversed list; pfcs for two bits; sample in fb-field-bits.lisp) | fb2-field-bits.lisp sound+complete+pfcs of the 2-bit instance
-types/field	Field	FromBits	from_bits_le	1	1	1	1	1			fun-circuits/fb-field-bits.lisp (excess sum-to-zero and bits-lte-const-check, no pow2sum constraint; short lists sound; sample of a short list) | fun-circuits/fb2-field-bits.lisp (excess sum and bits-lte-const-check, sound+complete; pfcs for two bits; sample in fb-field-bits.lisp) | fb2-field-bits.lisp sound+complete+pfcs of the 2-bit instance
+types/field	Field	FromBits	from_bits_be	1	1	1	1	1	Boolean::new on each input bit		fun-circuits/fb-field-bits.lisp (le gadget on the reversed list; short lists sound; full-width bridge not proved; sample of a short list) | fun-circuits/fb2-field-bits.lisp (sound+complete via the le gadget on the reversed list; pfcs for two bits; sample in fb-field-bits.lisp) | fb2-field-bits.lisp sound+complete+pfcs of the 2-bit instance
+types/field	Field	FromBits	from_bits_le	1	1	1	1	1	Boolean::new on each input bit		fun-circuits/fb-field-bits.lisp (excess sum-to-zero and bits-lte-const-check, no pow2sum constraint; short lists sound; sample of a short list) | fun-circuits/fb2-field-bits.lisp (excess sum and bits-lte-const-check, sound+complete; pfcs for two bits; sample in fb-field-bits.lisp) | fb2-field-bits.lisp sound+complete+pfcs of the 2-bit instance
 types/field	Field	Pow	pow	1	1	1	1	1			fun-circuits/fb-field-pow.lisp (field-pow-gadget, sound to funspec, sample 3^2=4 at p=5); completeness and PFCS not proved | fun-circuits/fb3-field-pow.lisp (square-and-multiply witness, complete; 2-bit PFCS iff funspec, exponent < 4, result not free) plus fb-field-pow.lisp sound and sample
 types/field	Field	SquareRoot	square_root	1	1	1	1	1			fun-circuits/fb-field-sqrt.lisp (reuses field-square-root-gadget; bound theorem only, not equality with the funspec) | fun-circuits/fb2-field-sqrt.lisp (unique lesser root, sound+sample at p=5); no PFCS or completeness witness | fun-circuits/fb3-field-sqrt.lisp (canonical lesser root, complete; 3-bit PFCS iff funspec and root <= 2) plus fb2-field-sqrt.lisp sound and sample
 types/field	Field	ToBits	write_bits_be	1	1	1	1	1			fun-circuits/fb-field-bits.lisp (write_bits_le gadget, output reversed, sound+sample); completeness not proved | fun-circuits/fb2-field-bits.lisp (complete for the canonical bits and the fold witness) plus fb-field-bits.lisp (sound+sample); no PFCS | fb2-field-bits.lisp completeness of canonical bits; no PFCS | fun-circuits/fb3-field-write-bits.lisp (3-bit PFCS, same fold shape, iff the low-group big-endian bits of the funspec for values < 5) plus fb2-field-bits.lisp complete and fb-field-bits.lisp sound+sample
 types/field	Field	ToBits	write_bits_le	1	1	1	1	1			fun-circuits/fb-field-bits.lisp (field-to-bits-gadget, sound+sample); completeness not proved | fun-circuits/fb2-field-bits.lisp (complete for the canonical bits and the fold witness) plus fb-field-bits.lisp (sound+sample); no PFCS | fb2-field-bits.lisp completeness of canonical bits; no PFCS | fun-circuits/fb3-field-write-bits.lisp (3-bit PFCS, same fold shape, iff the low 3 bits of the funspec for values < 5) plus fb2-field-bits.lisp complete and fb-field-bits.lisp sound+sample
-types/field	Field	ToLowerBits	to_lower_bits_be	1	1	1	1	1			fun-circuits/fb-field-bits.lisp (same constraints as le, sound under 2^k<p, complete, sample) | fun-circuits/fb2-field-bits.lisp (pfcs k=2) plus fb-field-bits.lisp (sound under 2^k<p, complete, sample) | fb2-field-bits.lisp pfcs k=2
-types/field	Field	ToLowerBits	to_lower_bits_le	1	1	1	1	1			fun-circuits/fb-field-bits.lisp (boolean checks + pow2sum, sound under 2^k<p and k<=252, complete, pfcs k=2, sample); k=253 aliases, see bugs
-types/field	Field	ToUpperBits	to_upper_bits_be	1	1	1	1	1			fun-circuits/fb-field-bits.lisp (boolean checks + shifted pow2sum, modular spec, sample); funspec bridge not proved | fun-circuits/fb2-field-bits.lisp (sound when the shifted value is below p, complete, pfcs k=1) plus fb-field-bits.lisp sample | fb2-field-bits.lisp sound+complete+pfcs k=1; soundness uses the shifted value < p
-types/field	Field	ToUpperBits	to_upper_bits_le	1	1	1	1	1			fun-circuits/fb-field-bits.lisp (be gadget on the reversed bits, sample); funspec bridge not proved | fun-circuits/fb2-field-bits.lisp (sound when the shifted value is below p, complete, pfcs k=1) plus fb-field-bits.lisp sample | fb2-field-bits.lisp sound+complete+pfcs k=1
+types/field	Field	ToLowerBits	to_lower_bits_be	1	1	1	0	1			fun-circuits/fb-field-bits.lisp (same constraints as le, sound under 2^k<p, complete, sample) | fun-circuits/fb2-field-bits.lisp (pfcs k=2) plus fb-field-bits.lisp (sound under 2^k<p, complete, sample) | fb2-field-bits.lisp pfcs k=2; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
+types/field	Field	ToLowerBits	to_lower_bits_le	1	1	1	0	1			fun-circuits/fb-field-bits.lisp (boolean checks + pow2sum, sound under 2^k<p and k<=252, complete, pfcs k=2, sample); k=253 aliases, see bugs; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
+types/field	Field	ToUpperBits	to_upper_bits_be	1	1	1	0	1			fun-circuits/fb-field-bits.lisp (boolean checks + shifted pow2sum, modular spec, sample); funspec bridge not proved | fun-circuits/fb2-field-bits.lisp (sound when the shifted value is below p, complete, pfcs k=1) plus fb-field-bits.lisp sample | fb2-field-bits.lisp sound+complete+pfcs k=1; soundness uses the shifted value < p; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
+types/field	Field	ToUpperBits	to_upper_bits_le	1	1	1	0	1			fun-circuits/fb-field-bits.lisp (be gadget on the reversed bits, sample); funspec bridge not proved | fun-circuits/fb2-field-bits.lisp (sound when the shifted value is below p, complete, pfcs k=1) plus fb-field-bits.lisp sample | fb2-field-bits.lisp sound+complete+pfcs k=1; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
 program			compute_function_id	0	0	0	0	0			prog-catalog.lisp: compute-function-id-gadget
 program	Argument	Equal	is_equal	0	0	0	0	0			prog-catalog.lisp: argument-is-equal-gadget
 program	Argument	Equal	is_not_equal	0	0	0	0	0			prog-catalog.lisp: argument-is-not-equal-gadget, argument-is-not-equal-funspecs-match
@@ -86,9 +86,9 @@ program	Future	ToBits	write_bits_le	0	0	0	0	0			prog-catalog.lisp: future-to-bit
 program	Future	ToFields	to_fields	0	0	0	0	0			prog-catalog.lisp: future-to-fields-gadget
 program	HeaderLeaf	ToBits	write_bits_be	0	0	0	0	0			prog-catalog.lisp: header-leaf-to-bits-be-gadget
 program	HeaderLeaf	ToBits	write_bits_le	0	0	0	0	0			prog-catalog.lisp: header-leaf-to-bits-le-gadget
-program	Identifier		public	1	1	1	1	1			prog-ids.lisp: identifier-public-gadget, identifier-public-gadget-sound, identifier-public-gadget-complete, identifier-public-pred-to-funspec, identifier-public-sample-holds
-program	Identifier	Equal	is_equal	1	1	1	1	1			prog-equal.lisp: identifier-is-equal-gadget, identifier-is-equal-gadget-sound, identifier-is-equal-gadget-complete, identifier-is-equal-pred-to-funspec, identifier-is-equal-sample-holds
-program	Identifier	Equal	is_not_equal	1	1	1	1	1			prog-equal.lisp: identifier-is-not-equal-gadget, identifier-is-not-equal-gadget-sound, identifier-is-not-equal-gadget-complete, identifier-is-not-equal-pred-to-funspec, identifier-is-not-equal-sample-holds, identifier-is-not-equal-funspecs-match
+program	Identifier		public	1	1	1	0	1			prog-ids.lisp: identifier-public-gadget, identifier-public-gadget-sound, identifier-public-gadget-complete, identifier-public-pred-to-funspec, identifier-public-sample-holds; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
+program	Identifier	Equal	is_equal	1	1	1	0	1			prog-equal.lisp: identifier-is-equal-gadget, identifier-is-equal-gadget-sound, identifier-is-equal-gadget-complete, identifier-is-equal-pred-to-funspec, identifier-is-equal-sample-holds; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
+program	Identifier	Equal	is_not_equal	1	1	1	0	1			prog-equal.lisp: identifier-is-not-equal-gadget, identifier-is-not-equal-gadget-sound, identifier-is-not-equal-gadget-complete, identifier-is-not-equal-pred-to-funspec, identifier-is-not-equal-sample-holds, identifier-is-not-equal-funspecs-match; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
 program	Identifier	FromBits	from_bits_be	0	0	0	0	0			prog-catalog.lisp: identifier-from-bits-be-gadget, identifier-from-bits-be-funspecs-match
 program	Identifier	FromBits	from_bits_le	0	0	0	0	0			prog-catalog.lisp: identifier-from-bits-le-gadget
 program	Identifier	FromField	from_field	0	0	0	0	0			prog-catalog.lisp: identifier-from-field-gadget, identifier-from-field-funspecs-match
@@ -140,13 +140,13 @@ program	Plaintext	ToBitsRaw	write_bits_raw_le	0	0	0	0	0			prog-catalog.lisp: pla
 program	Plaintext	ToFields	to_fields	0	0	0	0	0			prog-catalog.lisp: plaintext-to-fields-gadget
 program	Plaintext	ToFieldsRaw	to_fields_raw	0	0	0	0	0			prog-catalog.lisp: plaintext-to-fields-raw-gadget
 program	Plaintext	Visibility	size_in_fields	0	0	0	0	0			prog-catalog.lisp: plaintext-size-in-fields-gadget
-program	ProgramID		public	1	1	1	1	1			prog-ids.lisp: program-id-public-gadget, program-id-public-gadget-sound, program-id-public-gadget-complete, program-id-public-pred-to-funspec, program-id-public-sample-holds
+program	ProgramID		public	1	1	1	0	1			prog-ids.lisp: program-id-public-gadget, program-id-public-gadget-sound, program-id-public-gadget-complete, program-id-public-pred-to-funspec, program-id-public-sample-holds; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
 program	ProgramID		to_address	1	0	0	0	1			prog-ids.lisp: empty non-hash gadget and completeness only; hash_to_group excluded, soundness not claimed
-program	ProgramID	Equal	is_equal	1	1	1	1	1			prog-equal.lisp: program-id-is-equal-gadget, program-id-is-equal-gadget-sound, program-id-is-equal-gadget-complete, program-id-is-equal-pred-to-funspec, program-id-is-equal-sample-holds
-program	ProgramID	Equal	is_not_equal	1	1	1	1	1			prog-equal.lisp: program-id-is-not-equal-gadget, program-id-is-not-equal-gadget-sound, program-id-is-not-equal-gadget-complete, program-id-is-not-equal-pred-to-funspec, program-id-is-not-equal-sample-holds
+program	ProgramID	Equal	is_equal	1	1	1	0	1			prog-equal.lisp: program-id-is-equal-gadget, program-id-is-equal-gadget-sound, program-id-is-equal-gadget-complete, program-id-is-equal-pred-to-funspec, program-id-is-equal-sample-holds; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
+program	ProgramID	Equal	is_not_equal	1	1	1	0	1			prog-equal.lisp: program-id-is-not-equal-gadget, program-id-is-not-equal-gadget-sound, program-id-is-not-equal-gadget-complete, program-id-is-not-equal-pred-to-funspec, program-id-is-not-equal-sample-holds; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
 program	ProgramID	ToBits	write_bits_be	0	0	0	0	0			prog-catalog.lisp: program-id-to-bits-be-gadget
 program	ProgramID	ToBits	write_bits_le	0	0	0	0	0			prog-catalog.lisp: program-id-to-bits-le-gadget
-program	ProgramID	ToFields	to_fields	1	1	1	1	1			prog-ids.lisp: program-id-to-fields-gadget, program-id-to-fields-gadget-sound, program-id-to-fields-gadget-complete, program-id-to-fields-pred-to-funspec, program-id-to-fields-sample-holds
+program	ProgramID	ToFields	to_fields	1	1	1	0	1			prog-ids.lisp: program-id-to-fields-gadget, program-id-to-fields-gadget-sound, program-id-to-fields-gadget-complete, program-id-to-fields-pred-to-funspec, program-id-to-fields-sample-holds; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
 program	Record		decrypt	0	0	0	0	0			prog-catalog.lisp: crypto-record-decrypt-gadget
 program	Record		decrypt_symmetric_unchecked	0	0	0	0	0			prog-catalog.lisp: crypto-record-decrypt-symmetric-unchecked-gadget
 program	Record		decrypt_with_randomizers	0	0	0	0	0			prog-catalog.lisp: crypto-record-decrypt-with-randomizers-gadget
@@ -155,7 +155,7 @@ program	Record		encrypt_symmetric	0	0	0	0	0			prog-catalog.lisp: crypto-record-e
 program	Record		encrypt_symmetric_unchecked	0	0	0	0	0			prog-catalog.lisp: crypto-record-encrypt-symmetric-unchecked-gadget
 program	Record		encrypt_with_randomizers	0	0	0	0	0			prog-catalog.lisp: crypto-record-encrypt-with-randomizers-gadget
 program	Record		find	0	0	0	0	0			prog-catalog.lisp: crypto-record-find-gadget
-program	Record		is_hiding	1	1	1	1	1			prog-equal.lisp: crypto-record-is-hiding-gadget, crypto-record-is-hiding-gadget-sound, crypto-record-is-hiding-gadget-complete, crypto-record-is-hiding-pred-to-funspec, crypto-record-is-hiding-sample-holds
+program	Record		is_hiding	1	1	1	1	1	Integer::new on the version		prog-equal.lisp: crypto-record-is-hiding-gadget, crypto-record-is-hiding-gadget-sound, crypto-record-is-hiding-gadget-complete, crypto-record-is-hiding-pred-to-funspec, crypto-record-is-hiding-sample-holds
 program	Record		num_randomizers	0	0	0	0	0			prog-catalog.lisp: crypto-record-num-randomizers-gadget
 program	Record		serial_number	0	0	0	0	0			prog-catalog.lisp: crypto-record-serial-number-gadget
 program	Record		serial_number_from_gamma	0	0	0	0	0			prog-catalog.lisp: crypto-record-serial-number-from-gamma-gadget
@@ -191,17 +191,17 @@ program	Value	ToFields	to_fields	0	0	0	0	0			prog-catalog.lisp: value-to-fields-
 program	Value	ToFieldsRaw	to_fields_raw	0	0	0	0	0			prog-catalog.lisp: value-to-fields-raw-gadget
 collections	<trait default>	PathHash	hash_empty	0	0	0	0	0			excluded hash; empty gadget only unfolds the funspec (bugs-val.txt)
 collections	BHP	PathHash	hash_children	0	0	0	0	0			excluded hash; empty gadget only unfolds the funspec (bugs-val.txt)
-collections	BooleanHash	Equal	is_equal	1	1	1	1	1			fun-circuits/val-collections.lisp
-collections	BooleanHash	Equal	is_not_equal	1	1	1	1	1			fun-circuits/val-collections.lisp
+collections	BooleanHash	Equal	is_equal	1	1	1	0	1			fun-circuits/val-collections.lisp; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
+collections	BooleanHash	Equal	is_not_equal	1	1	1	0	1			fun-circuits/val-collections.lisp; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
 collections	BooleanHash	Inject	new	1	1	1	1	1			fun-circuits/val-collections.lisp
-collections	BooleanHash	Ternary	ternary	1	1	1	1	1			fun-circuits/val-collections.lisp
+collections	BooleanHash	Ternary	ternary	1	1	1	0	1			fun-circuits/val-collections.lisp; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
 collections	KaryMerklePath		verify	1	1	1	0	0			fun-circuits/val-collections.lisp: one-level gadget, pfcs, and sample; not the full path funspec
-collections	KaryMerklePath	Inject	new	1	1	1	1	1			fun-circuits/val-collections.lisp
+collections	KaryMerklePath	Inject	new	0	0	1	0	0			fun-circuits/val-collections.lisp; soundness audit: gadget omits constraints snarkVM emits; R1CS-SPEC, PFCS-SPEC, R1CS-SOUND, R1CS-COMPLETE cleared, see fun-specs README Open TODOs
 collections	Keccak	PathHash	hash_children	0	0	0	0	0			excluded hash; empty gadget only unfolds the funspec (bugs-val.txt)
 collections	MerklePath		verify	1	1	1	0	0			fun-circuits/val-collections.lisp: one-level gadget, pfcs, and sample; not the full path funspec
 collections	MerkleTree		new	1	1	1	0	1			fun-circuits/val-collections.lisp (hashes abstract; local gadget empty)
-environment			recursively_replace_self	1	0	1	1	1			fun-circuits/val-env-seq.lisp: proc-macro, empty gadget, rewrite theorem; PFCS predicate is not the rewrite
-environment			rename_selfs	1	0	1	1	1			fun-circuits/val-env-seq.lisp: proc-macro, empty gadget, rewrite theorem; PFCS predicate is not the rewrite
+environment			recursively_replace_self	1	0	1	0	1			fun-circuits/val-env-seq.lisp: proc-macro, empty gadget, rewrite theorem; PFCS predicate is not the rewrite; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
+environment			rename_selfs	1	0	1	0	1			fun-circuits/val-env-seq.lisp: proc-macro, empty gadget, rewrite theorem; PFCS predicate is not the rewrite; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
 environment	(t0,ty,*)	Inject	new	0	0	0	0	0			fun-circuits/val-env-seq.lisp: sequencer only; element constraints absent; one-step funspec expansion is not R1CS soundness
 environment	(t0,ty,+)	ToBits	write_bits_be	0	0	0	0	0			fun-circuits/val-env-seq.lisp: sequencer only; element constraints absent; one-step funspec expansion is not R1CS soundness
 environment	(t0,ty,+)	ToBits	write_bits_le	0	0	0	0	0			fun-circuits/val-env-seq.lisp: sequencer only; element constraints absent; one-step funspec expansion is not R1CS soundness
@@ -310,22 +310,22 @@ network	AleoV0	Aleo	hash_to_scalar_psd4	0	0	0	0	0			skipped-hash
 network	AleoV0	Aleo	hash_to_scalar_psd8	0	0	0	0	0			skipped-hash
 network	AleoV0	Aleo	verify_merkle_path_bhp	1	1	1	0	0			fun-circuits/val-network.lisp: one-level Rust ordering; curve-merkle-order corrected; full-path soundness not proved (bugs-val.txt)
 network	AleoV0	Aleo	verify_merkle_path_psd	1	1	1	0	0			fun-circuits/val-network.lisp: one-level Rust ordering; curve-merkle-order corrected; full-path soundness not proved (bugs-val.txt)
-types/string			is_invalid_digit_offset	1	1	1	1	1			fun-circuits/val-string-validate.lisp
-types/string			is_invalid_lowercase_offset	1	1	1	1	1			fun-circuits/val-string-validate.lisp
-types/string			is_invalid_uppercase_offset	1	1	1	1	1			fun-circuits/val-string-validate.lisp
-types/string			validate_byte	1	1	1	1	1			fun-circuits/val-string-validate.lisp
-types/string			validate_identifier_bytes	1	1	1	1	1			fun-circuits/val-string-validate.lisp
-types/string			validate_trailing_nulls	1	1	1	1	1			fun-circuits/val-string-validate.lisp
-types/string	ByteValidationData		new	1	1	1	1	1			fun-circuits/val-string-validate.lisp
-types/string	IdentifierLiteral	Equal	is_equal	1	1	1	1	1			fun-circuits/val-string-ops.lisp
-types/string	IdentifierLiteral	Equal	is_not_equal	1	1	1	1	1			fun-circuits/val-string-ops.lisp
-types/string	IdentifierLiteral	FromBits	from_bits_be	1	1	1	1	1			fun-circuits/val-string-ops.lisp
-types/string	IdentifierLiteral	FromBits	from_bits_le	1	1	1	1	1			fun-circuits/val-string-ops.lisp
-types/string	IdentifierLiteral	FromField	from_field	1	1	1	1	1			fun-circuits/val-string-ops.lisp
-types/string	IdentifierLiteral	ToBits	write_bits_be	1	1	1	1	1			fun-circuits/val-string-ops.lisp
-types/string	IdentifierLiteral	ToBits	write_bits_le	1	1	1	1	1			fun-circuits/val-string-ops.lisp
-types/string	IdentifierLiteral	ToField	to_field	1	1	1	1	1			fun-circuits/val-string-ops.lisp
-types/string	IdentifierLiteral	ToFields	to_fields	1	1	1	1	1			fun-circuits/val-string-ops.lisp
+types/string			is_invalid_digit_offset	1	1	1	1	1	Boolean::new on each input bit		fun-circuits/val-string-validate.lisp
+types/string			is_invalid_lowercase_offset	1	1	1	1	1	Boolean::new on each input bit and ByteValidationData::new on the data		fun-circuits/val-string-validate.lisp
+types/string			is_invalid_uppercase_offset	1	1	1	1	1	Boolean::new on each input bit and ByteValidationData::new on the data		fun-circuits/val-string-validate.lisp
+types/string			validate_byte	1	1	1	1	1	Boolean::new on each input bit		fun-circuits/val-string-validate.lisp
+types/string			validate_identifier_bytes	1	1	1	0	1			fun-circuits/val-string-validate.lisp; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
+types/string			validate_trailing_nulls	1	1	1	1	1	validate_byte on each null flag		fun-circuits/val-string-validate.lisp
+types/string	ByteValidationData		new	1	1	1	1	1	Boolean::new on each input bit		fun-circuits/val-string-validate.lisp
+types/string	IdentifierLiteral	Equal	is_equal	1	1	1	1	1	Literal::new identifier arm on each operand (literal-identifier-new-sound)		fun-circuits/val-string-ops.lisp
+types/string	IdentifierLiteral	Equal	is_not_equal	1	1	1	1	1	Literal::new identifier arm on each operand (literal-identifier-new-sound)		fun-circuits/val-string-ops.lisp
+types/string	IdentifierLiteral	FromBits	from_bits_be	0	0	1	0	0			fun-circuits/val-string-ops.lisp; soundness audit: gadget omits constraints snarkVM emits; R1CS-SPEC, PFCS-SPEC, R1CS-SOUND, R1CS-COMPLETE cleared, see fun-specs README Open TODOs
+types/string	IdentifierLiteral	FromBits	from_bits_le	0	0	1	0	0			fun-circuits/val-string-ops.lisp; soundness audit: gadget omits constraints snarkVM emits; R1CS-SPEC, PFCS-SPEC, R1CS-SOUND, R1CS-COMPLETE cleared, see fun-specs README Open TODOs
+types/string	IdentifierLiteral	FromField	from_field	0	0	1	0	0			fun-circuits/val-string-ops.lisp; soundness audit: gadget omits constraints snarkVM emits; R1CS-SPEC, PFCS-SPEC, R1CS-SOUND, R1CS-COMPLETE cleared, see fun-specs README Open TODOs
+types/string	IdentifierLiteral	ToBits	write_bits_be	1	1	1	0	1			fun-circuits/val-string-ops.lisp; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
+types/string	IdentifierLiteral	ToBits	write_bits_le	1	1	1	0	1			fun-circuits/val-string-ops.lisp; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
+types/string	IdentifierLiteral	ToField	to_field	1	1	1	0	1			fun-circuits/val-string-ops.lisp; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
+types/string	IdentifierLiteral	ToFields	to_fields	1	1	1	0	1			fun-circuits/val-string-ops.lisp; soundness audit: R1CS-SOUND cleared, see fun-specs README Open TODOs
 types/string	StringType		inject_size_in_bytes	1	1	1	1	1			fun-circuits/val-string-size.lisp
 types/string	StringType	Equal	is_equal	1	1	1	1	1			fun-circuits/val-string-ops.lisp
 types/string	StringType	Equal	is_not_equal	1	1	1	1	1			fun-circuits/val-string-ops.lisp
@@ -480,3 +480,15 @@ types/scalar	Scalar	ToBits	write_bits_be	1	0	0	1	1			fun-circuits/scalar-write-b
 types/scalar	Scalar	ToBits	write_bits_le	1	0	0	1	1			fun-circuits/scalar-write-bits-r1cs.lisp. Same constraints as patched Scalar::new. scalar-write-bits-le-gadget-sound proves the bit wires are scalar-bits-le of a scalar. The prefix is an unconstrained bit accumulator. scalar-write-bits-le-gadget-complete builds the bit and bits-lte-const fold witnesses for every scalar. PFCS is open.
 types/scalar	Scalar	Zero	is_zero	1	1	1	1	1	Scalar::to_bits_le on the operand		crv-equal.lisp R1CS-SOUND holds when the R1CS-SOUND-IF circuit has already constrained those inputs. The theorem still takes that typed value as a hypothesis. Witness: scalar-equal-modulus-disagrees-with-residue (is_equal against 0).
 program	Literal	Inject	new	1	1	1	0	0			fun-circuits/literal-new-pfcs.lisp and identifier-list-sound.lisp and identifier-new-complete.lisp and literal-new-group-complete.lisp and literal-new-r1cs.lisp and scalar-new-r1cs.lisp and group-inject-sound.lisp; needs snarkVM-scalar-new-range-check.patch because unpatched Scalar::new accepts a wire in [r p) (scalar-new-unpatched-accepts-non-scalar); samples checked by aleovm_sample_circuits.py; R1CS-SOUND for group/address/signature is conditional on edwards-bls12-cofactor-clears; R1CS-COMPLETE: literal-scalar-new-complete, literal-identifier-new-complete, and literal-group-new-complete/literal-address-new-complete/literal-signature-new-complete (literal-new-group-complete.lisp); stays 0 because the string arm is a host halt (fun-specs README)
+types/boolean	Boolean	BitAnd	bitand	0	0	0	0	0	Boolean::new on each input bit		ACL2_MODELS soundness theorem
+types/boolean	Boolean	BitAndAssign	bitand_assign	0	0	0	0	0	Boolean::new on each input bit		ACL2_MODELS soundness theorem
+types/boolean	Boolean	BitOr	bitor	0	0	0	0	0	Boolean::new on each input bit		ACL2_MODELS soundness theorem
+types/boolean	Boolean	BitOrAssign	bitor_assign	0	0	0	0	0	Boolean::new on each input bit		ACL2_MODELS soundness theorem
+types/boolean	Boolean	BitXor	bitxor	0	0	0	0	0	Boolean::new on each input bit		ACL2_MODELS soundness theorem
+types/boolean	Boolean	BitXorAssign	bitxor_assign	0	0	0	0	0	Boolean::new on each input bit		ACL2_MODELS soundness theorem
+types/boolean	Boolean	Equal	is_equal	0	0	0	0	0	Boolean::new on each input bit		ACL2_MODELS soundness theorem
+types/boolean	Boolean	Equal	is_not_equal	0	0	0	0	0	Boolean::new on each input bit		ACL2_MODELS soundness theorem
+types/boolean	Boolean	Nand	nand	0	0	0	0	0	Boolean::new on each input bit		ACL2_MODELS soundness theorem
+types/boolean	Boolean	Nor	nor	0	0	0	0	0	Boolean::new on each input bit		ACL2_MODELS soundness theorem
+types/boolean	Boolean	Ternary	ternary	0	0	0	0	0	Boolean::new on the condition and on each operand		ACL2_MODELS soundness theorem
+types/field	Field	Ternary	ternary	0	0	0	0	0	Boolean::new on the condition		ACL2_MODELS soundness theorem
