@@ -75,7 +75,7 @@ types/scalar	Scalar	Equal	is_equal	1	1	1	0	1	crv-equal.lisp R1CS-SOUND cleared: 
 types/scalar	Scalar	Equal	is_not_equal	1	1	1	0	1	crv-equal.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. Same witness as is_equal: the not-equal bit is 1 while the residues are equal.
 types/scalar	Scalar	FromBits	from_bits_be	0	0	0	0	0	
 types/scalar	Scalar	FromBits	from_bits_le	0	0	0	0	0	
-types/scalar	Scalar	FromField	from_field	0	0	0	0	0	
+types/scalar	Scalar	FromField	from_field	1	0	0	1	0	fun-circuits/scalar-from-field-r1cs.lisp. Field::to_bits_le, assert_bits_are_zero of the two excess bits, and assert_less_than_or_equal_constant of the first 251 bits against r-1. scalar-from-field-gadget-sound builds the scalar from those wires and proves scalarp and the funspec. The public unit wire is 1. PFCS and the bits-below-prime and bits-lte-const completeness witnesses are open.
 types/scalar	Scalar	One	is_one	1	1	1	0	1	crv-equal.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. Witness: scalar-one-modulus-disagrees-with-residue in scalar-range-gap.lisp.
 types/scalar	Scalar	Ternary	ternary	1	1	1	0	1	crv-ternary.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires. Witness: scalar-ternary-copies-non-scalar in scalar-range-gap.lisp.
 types/scalar	Scalar	ToBits	write_bits_be	1	0	0	1	0	fun-circuits/scalar-write-bits-r1cs.lisp. Reversal adds no constraint. scalar-write-bits-be-gadget-sound appends the reverse of scalar-bits-le. The prefix is an unconstrained bit accumulator. PFCS and the bits-lte-const completeness witness are open.

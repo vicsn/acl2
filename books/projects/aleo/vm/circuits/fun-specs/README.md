@@ -79,6 +79,8 @@ R1CS-SOUND is over the wires. A theorem that takes `int-valuep`, `scalarp`, or `
 
 `Scalar::write_bits_le` is the same constraint list as the patched `Scalar::new` (`fun-circuits/scalar-write-bits-r1cs.lisp`). `scalar-write-bits-le-gadget-sound` proves the bit wires are `scalar-bits-le` of a scalar. `write_bits_be` reverses that list and emits nothing further. The funspec prefix is an unconstrained accumulator, assumed to be a bit list. PFCS and R1CS-COMPLETE stay open: the `bits-lte-const` witness is not constructed for every scalar.
 
+`Scalar::from_field` is `Scalar::from_bits_le` of `Field::to_bits_le` (`fun-circuits/scalar-from-field-r1cs.lisp`). `scalar-from-field-gadget-sound` proves the two excess bits are 0, the low 251 bits are at most `r - 1`, and that value is a scalar equal to `scalar-from-field-funspec`. The unit wire is the public one. PFCS and R1CS-COMPLETE stay open: the bits-below-prime witness and the `bits-lte-const` witness are not constructed.
+
 ACL2 `defruled` samples, including prime-5 write-bits and scalar-comparison assignments, are not `R1CS-SAMPLES`. That flag requires `aleovm_sample_circuits.py` against a snarkVM scope dump.
 
 The signature arm's hash stays abstract. `literal-signature-new-sound` takes that equality as a hypothesis:
