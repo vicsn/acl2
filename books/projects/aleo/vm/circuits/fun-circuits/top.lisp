@@ -42,3 +42,4 @@
 (include-book "compute-key-from-private-key")
 (include-book "group-cofactor-clears")
 (include-book "group-unconditional")
+(include-book "group-wire-sound")
