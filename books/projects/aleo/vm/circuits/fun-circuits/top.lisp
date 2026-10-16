@@ -43,3 +43,4 @@
 (include-book "group-cofactor-clears")
 (include-book "group-unconditional")
 (include-book "group-wire-sound")
+(include-book "crv-add-complete")

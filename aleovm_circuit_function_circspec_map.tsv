@@ -384,8 +384,8 @@ types/group	Group		from_x_coordinate_flagged	0	0	0	0	0
 types/group	Group		from_xy_coordinates	0	0	0	0	0			
 types/group	Group		is_in_group	0	0	0	0	0			
 types/group	Group		mul_by_cofactor	1	0	0	0	0			crv-curve.lisp
-types/group	Group	Add	add	1	0	1	0	0			crv-curve.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
-types/group	Group	AddAssign	add_assign	1	0	0	0	0			crv-curve.lisp R1CS-SOUND cleared: the theorem takes a well-typed value as a hypothesis instead of building it from the wires.
+types/group	Group	Add	add	1	0	1	1	1	Group::new on each group input		crv-curve.lisp crv-group-add-gadget-sound (inputs on the curve, given by Group::new via group-wire-sound.lisp group-new-wire-sound); crv-add-complete.lisp crv-group-add-gadget-complete (Edwards completeness keeps both denominators non-zero).
+types/group	Group	AddAssign	add_assign	1	0	0	1	1	Group::new on each group input		crv-curve.lisp crv-group-add-assign-gadget-sound (inputs from Group::new, group-wire-sound.lisp); add_assign is the add gadget, so crv-add-complete.lisp crv-group-add-gadget-complete gives completeness.
 types/group	Group	Double	double	1	0	1	0	0			crv-curve.lisp
 types/group	Group	Equal	is_equal	1	1	1	1	1	Group::new on each group input		crv-equal.lisp; group-wire-sound.lisp: crv-group-is-equal-wire-sound (internal not-equal bits are forced by the constraints)
 types/group	Group	Equal	is_not_equal	1	1	1	1	1	Group::new on each group input		crv-equal.lisp; group-wire-sound.lisp: crv-group-is-not-equal-wire-sound
