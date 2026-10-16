@@ -61,3 +61,4 @@
 (include-book "int-divshift-medium-div-complete")
 (include-book "int-divshift-shift-sound")
 (include-book "int-divshift-sub-wrapped-const")
+(include-book "int-divshift-shl-const")
