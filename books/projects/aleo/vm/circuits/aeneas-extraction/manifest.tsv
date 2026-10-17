@@ -1,0 +1,205 @@
+crate	type	trait	function	result	check	note
+account	ComputeKey	ToFields	to_fields	match	compute-key-to-fields-extraction	no constraints
+account	Signature	ToFields	to_fields	match	signature-to-fields-extraction	no constraints
+collections	BooleanHash	Inject	new	match	boolean-hash-new-extraction	variants 1, 2, 8
+environment	<trait default>	Environment	assert	match	env-assert-extraction	
+environment	<trait default>	Environment	assert_eq	match	env-assert-eq-extraction	
+environment	<trait default>	Environment	assert_neq	match	env-assert-neq-extraction	
+environment	CanaryCircuit	Environment	enforce	match	env-enforce-extraction	
+environment	Circuit	Environment	enforce	match	env-enforce-extraction	
+environment	TestnetCircuit	Environment	enforce	match	env-enforce-extraction	
+network	AleoV0	Environment	enforce	match	env-enforce-extraction	
+program	Boolean	Cast	cast	match	boolean-cast-extraction	
+program	Boolean	CastLossy	cast_lossy	match	boolean-cast-lossy-extraction	no constraints
+program	DynamicFuture	Equal	is_equal	match	dynamic-future-is-equal-extraction	same constraints in a different order: snarkVM interleaves each AND with the next equality
+program	DynamicFuture	Equal	is_not_equal	match	dynamic-future-is-not-equal-extraction	same constraints in a different order: snarkVM interleaves each AND with the next equality
+program	Field	Cast	cast	match	field-cast-extraction	Boolean destination: snarkVM computes is_one before is_zero; same constraints in a different order
+program	Identifier	Equal	is_equal	match	identifier-is-equal-extraction	
+program	Identifier	Equal	is_not_equal	match	identifier-is-not-equal-extraction	
+program	IdentifierLiteral	Cast	cast	differs	identifier-literal-cast-scalar-differs	Scalar destination: snarkVM reuses the bits cached by to_field (247 constraints), the gadget decomposes the field again (759); other destinations match (identifier-literal-cast-extraction). Boolean destination: snarkVM computes is_one before is_zero; same constraints in a different order
+program	Integer	Cast	cast	differs	integer-cast-identifier-literal-differs	IdentifierLiteral destination: snarkVM reuses the bits cached by to_field (22 constraints at u8), the gadget decomposes the field again (1069); other destinations match (integer-cast-extraction). Boolean destination: snarkVM computes is_one before is_zero; same constraints in a different order
+program	Literal	Inject	new	match	literal-new-extraction	with the Scalar::new patch; the signature arm leaves out the compute key hash_to_scalar on both sides
+program	OutputID		dynamic_future	match	output-id-dynamic-future-extraction	
+program	OutputID		dynamic_record	match	output-id-dynamic-record-extraction	
+program	OutputID		external_record	match	output-id-external-record-extraction	
+program	OutputID		future	match	output-id-future-extraction	
+program	OutputID		private	match	output-id-private-extraction	
+program	OutputID		public	match	output-id-public-extraction	
+program	ProgramID	Equal	is_equal	match	program-id-is-equal-extraction	
+program	ProgramID	Equal	is_not_equal	match	program-id-is-not-equal-extraction	
+program	Record		is_hiding	match	record-is-hiding-extraction	
+program	Scalar	Cast	cast	match	scalar-cast-extraction	Boolean destination: snarkVM computes is_one before is_zero; same constraints in a different order
+types/address	Address	Compare	is_greater_than	match	address-is-greater-than-extraction	
+types/address	Address	Compare	is_greater_than_or_equal	match	address-is-greater-than-or-equal-extraction	
+types/address	Address	Compare	is_less_than	match	address-is-less-than-extraction	
+types/address	Address	Compare	is_less_than_or_equal	match	address-is-less-than-or-equal-extraction	
+types/address	Address	Equal	is_equal	match	address-is-equal-extraction	
+types/address	Address	Equal	is_not_equal	match	address-is-not-equal-extraction	
+types/address	Address	From	from	match	address-from-extraction	
+types/address	Address	FromBits	from_bits_be	match	address-from-bits-be-extraction	
+types/address	Address	FromBits	from_bits_le	match	address-from-bits-le-extraction	
+types/address	Address	FromField	from_field	match	address-from-field-extraction	
+types/address	Address	Inject	new	match	address-new-extraction	
+types/address	Address	Ternary	ternary	match	address-ternary-extraction	
+types/address	Address	ToBits	write_bits_be	match	address-write-bits-be-extraction	
+types/address	Address	ToBits	write_bits_le	match	address-write-bits-le-extraction	
+types/address	Field	From	from	match	address-to-field-extraction	
+types/boolean	Boolean		assert_bits_are_zero	match	boolean-assert-bits-are-zero-extraction	
+types/boolean	Boolean		assert_less_than_or_equal_constant	match	boolean-assert-less-than-or-equal-constant-extraction	
+types/boolean	Boolean		is_less_than_or_equal_constant	match	boolean-is-less-than-or-equal-constant-extraction	
+types/boolean	Boolean	Adder	adder	match	boolean-adder-extraction	
+types/boolean	Boolean	BitAnd	bitand	match	boolean-and-extraction	
+types/boolean	Boolean	BitAndAssign	bitand_assign	match	boolean-and-extraction	
+types/boolean	Boolean	BitOr	bitor	match	boolean-or-extraction	
+types/boolean	Boolean	BitOrAssign	bitor_assign	match	boolean-or-extraction	
+types/boolean	Boolean	BitXor	bitxor	match	boolean-xor-extraction	
+types/boolean	Boolean	BitXorAssign	bitxor_assign	match	boolean-xor-extraction	
+types/boolean	Boolean	Equal	is_equal	match	boolean-is-equal-extraction	
+types/boolean	Boolean	Equal	is_not_equal	match	boolean-is-not-equal-extraction	checked against boolean-xor-gadget
+types/boolean	Boolean	Inject	new	match	boolean-new-extraction	
+types/boolean	Boolean	Nand	nand	match	boolean-nand-extraction	
+types/boolean	Boolean	Nor	nor	match	boolean-nor-extraction	
+types/boolean	Boolean	Subtractor	subtractor	match	boolean-subtractor-extraction	
+types/boolean	Boolean	Ternary	ternary	match	boolean-ternary-extraction	
+types/field	Field		even_square_root	match	field-even-square-root-extraction	
+types/field	Field	Compare	is_greater_than	match	field-is-greater-than-extraction	
+types/field	Field	Compare	is_greater_than_or_equal	match	field-is-greater-than-or-equal-extraction	
+types/field	Field	Compare	is_less_than	match	field-is-less-than-extraction	
+types/field	Field	Compare	is_less_than_or_equal	match	field-is-less-than-or-equal-extraction	
+types/field	Field	Div	div	match	field-div-extraction	
+types/field	Field	DivAssign	div_assign	match	field-div-extraction	
+types/field	Field	Equal	is_equal	match	field-is-equal-extraction	gadget adds a Boolean check of the result; matched against its tail
+types/field	Field	Equal	is_not_equal	match	field-is-not-equal-extraction	gadget adds a Boolean check of the result; matched against its tail
+types/field	Field	From	from	match	field-from-extraction	
+types/field	Field	FromBits	from_bits_be	match	field-from-bits-be-extraction	
+types/field	Field	FromBits	from_bits_le	match	field-from-bits-le-extraction	
+types/field	Field	FromBoolean	from_boolean	match	field-from-boolean-extraction	
+types/field	Field	Inv	inv	match	field-inverse-extraction	
+types/field	Field	Inverse	inverse	match	field-inverse-extraction	
+types/field	Field	Mul	mul	match	field-mul-extraction	
+types/field	Field	MulAssign	mul_assign	match	field-mul-extraction	
+types/field	Field	One	is_one	match	field-is-one-extraction	
+types/field	Field	Pow	pow	match	field-pow-extraction	
+types/field	Field	Square	square	match	field-square-extraction	
+types/field	Field	SquareRoot	square_root	differs	field-square-root-differs	extracted circuit differs from square-root gadget
+types/field	Field	Ternary	ternary	match	field-ternary-extraction	
+types/field	Field	ToBits	write_bits_be	match	field-write-bits-be-extraction	
+types/field	Field	ToBits	write_bits_le	match	field-write-bits-le-extraction	
+types/field	Field	Zero	is_zero	match	field-is-zero-extraction	
+types/group	Group		enforce_double	match	group-enforce-double-extraction	
+types/group	Group		enforce_in_group	match	group-enforce-in-group-extraction	
+types/group	Group		enforce_on_curve	match	group-enforce-on-curve-extraction	
+types/group	Group		from_x_coordinate	match	group-from-x-coordinate-extraction	
+types/group	Group		from_xy_coordinates	match	group-from-xy-coordinates-extraction	
+types/group	Group		is_in_group	match	group-is-in-group-extraction	
+types/group	Group		mul_by_cofactor	match	group-mul-by-cofactor-extraction	
+types/group	Group	Add	add	match	group-add-extraction	
+types/group	Group	AddAssign	add_assign	match	group-add-extraction	
+types/group	Group	Double	double	match	group-double-extraction	
+types/group	Group	Equal	is_equal	match	group-is-equal-extraction	
+types/group	Group	Equal	is_not_equal	match	group-is-not-equal-extraction	
+types/group	Group	FromBits	from_bits_be	match	group-from-bits-be-extraction	
+types/group	Group	FromBits	from_bits_le	match	group-from-bits-le-extraction	
+types/group	Group	Inject	new	match	group-new-extraction	
+types/group	Group	Mul	mul	match	group-mul-extraction	
+types/group	Group	MulAssign	mul_assign	match	group-mul-extraction	
+types/group	Group	Sub	sub	match	group-sub-extraction	operands named and ordered differently
+types/group	Group	SubAssign	sub_assign	match	group-sub-extraction	operands named and ordered differently
+types/group	Group	Ternary	ternary	match	group-ternary-extraction	
+types/group	Group	ToBits	write_bits_be	match	group-write-bits-be-extraction	
+types/group	Group	ToBits	write_bits_le	match	group-write-bits-le-extraction	
+types/group	Group	Zero	is_zero	match	group-is-zero-extraction	
+types/integers	Integer		from_field_lossy	match	int-from-field-lossy-{8,16,32,64,128}-extraction	
+types/integers	Integer		karatsuba_multiply	match	int-karatsuba-multiply-{8,16,32,64,128}-extraction	
+types/integers	Integer		mul_and_check	match	int-mul-checked-*-{8,16,32,64,128}-extraction	
+types/integers	Integer		to_scalar	match	int-to-scalar-{8,16,32,64,128}-extraction	
+types/integers	Integer		unsigned_division_via_witness	match-to-64	int-*-{8,16,32,64}-extraction (int-division-checks)	128-bit: snarkVM uses Karatsuba, gadget uses medium mul (int-unsigned-division-128-differs, int-signed-division-128-differs)
+types/integers	Integer	AbsChecked	abs_checked	match	int-abs-checked-*-{8,16,32,64,128}-extraction	
+types/integers	Integer	AbsWrapped	abs_wrapped	match	int-abs-wrapped-*-{8,16,32,64,128}-extraction	
+types/integers	Integer	Add	add	match	int-add-*-{8,16,32,64,128}-extraction	unsigned: gadget carry wire fixed to 0
+types/integers	Integer	AddAssign	add_assign	match	int-add-*-{8,16,32,64,128}-extraction	unsigned: gadget carry wire fixed to 0
+types/integers	Integer	AddChecked	add_checked	match	int-add-checked-*-{8,16,32,64,128}-extraction	unsigned: gadget carry wire fixed to 0
+types/integers	Integer	AddWrapped	add_wrapped	match	int-add-wrapped-*-{8,16,32,64,128}-extraction	
+types/integers	Integer	BitAnd	bitand	match	int-bitand-{8,16,32,64,128}-extraction	
+types/integers	Integer	BitAndAssign	bitand_assign	match	int-bitand-{8,16,32,64,128}-extraction	
+types/integers	Integer	BitOr	bitor	match	int-bitor-{8,16,32,64,128}-extraction	
+types/integers	Integer	BitOrAssign	bitor_assign	match	int-bitor-{8,16,32,64,128}-extraction	
+types/integers	Integer	BitXor	bitxor	match	int-bitxor-{8,16,32,64,128}-extraction	
+types/integers	Integer	BitXorAssign	bitxor_assign	match	int-bitxor-{8,16,32,64,128}-extraction	
+types/integers	Integer	Compare	is_greater_than	match	int-is-greater-than-*-{8,16,32,64,128}-extraction	
+types/integers	Integer	Compare	is_greater_than_or_equal	match	int-is-greater-than-or-equal-*-{8,16,32,64,128}-extraction	
+types/integers	Integer	Compare	is_less_than	match	int-is-less-than-*-{8,16,32,64,128}-extraction	
+types/integers	Integer	Compare	is_less_than_or_equal	match	int-is-less-than-or-equal-*-{8,16,32,64,128}-extraction	
+types/integers	Integer	Div	div	match-to-64	int-*-{8,16,32,64}-extraction (int-division-checks)	128-bit: snarkVM uses Karatsuba, gadget uses medium mul (int-unsigned-division-128-differs, int-signed-division-128-differs)
+types/integers	Integer	DivAssign	div_assign	match-to-64	int-*-{8,16,32,64}-extraction (int-division-checks)	128-bit: snarkVM uses Karatsuba, gadget uses medium mul (int-unsigned-division-128-differs, int-signed-division-128-differs)
+types/integers	Integer	DivChecked	div_checked	match-to-64	int-*-{8,16,32,64}-extraction (int-division-checks)	128-bit: snarkVM uses Karatsuba, gadget uses medium mul (int-unsigned-division-128-differs, int-signed-division-128-differs)
+types/integers	Integer	DivWrapped	div_wrapped	match-to-64	int-*-{8,16,32,64}-extraction (int-division-checks)	128-bit: snarkVM uses Karatsuba, gadget uses medium mul (int-unsigned-division-128-differs, int-signed-division-128-differs)
+types/integers	Integer	Equal	is_equal	match	int-is-equal-{8,16,32,64,128}-extraction	gadget adds a Boolean check of the result; matched against its tail
+types/integers	Integer	Equal	is_not_equal	match	int-is-not-equal-{8,16,32,64,128}-extraction	gadget adds a Boolean check of the result; matched against its tail
+types/integers	Integer	FromBits	from_bits_be	match	int-from-bits-be-{8,16,32,64,128}-extraction	
+types/integers	Integer	FromBits	from_bits_le	match	int-from-bits-le-{8,16,32,64,128}-extraction	
+types/integers	Integer	FromField	from_field	match	int-from-field-{8,16,32,64,128}-extraction	
+types/integers	Integer	Inject	new	match	int-new-{8,16,32,64,128}-extraction	
+types/integers	Integer	Modulo	modulo	match-to-64	int-*-{8,16,32,64}-extraction (int-division-checks)	equals unsigned rem; 128-bit differs like division (int-unsigned-division-128-differs)
+types/integers	Integer	Mul	mul	match	int-mul-checked-*-{8,16,32,64,128}-extraction	
+types/integers	Integer	MulAssign	mul_assign	match	int-mul-checked-*-{8,16,32,64,128}-extraction	
+types/integers	Integer	MulChecked	mul_checked	match	int-mul-checked-*-{8,16,32,64,128}-extraction	
+types/integers	Integer	MulWrapped	mul_wrapped	match	int-mul-wrapped-{8,16,32,64,128}-extraction	
+types/integers	Integer	Neg	neg	match	int-neg-signed-{8,16,32,64,128}-extraction	
+types/integers	Integer	One	is_one	match	int-is-one-{8,16,32,64,128}-extraction	
+types/integers	Integer	Pow	pow	match	int-pow-checked-*-extraction	widths 8-128, 8-bit exponent; against the int-mulpow gadgets
+types/integers	Integer	PowChecked	pow_checked	match	int-pow-checked-*-extraction	widths 8-128, 8-bit exponent; against the int-mulpow gadgets
+types/integers	Integer	PowWrapped	pow_wrapped	match	int-pow-wrapped-*-extraction	widths 8-128, 8-bit exponent; against the int-mulpow gadgets
+types/integers	Integer	Rem	rem	match-to-64	int-*-{8,16,32,64}-extraction (int-division-checks)	128-bit: snarkVM uses Karatsuba, gadget uses medium mul (int-unsigned-division-128-differs, int-signed-division-128-differs)
+types/integers	Integer	RemAssign	rem_assign	match-to-64	int-*-{8,16,32,64}-extraction (int-division-checks)	128-bit: snarkVM uses Karatsuba, gadget uses medium mul (int-unsigned-division-128-differs, int-signed-division-128-differs)
+types/integers	Integer	RemChecked	rem_checked	match-to-64	int-*-{8,16,32,64}-extraction (int-division-checks)	128-bit: snarkVM uses Karatsuba, gadget uses medium mul (int-unsigned-division-128-differs, int-signed-division-128-differs)
+types/integers	Integer	RemWrapped	rem_wrapped	match-to-64	int-*-{8,16,32,64}-extraction (int-division-checks)	128-bit: snarkVM uses Karatsuba, gadget uses medium mul (int-unsigned-division-128-differs, int-signed-division-128-differs)
+types/integers	Integer	Shl	shl	match-to-64	int-shl-checked-extraction (shift-checks)	128-bit not checked
+types/integers	Integer	ShlAssign	shl_assign	match-to-64	int-shl-checked-extraction (shift-checks)	128-bit not checked
+types/integers	Integer	ShlChecked	shl_checked	match-to-64	int-shl-checked-extraction (shift-checks)	128-bit not checked
+types/integers	Integer	ShlWrapped	shl_wrapped	match	int-shl-wrapped-extraction (shift-checks)	128-bit: int-shl-wrapped-128-extraction
+types/integers	Integer	Shr	shr	match-to-64	int-shr-checked-extraction (shift-checks)	128-bit differs: int-shr-128-differs
+types/integers	Integer	ShrAssign	shr_assign	match-to-64	int-shr-checked-extraction (shift-checks)	128-bit differs: int-shr-128-differs
+types/integers	Integer	ShrChecked	shr_checked	match-to-64	int-shr-checked-extraction (shift-checks)	128-bit differs: int-shr-128-differs
+types/integers	Integer	ShrWrapped	shr_wrapped	match-to-64	int-shr-wrapped-extraction (shift-checks)	128-bit differs: int-shr-128-differs
+types/integers	Integer	Sub	sub	match	int-sub-*-{8,16,32,64,128}-extraction	
+types/integers	Integer	SubAssign	sub_assign	match	int-sub-*-{8,16,32,64,128}-extraction	
+types/integers	Integer	SubChecked	sub_checked	match	int-sub-checked-*-{8,16,32,64,128}-extraction	
+types/integers	Integer	SubWrapped	sub_wrapped	match	int-sub-wrapped-*-{8,16,32,64,128}-extraction	
+types/integers	Integer	Ternary	ternary	match	int-ternary-{8,16,32,64,128}-extraction	
+types/integers	Integer	ToField	to_field	match	int-to-field-{8,16,32,64,128}-extraction	
+types/integers	Integer	ToFields	to_fields	match	int-to-fields-{8,16,32,64,128}-extraction	
+types/integers	Integer	Zero	is_zero	match	int-is-zero-{8,16,32,64,128}-extraction	
+types/scalar	Scalar		from_field_lossy	match	scalar-from-field-lossy-extraction	
+types/scalar	Scalar	Add	add	match	scalar-add-extraction	
+types/scalar	Scalar	AddAssign	add_assign	match	scalar-add-extraction	
+types/scalar	Scalar	Compare	is_greater_than	match	scalar-compare-extraction	
+types/scalar	Scalar	Compare	is_greater_than_or_equal	match	scalar-compare-extraction	
+types/scalar	Scalar	Compare	is_less_than	match	scalar-compare-extraction	
+types/scalar	Scalar	Compare	is_less_than_or_equal	match	scalar-compare-extraction	
+types/scalar	Scalar	Equal	is_equal	match	scalar-is-equal-extraction	
+types/scalar	Scalar	Equal	is_not_equal	match	scalar-is-not-equal-extraction	
+types/scalar	Scalar	FromBits	from_bits_be	match	scalar-from-bits-extraction	
+types/scalar	Scalar	FromBits	from_bits_le	match	scalar-from-bits-extraction	
+types/scalar	Scalar	FromField	from_field	match	scalar-from-field-extraction	
+types/scalar	Scalar	One	is_one	match	scalar-is-one-extraction	
+types/scalar	Scalar	Ternary	ternary	match	scalar-ternary-extraction	
+types/scalar	Scalar	ToBits	write_bits_be	match	scalar-write-bits-extraction	
+types/scalar	Scalar	ToBits	write_bits_le	match	scalar-write-bits-extraction	
+types/scalar	Scalar	Zero	is_zero	match	scalar-is-zero-extraction	
+types/string			is_invalid_digit_offset	not-checked		
+types/string			is_invalid_lowercase_offset	not-checked		
+types/string			is_invalid_uppercase_offset	not-checked		
+types/string			validate_byte	not-checked		validate-byte-gadget has the same constraints in a different order
+types/string			validate_identifier_bytes	not-checked		validate-identifier-bytes-gadget is a 2-byte instance; snarkVM validates 31 bytes
+types/string			validate_trailing_nulls	not-checked		
+types/string	ByteValidationData		new	not-checked		
+types/string	IdentifierLiteral	Equal	is_equal	not-checked		
+types/string	IdentifierLiteral	Equal	is_not_equal	not-checked		
+types/string	IdentifierLiteral	FromBits	from_bits_be	not-checked		
+types/string	IdentifierLiteral	FromBits	from_bits_le	not-checked		val-string-ops idlit-from-bits-le-gadget omits the byte validation; the full circuit is fsa-idlit-from-bits-le-gadget
+types/string	IdentifierLiteral	FromField	from_field	not-checked		
+types/string	IdentifierLiteral	ToBits	write_bits_be	not-checked		
+types/string	IdentifierLiteral	ToBits	write_bits_le	not-checked		
+types/string	IdentifierLiteral	ToField	to_field	not-checked		
+types/string	IdentifierLiteral	ToFields	to_fields	not-checked		
