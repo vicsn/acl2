@@ -24,7 +24,9 @@ a circuit that does not match its gadget.
 `manifest.tsv` lists each row with STATUS `verified` in
 `aleovm_circuit_function_formalisation_status.csv`, together with its check
 and outcome. The outcome is one of `match`, `match-to-64`, `differs` or
-`not-checked`.
+`not-checked`. `StringType` is deprecated and will be removed from snarkVM,
+so it has no rows and is not extracted; the `types/string` rows are
+`IdentifierLiteral`.
 
 `src/shape.rs` keeps snarkVM's trait, closure and `expect`. Charon accepts it,
 but Aeneas rejects it because it cannot name the closure.
