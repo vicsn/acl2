@@ -130,3 +130,8 @@
 (include-book "lit-identifier-bits")
 (include-book "lit-literal-to-fields")
 (include-book "lit-literal-equal")
+(include-book "ptx-tree")
+(include-book "ptx-bits")
+(include-book "ptx-new")
+(include-book "ptx-equal")
+(include-book "ptx-entry")
