@@ -1324,6 +1324,144 @@ pub fn i_div_rem(cs: &mut Cs, x: &Integer, y: &Integer, checked: bool, rem: bool
     }
 }
 
+fn log2_width(n: usize) -> usize {
+    let mut k = 0;
+    while (1usize << k) < n && k < 8 {
+        k += 1;
+    }
+    k
+}
+
+/// The select chain of the field shifts: for each low exponent bit i, the
+/// running value times 2^(2^i) if the bit is set; `msb`, if given, adds the
+/// sign-extension mask (2^(2^i) - 1) * msb.
+fn shift_chain(cs: &mut Cs, start: &Field, ebits: &Vec<Boolean>, msb: &Bits) -> Field {
+    let local = bits_copy(ebits);
+    let mut result = f_copy(start);
+    let mut i = 0;
+    while i < local.len() {
+        let product = f_mul(cs, &result, &f_of(lc_const(1, 1u32 << (i as u32))));
+        let next = match msb {
+            Bits::Some(m) => {
+                let mask = f_of(lc_sub(&lc_const(1, 1u32 << (i as u32)), &lc_one()));
+                let mf = f_from_boolean(&m[0]);
+                let masked = f_add(&product, &f_mul(cs, &mask, &mf));
+                f_ternary(cs, &local[i], &masked, &result)
+            }
+            Bits::None => f_ternary(cs, &local[i], &product, &result),
+        };
+        result = next;
+        i += 1;
+    }
+    result
+}
+
+/// The 128-bit shifts: 2^e for the low exponent bits by square-and-select,
+/// as an integer of width n.
+fn shift_power(cs: &mut Cs, ebits: &Vec<Boolean>, n: usize) -> Integer {
+    let local = bits_rev(ebits);
+    let two = f_of(lc_const(2, 0));
+    let mut shift = f_of(lc_one());
+    let mut i = 0;
+    while i < local.len() {
+        let sq = f_square(cs, &shift);
+        let dbl = f_mul(cs, &sq, &two);
+        shift = f_ternary(cs, &local[i], &dbl, &sq);
+        i += 1;
+    }
+    Integer { bits: f_to_lower_bits_le(cs, &shift, n), signed: false }
+}
+
+/// shl_wrapped.rs; `rhs` is the shift amount of any magnitude width.
+pub fn i_shl_wrapped(cs: &mut Cs, x: &Integer, rhs: &Integer) -> Integer {
+    let n = i_width(x);
+    let ebits = bits_range(&rhs.bits, 0, log2_width(n));
+    if 2 * n < FIELD_DATA_BITS {
+        let start = i_to_field(cs, x);
+        let r = shift_chain(cs, &start, &ebits, &Bits::None);
+        let bits = f_to_lower_bits_le(cs, &r, 2 * n);
+        Integer { bits: bits_range(&bits, 0, n), signed: x.signed }
+    } else {
+        let s = shift_power(cs, &ebits, n);
+        let factor = Integer { bits: s.bits, signed: x.signed };
+        i_mul_wrapped(cs, x, &factor)
+    }
+}
+
+/// shl_checked.rs, widths 8 to 64.
+pub fn i_shl_checked(cs: &mut Cs, x: &Integer, rhs: &Integer) -> Integer {
+    let n = i_width(x);
+    let k = log2_width(n);
+    let ebits = bits_range(&rhs.bits, 0, k);
+    b_assert_bits_are_zero(cs, &bits_range(&rhs.bits, k, rhs.bits.len()));
+    if x.signed {
+        let mut ext = bits_copy(&x.bits);
+        while ext.len() < 2 * n {
+            ext.push(i_msb(x));
+        }
+        let start = f_from_bits_le(cs, &ext);
+        let r = shift_chain(cs, &start, &ebits, &Bits::None);
+        let bits = f_to_lower_bits_le(cs, &r, 3 * n);
+        let result = Integer { bits: bits_range(&bits, 0, n), signed: true };
+        let upper = bits_range(&bits, n, 2 * n);
+        let msb = i_msb(&result);
+        let mut j = 0;
+        while j < upper.len() {
+            env_assert_eq(cs, &upper[j].lc, &msb.lc);
+            j += 1;
+        }
+        result
+    } else {
+        let start = i_to_field(cs, x);
+        let r = shift_chain(cs, &start, &ebits, &Bits::None);
+        let bits = f_to_lower_bits_le(cs, &r, 2 * n);
+        b_assert_bits_are_zero(cs, &bits_range(&bits, n, 2 * n));
+        Integer { bits: bits_range(&bits, 0, n), signed: false }
+    }
+}
+
+/// shr_wrapped.rs.
+pub fn i_shr_wrapped(cs: &mut Cs, x: &Integer, rhs: &Integer) -> Integer {
+    let n = i_width(x);
+    let ebits = bits_range(&rhs.bits, 0, log2_width(n));
+    if 2 * n < FIELD_DATA_BITS {
+        let start = f_from_bits_be(cs, &x.bits);
+        let msb = if x.signed {
+            let mut m = Vec::new();
+            m.push(i_msb(x));
+            Bits::Some(m)
+        } else {
+            Bits::None
+        };
+        let r = shift_chain(cs, &start, &ebits, &msb);
+        let bits = f_to_lower_bits_le(cs, &r, 2 * n);
+        Integer { bits: bits_rev(&bits_range(&bits, 0, n)), signed: x.signed }
+    } else {
+        let divisor = shift_power(cs, &ebits, n);
+        if x.signed {
+            let ax = i_as_unsigned(&i_abs(cs, x, false));
+            let dr = i_unsigned_division_via_witness(cs, &ax, &divisor);
+            let q = i_as_signed(&dr.q);
+            let one = i_const_small(n, 1, true);
+            let nq = i_add_wrapped(cs, &i_not(&q), &one);
+            let fr = i_to_field(cs, &dr.r);
+            let rz = f_is_equal(cs, &fr, &f_of(lc_zero()));
+            let nq1 = i_sub_wrapped(cs, &nq, &one);
+            let rounded = i_ternary(cs, &rz, &nq, &nq1);
+            i_ternary(cs, &i_msb(x), &rounded, &q)
+        } else {
+            i_unsigned_division_via_witness(cs, x, &divisor).q
+        }
+    }
+}
+
+/// shr_checked.rs.
+pub fn i_shr_checked(cs: &mut Cs, x: &Integer, rhs: &Integer) -> Integer {
+    let k = log2_width(i_width(x));
+    b_assert_bits_are_zero(cs, &bits_range(&rhs.bits, k, rhs.bits.len()));
+    i_shr_wrapped(cs, x, rhs)
+}
+
 /// `op`: 0 is_less_than, 1 is_greater_than, 2 is_less_than_or_equal,
 /// 3 is_greater_than_or_equal.
 pub fn i_compare(cs: &mut Cs, x: &Integer, y: &Integer, op: u32) -> Boolean {
@@ -1613,6 +1751,24 @@ pub fn h_i_unop(n: usize, signed: bool, op: u32) -> Cs {
         } else {
             let _ = bits_copy(&x.bits);
         }
+    }
+    cs
+}
+
+/// Shifts of an `n`-bit input by an `m`-bit unsigned amount: 0 shl_wrapped,
+/// 1 shl_checked, 2 shr_wrapped, 3 shr_checked.
+pub fn h_i_shift(n: usize, signed: bool, m: usize, op: u32) -> Cs {
+    let mut cs = cs_new();
+    let x = in_int(&mut cs, n, signed);
+    let e = in_int(&mut cs, m, false);
+    if op == 0 {
+        let _ = i_shl_wrapped(&mut cs, &x, &e);
+    } else if op == 1 {
+        let _ = i_shl_checked(&mut cs, &x, &e);
+    } else if op == 2 {
+        let _ = i_shr_wrapped(&mut cs, &x, &e);
+    } else {
+        let _ = i_shr_checked(&mut cs, &x, &e);
     }
     cs
 }

@@ -33,6 +33,15 @@
 (include-book "../fun-circuits/int-divshift-signed-div-checked")
 (include-book "../fun-circuits/int-divshift-signed-div-128")
 (include-book "../fun-circuits/int-divshift-signed-div-checked-128")
+(include-book "../fun-circuits/int-shift-pfcs")
+(include-book "../fun-circuits/int-divshift-shl-checked-signed")
+(include-book "../fun-circuits/int-divshift-shr-signed")
+(include-book "../fun-circuits/int-divshift-shr-checked-signed")
+(include-book "../fun-circuits/int-divshift-shl-wrapped-128")
+(include-book "../fun-circuits/int-divshift-shr-unsigned-128")
+(include-book "../fun-circuits/int-divshift-shr-signed-128")
+(include-book "../fun-circuits/int-divshift-shr-checked-unsigned-128")
+(include-book "../fun-circuits/int-divshift-shr-checked-signed-128")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -524,3 +533,120 @@
        (signed-division-128-differs 17 nil t)
        (signed-division-128-differs 18 t nil)
        (signed-division-128-differs 19 t t)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Shifts of x (W1..Wn) by an m-bit magnitude e (W(n+1)..W(n+m)), for each
+; magnitude width 8, 16, 32. The low k = log2(n) bits of e drive the select
+; chain; the others are the excess bits that the checked forms assert zero.
+
+(defun log2-width (n) (if (<= n 8) 3 (if (<= n 16) 4 (if (<= n 32) 5 (if (<= n 64) 6 7)))))
+
+(defun shift-ext (n signedp m op)
+  (ext-run (acl2::circuits-h-i-shift *fuel* n signedp m op)))
+
+(defun shift-gadget (n signedp m op)
+  (b* ((p (base-prime))
+       (k (log2-width n))
+       (xs (xs n))
+       (ebits (wvs (+ n 1) k))
+       (excess (wvs (+ n 1 k) (- m k)))
+       (nexts (gs "NX" k)))
+    (case op
+      (0 (int-shl-wrapped-gadget xs ebits nexts (gs "Z" (* 2 n)) p))
+      (1 (if signedp
+             (int-divshift-shl-checked-signed-gadget xs ebits excess nexts (gs "Z" (* 3 n)) p)
+           (int-shl-checked-shift-gadget xs ebits excess nexts (gs "Z" (* 2 n))
+                                         (nthcdr n (gs "Z" (* 2 n))) p)))
+      (2 (if signedp
+             (int-divshift-shr-signed-gadget xs ebits nexts (gs "Z" (* 2 n)) p)
+           (int-shr-wrapped-gadget xs ebits nexts (gs "Z" (* 2 n)) p)))
+      (t (if signedp
+             (int-divshift-shr-checked-signed-gadget xs ebits excess nexts (gs "Z" (* 2 n)) p)
+           (int-shr-checked-shift-gadget xs ebits excess nexts (gs "Z" (* 2 n)) p))))))
+
+(defun shift-check (n signedp m op)
+  (same-circuit-renamed (shift-ext n signedp m op) (shift-gadget n signedp m op)
+                        (wvs 1 (+ n m)) *one*))
+
+(defun shift-checks-m (n signedp ms op)
+  (or (atom ms)
+      (and (shift-check n signedp (car ms) op)
+           (shift-checks-m n signedp (cdr ms) op))))
+
+(defun shift-checks (ns signedp ms op)
+  (or (atom ns)
+      (and (shift-checks-m (car ns) signedp ms op)
+           (shift-checks (cdr ns) signedp ms op))))
+
+(defconst *small-widths* '(8 16 32 64))
+(defconst *magnitudes* '(8 16 32))
+
+(defcheck int-shl-wrapped-extraction
+  (and (shift-checks *small-widths* nil *magnitudes* 0)
+       (shift-checks *small-widths* t *magnitudes* 0)))
+
+(defcheck int-shl-checked-extraction
+  (and (shift-checks *small-widths* nil *magnitudes* 1)
+       (shift-checks *small-widths* t *magnitudes* 1)))
+
+(defcheck int-shr-wrapped-extraction
+  (and (shift-checks *small-widths* nil *magnitudes* 2)
+       (shift-checks *small-widths* t *magnitudes* 2)))
+
+(defcheck int-shr-checked-extraction
+  (and (shift-checks *small-widths* nil *magnitudes* 3)
+       (shift-checks *small-widths* t *magnitudes* 3)))
+
+; Width 128: 2^e by square-and-select over the 7 low exponent bits, most
+; significant first, then to_lower_bits_le(128). shl_wrapped multiplies by it
+; with mul_wrapped.
+
+(defun shl-wrapped-128-check (m)
+  (same-circuit-renamed
+   (shift-ext 128 nil m 0)
+   (int-divshift-shl-wrapped-128-gadget (xs 128) (reverse (wvs 129 7)) (gs "SQ" 6) (gs "T" 6)
+                                        (gs "Y" 128) 'll 'hl 'lh (gs "Z" 128) (gs "ZH" 65)
+                                        (base-prime))
+   (wvs 1 (+ 128 m)) nil))
+
+(defcheck int-shl-wrapped-128-extraction
+  (and (shl-wrapped-128-check 8)
+       (shl-wrapped-128-check 16)
+       (shl-wrapped-128-check 32)
+       (equal (shift-ext 128 t 8 0) (shift-ext 128 nil 8 0))))
+
+; shr at width 128 divides by 2^e through unsigned-medium-div-gadget, the
+; division gadget that does not match snarkVM at 128 bits (see the division
+; checks), so these gadgets do not match either.
+
+(defun shr-128-gadget (signedp checked)
+  (b* ((p (base-prime)) (n 128) (xs (xs n)) (rb (reverse (wvs 129 7))) (ex (wvs 136 1))
+       (sq (gs "SQ" 6)) (ts (gs "T" 6)) (ys (gs "Y" n)) (ax (gs "AX" n)) (mx (gs "MX" n))
+       (q (gs "Q" n)) (r (gs "R" n)) (ms (gs "MS" n)) (mcl (gs "MCL" 65)) (mch (gs "MCH" n))
+       (ls (gs "LS" n)) (ds (gs "D" n)) (nq (gs "NQ" n)) (zeros (repeat n 'k0))
+       (mq (gs "MQ" n)) (rd (gs "RD" n)) (res (gs "RES" n)))
+    (cond ((and signedp checked)
+           (int-divshift-shr-checked-signed-128-gadget
+            ex xs rb sq ts ys ax mx 'cx q r 'll 'hl 'lh 'hh ms mcl mch ls 'l ds 'd
+            nq 'nc zeros 'nz 'nw mq 'mc rd res 'one p))
+          (signedp
+           (int-divshift-shr-signed-128-gadget
+            xs rb sq ts ys ax mx 'cx q r 'll 'hl 'lh 'hh ms mcl mch ls 'l ds 'd
+            nq 'nc zeros 'nz 'nw mq 'mc rd res 'one p))
+          (checked
+           (int-divshift-shr-checked-unsigned-128-gadget
+            ex xs rb sq ts ys q r 'll 'hl 'lh 'hh ms mcl mch ls 'l ds 'd 'one p))
+          (t
+           (int-divshift-shr-unsigned-128-gadget
+            xs rb sq ts ys q r 'll 'hl 'lh 'hh ms mcl mch ls 'l ds 'd 'one p)))))
+
+(defun shr-128-differs (signedp checked)
+  (not (equal (len (canon-constraints (shift-ext 128 signedp 8 (if checked 3 2)) nil (base-prime)))
+              (len (canon-constraints (shr-128-gadget signedp checked) *k* (base-prime))))))
+
+(defcheck int-shr-128-differs
+  (and (shr-128-differs nil nil)
+       (shr-128-differs nil t)
+       (shr-128-differs t nil)
+       (shr-128-differs t t)))
