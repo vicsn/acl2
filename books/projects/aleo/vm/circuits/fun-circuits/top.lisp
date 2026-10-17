@@ -83,3 +83,6 @@
 (include-book "fsa-address-from")
 (include-book "int-divshift-signed-div-128")
 (include-book "int-divshift-signed-div-checked-128")
+(include-book "progx-boolean-cast")
+(include-book "progx-field-cast-arms")
+(include-book "progx-field-cast")
