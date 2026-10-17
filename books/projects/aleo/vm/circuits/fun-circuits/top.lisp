@@ -111,3 +111,4 @@
 (include-book "int-divshift-shr-signed-128")
 (include-book "int-divshift-shr-signed-128-complete")
 (include-book "int-divshift-shr-checked-signed-128")
+(include-book "int-mulpow-signed-checked")
