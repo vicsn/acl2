@@ -101,3 +101,7 @@
 (include-book "int-divshift-shr-checked-signed")
 (include-book "int-divshift-shlc-signed-bits")
 (include-book "int-divshift-shl-checked-signed")
+(include-book "progx-int-cast-bits")
+(include-book "progx-int-cast-vals")
+(include-book "progx-int-cast-int")
+(include-book "progx-int-cast")
