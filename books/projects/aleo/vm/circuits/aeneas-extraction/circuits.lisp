@@ -13,6 +13,8 @@
 
 ;; opaque type alloc-vec-vec-circuits-boolean- (skipped)
 
+;; opaque type alloc-vec-vec-circuits-field- (skipped)
+
 ;; opaque type alloc-vec-vec-bool- (skipped)
 
 (fty::defprod circuits-term
@@ -27,14 +29,6 @@
   ((lc acl2::any-p) (k acl2::any-p))
   :xvar the-circuits-boolean)
 
-(fty::defprod circuits-cs
-  ((next acl2::any-p) (cs acl2::any-p))
-  :xvar the-circuits-cs)
-
-(fty::defprod circuits-sumcarry
-  ((sum acl2::any-p) (carry acl2::any-p))
-  :xvar the-circuits-sumcarry)
-
 (fty::deftagsum circuits-bits
   (:none ())
   (:some ((f0 acl2::any-p)))
@@ -43,6 +37,14 @@
 (fty::defprod circuits-field
   ((lc acl2::any-p) (bits acl2::any-p))
   :xvar the-circuits-field)
+
+(fty::defprod circuits-cs
+  ((next acl2::any-p) (cs acl2::any-p))
+  :xvar the-circuits-cs)
+
+(fty::defprod circuits-sumcarry
+  ((sum acl2::any-p) (carry acl2::any-p))
+  :xvar the-circuits-sumcarry)
 
 (fty::defprod circuits-integer
   ((bits acl2::any-p) (signed acl2::any-p))
@@ -67,6 +69,10 @@
 (fty::defprod circuits-doubleterms
   ((ax2-plus-y2 acl2::any-p) (two-xy acl2::any-p) (two-minus acl2::any-p) (y2-minus-ax2 acl2::any-p))
   :xvar the-circuits-doubleterms)
+
+(fty::defprod circuits-fields2
+  ((a acl2::any-p) (b acl2::any-p))
+  :xvar the-circuits-fields2)
 
 ;; SKIPPED trait/mixed declaration group (run with --monomorphize)
 
@@ -4072,5 +4078,73 @@
   (b* ((acl2tmp3023 v3022_3022)
      (cs_3024 (cdr acl2tmp3023)))
   (ok cs_3024)))))))))
+
+(defun circuits-ck-to-fields (n pk-sig pr-sig)
+  (b* (((ok v3025_3025) (circuits-f-copy n (circuits-group->x pk-sig))))
+  (b* (((ok v3026_3026) (circuits-f-copy n (circuits-group->x pr-sig))))
+  (ok (make-circuits-fields2 :a v3025_3025 :b v3026_3026)))))
+
+(defun circuits-sig-to-fields (n challenge response pk-sig pr-sig)
+  (b* (((ok ck_3027) (circuits-ck-to-fields n pk-sig pr-sig)))
+  (b* (((ok out_3028) (vec-new)))
+  (b* (((ok v3029_3029) (circuits-f-copy n challenge)))
+  (b* (((ok out_3030) (vec-push out_3028 v3029_3029)))
+  (b* (((ok v3031_3031) (circuits-f-copy n response)))
+  (b* (((ok out_3032) (vec-push out_3030 v3031_3031)))
+  (b* (((ok out_3033) (vec-push out_3032 (circuits-fields2->a ck_3027))))
+  (vec-push out_3033 (circuits-fields2->b ck_3027))))))))))
+
+(defun circuits-bh-new-loop0 (n cs variant out i)
+  (declare (xargs :measure (nfix n)
+                  :hints (("Goal" :in-theory (theory 'ground-zero)))))
+  (if (zp n) (result-fail (err-out-of-fuel)) (b* ((n_3034 (1- n)))
+  (if (< i variant) (b* (((ok v3035_3035) (circuits-b-new n_3034 cs)))
+  (b* ((acl2tmp3036 v3035_3035)
+     (v3037_3037 (car acl2tmp3036))
+     (cs_3038 (cdr acl2tmp3036)))
+  (b* (((ok out_3039) (vec-push out v3037_3037)))
+  (b* (((ok i_3040) (usize-add i 1)))
+  (circuits-bh-new-loop0 n_3034 cs_3038 variant out_3039 i_3040))))) (ok (cons out cs))))))
+
+(defun circuits-bh-new (n cs variant)
+  (b* (((ok out_3041) (vec-new)))
+  (circuits-bh-new-loop0 n cs variant out_3041 0)))
+
+(defun circuits-h-account-to-fields (n op)
+  (b* (((ok cs_3042) (circuits-cs-new)))
+  (if (equal op 0) (b* (((ok v3059_3059) (circuits-in-group cs_3042)))
+  (b* ((acl2tmp3060 v3059_3059)
+     (pk_3061 (car acl2tmp3060))
+     (cs_3062 (cdr acl2tmp3060)))
+  (b* (((ok v3063_3063) (circuits-in-group cs_3062)))
+  (b* ((acl2tmp3064 v3063_3063)
+     (pr_3065 (car acl2tmp3064))
+     (cs_3066 (cdr acl2tmp3064)))
+  (b* (((ok &) (circuits-ck-to-fields n pk_3061 pr_3065)))
+  (ok cs_3066)))))) (b* (((ok v3043_3043) (circuits-s-new cs_3042)))
+  (b* ((acl2tmp3044 v3043_3043)
+     (c_3045 (car acl2tmp3044))
+     (cs_3046 (cdr acl2tmp3044)))
+  (b* (((ok v3047_3047) (circuits-s-new cs_3046)))
+  (b* ((acl2tmp3048 v3047_3047)
+     (r_3049 (car acl2tmp3048))
+     (cs_3050 (cdr acl2tmp3048)))
+  (b* (((ok v3051_3051) (circuits-in-group cs_3050)))
+  (b* ((acl2tmp3052 v3051_3051)
+     (pk_3053 (car acl2tmp3052))
+     (cs_3054 (cdr acl2tmp3052)))
+  (b* (((ok v3055_3055) (circuits-in-group cs_3054)))
+  (b* ((acl2tmp3056 v3055_3055)
+     (pr_3057 (car acl2tmp3056))
+     (cs_3058 (cdr acl2tmp3056)))
+  (b* (((ok &) (circuits-sig-to-fields n c_3045 r_3049 pk_3053 pr_3057)))
+  (ok cs_3058)))))))))))))
+
+(defun circuits-h-bh-new (n variant)
+  (b* (((ok cs_3067) (circuits-cs-new)))
+  (b* (((ok v3068_3068) (circuits-bh-new n cs_3067 variant)))
+  (b* ((acl2tmp3069 v3068_3068)
+     (cs_3070 (cdr acl2tmp3069)))
+  (ok cs_3070)))))
 
 ;; END OF GENERATED FILE
