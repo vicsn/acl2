@@ -96,3 +96,8 @@
 (include-book "progx-field-cast-complete")
 (include-book "progx-idlit-cast")
 (include-book "progx-scalar-cast")
+(include-book "int-divshift-sshr-bits")
+(include-book "int-divshift-shr-signed-complete")
+(include-book "int-divshift-shr-checked-signed")
+(include-book "int-divshift-shlc-signed-bits")
+(include-book "int-divshift-shl-checked-signed")
