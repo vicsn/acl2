@@ -991,7 +991,7 @@
                      fsa-len-of-lc-vars len-of-lookup-equal-list)
   :disable (fsa-lc-vals fsa-lc-vars values-bits-resize))
 
-(defruled fsa-base-prime-facts
+(defruled fsa-idlit-short-base-prime-facts
   (and (primep (base-prime)) (< 2 (base-prime)))
   :use primep-of-base-prime
   :in-theory '((:e base-prime) (:e <)))
@@ -1016,7 +1016,7 @@
                   (fsa-vrows fsa-trail values-validate-bytes-null-flags
                    validate-trailing-nulls values-lebits-to-bytes
                    values-bits-resize fsa-lc-vals fsa-short-inputs))
-  :use (fsa-base-prime-facts
+  :use (fsa-idlit-short-base-prime-facts
         (:instance fsa-vrows-sound
                    (bits (fsa-short-inputs wires)) (k 31) (first t))
         (:instance fsa-trail-sound
@@ -1042,7 +1042,7 @@
                    validate-trailing-nulls values-lebits-to-bytes
                    values-bits-resize fsa-lc-vals fsa-short-inputs
                    identifier-literal-new))
-  :use (fsa-base-prime-facts
+  :use (fsa-idlit-short-base-prime-facts
         (:instance fsa-validate-ok-when-new-ok
                    (lit (make-identifier-literal
                          :bytes (values-lebits-to-bytes
