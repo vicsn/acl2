@@ -100,7 +100,10 @@ Extraction check. `aeneas-extraction/` extracts a Rust model of the snarkVM cons
 - **Field and Integer is_equal / is_not_equal.** The gadgets start with a Boolean check of the result that snarkVM does not emit; the checks match the rest of the gadget.
 - **Integer add_checked (unsigned).** The gadget has a carry wire that snarkVM does not have; the circuits agree only with the carry fixed to 0.
 - **Integer division, remainder and shr at 128 bits.** snarkVM's `unsigned_division_via_witness` multiplies with Karatsuba (716 constraints at 128 bits); the gadget uses `unsigned-medium-mul-checked-gadget` (1039). Below 128 bits the circuits match.
-- **Not yet extracted.** Integer pow / pow_checked / pow_wrapped / modulo, shl_checked at 128 bits, and the Group, Address, String, Program, account and BooleanHash rows.
+- **Integer modulo** is the unsigned remainder, so it matches up to 64 bits and differs at 128 bits like division.
+- **Group sub** matches with the two operands swapped: snarkVM's `add` uses `other` as the left operand when it is a variable.
+- **IdentifierLiteral (found, not yet extracted).** `validate-byte-gadget` emits the same constraints as snarkVM but in a different order. `validate-identifier-bytes-gadget` is a 2-byte instance, while snarkVM validates all 31 bytes. `idlit-from-bits-le-gadget` in `val-string-ops.lisp` leaves out the byte validation that snarkVM's `from_bits_le` performs; the complete circuit is `fsa-idlit-from-bits-le-gadget`.
+- **Not yet extracted.** shl_checked at 128 bits (the model only handles widths up to 64), the String rows and the Program rows. Group, Address, Integer pow / pow_checked / pow_wrapped, account to_fields and BooleanHash new match.
 
 The audit also made conditional the rows whose theorems take `bitp` of their input bits (Boolean gates, adder, subtractor, the lte-constant checks, `assert_bits_are_zero`, Field from_bits and from_boolean and ternary, the string validation helpers), with R1CS-SOUND-IF naming `Boolean::new`. It did the same for `Record::is_hiding` (`Integer::new` on the version) and IdentifierLiteral equality (the identifier arm of `Literal::new`). Most R1CS-SAMPLES 1s have no matching check in `aleovm_sample_circuits.py`; that is not yet audited.
 
