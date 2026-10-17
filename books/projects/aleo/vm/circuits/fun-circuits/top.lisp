@@ -139,3 +139,5 @@
 (include-book "lit-literal-signature")
 (include-book "lit-literal-dispatch")
 (include-book "ptx-from-bits")
+(include-book "rec-dynamic-record-eq")
+(include-book "rec-record")
