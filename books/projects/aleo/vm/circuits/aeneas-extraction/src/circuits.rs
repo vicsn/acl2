@@ -1854,6 +1854,36 @@ fn bools_rev(x: &Vec<bool>) -> Vec<bool> {
 }
 
 // ---------------------------------------------------------------------------
+// circuit/types/address. An address is its group element; equality, ternary,
+// bits, new, and the conversions from bits and fields are the Group ones.
+
+/// compare.rs: the field comparison of the abscissas. `op`: 0 is_less_than,
+/// 1 is_greater_than, 2 is_less_than_or_equal, 3 is_greater_than_or_equal.
+pub fn a_compare(cs: &mut Cs, a: &Group, b: &Group, op: u32) -> Boolean {
+    if op == 0 {
+        f_is_less_than(cs, &a.x, &b.x)
+    } else if op == 1 {
+        f_is_less_than(cs, &b.x, &a.x)
+    } else if op == 2 {
+        let gt = f_is_less_than(cs, &b.x, &a.x);
+        b_not(&gt)
+    } else {
+        let r = f_is_less_than(cs, &a.x, &b.x);
+        b_not(&r)
+    }
+}
+
+/// helpers/to_field.rs: the abscissa, no constraint.
+pub fn a_to_field(a: &Group) -> Field {
+    f_copy(&a.x)
+}
+
+/// helpers/from_group.rs: the same point, no constraint.
+pub fn a_from_group(g: &Group) -> Group {
+    g_copy(g)
+}
+
+// ---------------------------------------------------------------------------
 // Harnesses: inputs are fresh wires 1, 2, ... in argument order.
 
 fn in_bits(cs: &mut Cs, n: usize) -> Vec<Boolean> {
@@ -2311,6 +2341,27 @@ pub fn h_g_from_bits(n: usize, be: bool) -> Cs {
         let _ = g_from_bits_be(&mut cs, &bits);
     } else {
         let _ = g_from_bits_le(&mut cs, &bits);
+    }
+    cs
+}
+
+/// Address comparisons of (W1, W2) and (W3, W4), `op` as in `a_compare`.
+pub fn h_a_compare(op: u32) -> Cs {
+    let mut cs = cs_new();
+    let a = in_group(&mut cs);
+    let b = in_group(&mut cs);
+    let _ = a_compare(&mut cs, &a, &b, op);
+    cs
+}
+
+/// 0 `Field::from(Address)`, 1 `Address::from(Group)`.
+pub fn h_a_convert(op: u32) -> Cs {
+    let mut cs = cs_new();
+    let a = in_group(&mut cs);
+    if op == 0 {
+        let _ = a_to_field(&a);
+    } else {
+        let _ = a_from_group(&a);
     }
     cs
 }
