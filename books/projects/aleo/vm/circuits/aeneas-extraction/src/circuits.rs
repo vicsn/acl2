@@ -2565,3 +2565,63 @@ pub fn h_i_modulo(n: usize) -> Cs {
     let _ = i_modulo(&mut cs, &x, &y);
     cs
 }
+
+// ---------------------------------------------------------------------------
+// circuit/account and circuit/collections.
+
+pub struct Fields2 {
+    pub a: Field,
+    pub b: Field,
+}
+
+/// compute_key/helpers/to_fields.rs: the abscissas of pk_sig and pr_sig.
+pub fn ck_to_fields(pk_sig: &Group, pr_sig: &Group) -> Fields2 {
+    Fields2 { a: f_copy(&pk_sig.x), b: f_copy(&pr_sig.x) }
+}
+
+/// signature/helpers/to_fields.rs: challenge and response (`Scalar::to_field`
+/// is the scalar's field) and the compute key's fields.
+pub fn sig_to_fields(challenge: &Field, response: &Field, pk_sig: &Group, pr_sig: &Group) -> Vec<Field> {
+    let ck = ck_to_fields(pk_sig, pr_sig);
+    let mut out = Vec::new();
+    out.push(f_copy(challenge));
+    out.push(f_copy(response));
+    out.push(ck.a);
+    out.push(ck.b);
+    out
+}
+
+/// kary_merkle_tree/helpers/mod.rs `BooleanHash::new`: `Boolean::new` per bit.
+pub fn bh_new(cs: &mut Cs, variant: usize) -> Vec<Boolean> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < variant {
+        out.push(b_new(cs));
+        i += 1;
+    }
+    out
+}
+
+/// 0 ComputeKey::to_fields of (W1, W2), (W3, W4); 1 Signature::to_fields of
+/// scalars W1, W2 and the compute key (W3, W4), (W5, W6).
+pub fn h_account_to_fields(op: u32) -> Cs {
+    let mut cs = cs_new();
+    if op == 0 {
+        let pk = in_group(&mut cs);
+        let pr = in_group(&mut cs);
+        let _ = ck_to_fields(&pk, &pr);
+    } else {
+        let c = s_new(&mut cs);
+        let r = s_new(&mut cs);
+        let pk = in_group(&mut cs);
+        let pr = in_group(&mut cs);
+        let _ = sig_to_fields(&c, &r, &pk, &pr);
+    }
+    cs
+}
+
+pub fn h_bh_new(variant: usize) -> Cs {
+    let mut cs = cs_new();
+    let _ = bh_new(&mut cs, variant);
+    cs
+}
