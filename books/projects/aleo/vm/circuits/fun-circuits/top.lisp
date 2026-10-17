@@ -69,3 +69,6 @@
 (include-book "fsa-idlit-from-bits")
 (include-book "fsa-field-sqrt-flagged")
 (include-book "fsa-scalar-add")
+(include-book "int-mulpow-wrapped")
+(include-book "int-mulpow-karatsuba")
+(include-book "int-mulpow-checked")
