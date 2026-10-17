@@ -127,3 +127,6 @@
 (include-book "rec-owner")
 (include-book "rec-dynamic-future")
 (include-book "rec-dynamic-record")
+(include-book "lit-identifier-bits")
+(include-book "lit-literal-to-fields")
+(include-book "lit-literal-equal")
