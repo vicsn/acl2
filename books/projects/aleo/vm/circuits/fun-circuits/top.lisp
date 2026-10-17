@@ -74,3 +74,5 @@
 (include-book "int-mulpow-checked")
 (include-book "grp-mul")
 (include-book "grp-is-in-group")
+(include-book "grp-from-bits")
+(include-book "grp-from-x-flagged")
