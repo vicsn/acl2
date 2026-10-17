@@ -1,7 +1,7 @@
 crate	type	trait	function	result	check	note
-account	ComputeKey	ToFields	to_fields	not-checked		
-account	Signature	ToFields	to_fields	not-checked		
-collections	BooleanHash	Inject	new	not-checked		
+account	ComputeKey	ToFields	to_fields	match	compute-key-to-fields-extraction	no constraints
+account	Signature	ToFields	to_fields	match	signature-to-fields-extraction	no constraints
+collections	BooleanHash	Inject	new	match	boolean-hash-new-extraction	variants 1, 2, 8
 environment	<trait default>	Environment	assert	match	env-assert-extraction	
 environment	<trait default>	Environment	assert_eq	match	env-assert-eq-extraction	
 environment	<trait default>	Environment	assert_neq	match	env-assert-neq-extraction	
@@ -29,21 +29,21 @@ program	ProgramID	Equal	is_equal	not-checked
 program	ProgramID	Equal	is_not_equal	not-checked		
 program	Record		is_hiding	not-checked		
 program	Scalar	Cast	cast	not-checked		
-types/address	Address	Compare	is_greater_than	not-checked		
-types/address	Address	Compare	is_greater_than_or_equal	not-checked		
-types/address	Address	Compare	is_less_than	not-checked		
-types/address	Address	Compare	is_less_than_or_equal	not-checked		
-types/address	Address	Equal	is_equal	not-checked		
-types/address	Address	Equal	is_not_equal	not-checked		
-types/address	Address	From	from	not-checked		
-types/address	Address	FromBits	from_bits_be	not-checked		
-types/address	Address	FromBits	from_bits_le	not-checked		
-types/address	Address	FromField	from_field	not-checked		
-types/address	Address	Inject	new	not-checked		
-types/address	Address	Ternary	ternary	not-checked		
-types/address	Address	ToBits	write_bits_be	not-checked		
-types/address	Address	ToBits	write_bits_le	not-checked		
-types/address	Field	From	from	not-checked		
+types/address	Address	Compare	is_greater_than	match	address-is-greater-than-extraction	
+types/address	Address	Compare	is_greater_than_or_equal	match	address-is-greater-than-or-equal-extraction	
+types/address	Address	Compare	is_less_than	match	address-is-less-than-extraction	
+types/address	Address	Compare	is_less_than_or_equal	match	address-is-less-than-or-equal-extraction	
+types/address	Address	Equal	is_equal	match	address-is-equal-extraction	
+types/address	Address	Equal	is_not_equal	match	address-is-not-equal-extraction	
+types/address	Address	From	from	match	address-from-extraction	
+types/address	Address	FromBits	from_bits_be	match	address-from-bits-be-extraction	
+types/address	Address	FromBits	from_bits_le	match	address-from-bits-le-extraction	
+types/address	Address	FromField	from_field	match	address-from-field-extraction	
+types/address	Address	Inject	new	match	address-new-extraction	
+types/address	Address	Ternary	ternary	match	address-ternary-extraction	
+types/address	Address	ToBits	write_bits_be	match	address-write-bits-be-extraction	
+types/address	Address	ToBits	write_bits_le	match	address-write-bits-le-extraction	
+types/address	Field	From	from	match	address-to-field-extraction	
 types/boolean	Boolean		assert_bits_are_zero	match	boolean-assert-bits-are-zero-extraction	
 types/boolean	Boolean		assert_less_than_or_equal_constant	match	boolean-assert-less-than-or-equal-constant-extraction	
 types/boolean	Boolean		is_less_than_or_equal_constant	match	boolean-is-less-than-or-equal-constant-extraction	
@@ -86,29 +86,29 @@ types/field	Field	Ternary	ternary	match	field-ternary-extraction
 types/field	Field	ToBits	write_bits_be	match	field-write-bits-be-extraction	
 types/field	Field	ToBits	write_bits_le	match	field-write-bits-le-extraction	
 types/field	Field	Zero	is_zero	match	field-is-zero-extraction	
-types/group	Group		enforce_double	not-checked		
-types/group	Group		enforce_in_group	not-checked		
-types/group	Group		enforce_on_curve	not-checked		
-types/group	Group		from_x_coordinate	not-checked		
-types/group	Group		from_xy_coordinates	not-checked		
-types/group	Group		is_in_group	not-checked		
-types/group	Group		mul_by_cofactor	not-checked		
-types/group	Group	Add	add	not-checked		
-types/group	Group	AddAssign	add_assign	not-checked		
-types/group	Group	Double	double	not-checked		
-types/group	Group	Equal	is_equal	not-checked		
-types/group	Group	Equal	is_not_equal	not-checked		
-types/group	Group	FromBits	from_bits_be	not-checked		
-types/group	Group	FromBits	from_bits_le	not-checked		
-types/group	Group	Inject	new	not-checked		
-types/group	Group	Mul	mul	not-checked		
-types/group	Group	MulAssign	mul_assign	not-checked		
-types/group	Group	Sub	sub	not-checked		
-types/group	Group	SubAssign	sub_assign	not-checked		
-types/group	Group	Ternary	ternary	not-checked		
-types/group	Group	ToBits	write_bits_be	not-checked		
-types/group	Group	ToBits	write_bits_le	not-checked		
-types/group	Group	Zero	is_zero	not-checked		
+types/group	Group		enforce_double	match	group-enforce-double-extraction	
+types/group	Group		enforce_in_group	match	group-enforce-in-group-extraction	
+types/group	Group		enforce_on_curve	match	group-enforce-on-curve-extraction	
+types/group	Group		from_x_coordinate	match	group-from-x-coordinate-extraction	
+types/group	Group		from_xy_coordinates	match	group-from-xy-coordinates-extraction	
+types/group	Group		is_in_group	match	group-is-in-group-extraction	
+types/group	Group		mul_by_cofactor	match	group-mul-by-cofactor-extraction	
+types/group	Group	Add	add	match	group-add-extraction	
+types/group	Group	AddAssign	add_assign	match	group-add-extraction	
+types/group	Group	Double	double	match	group-double-extraction	
+types/group	Group	Equal	is_equal	match	group-is-equal-extraction	
+types/group	Group	Equal	is_not_equal	match	group-is-not-equal-extraction	
+types/group	Group	FromBits	from_bits_be	match	group-from-bits-be-extraction	
+types/group	Group	FromBits	from_bits_le	match	group-from-bits-le-extraction	
+types/group	Group	Inject	new	match	group-new-extraction	
+types/group	Group	Mul	mul	match	group-mul-extraction	
+types/group	Group	MulAssign	mul_assign	match	group-mul-extraction	
+types/group	Group	Sub	sub	match	group-sub-extraction	operands named and ordered differently
+types/group	Group	SubAssign	sub_assign	match	group-sub-extraction	operands named and ordered differently
+types/group	Group	Ternary	ternary	match	group-ternary-extraction	
+types/group	Group	ToBits	write_bits_be	match	group-write-bits-be-extraction	
+types/group	Group	ToBits	write_bits_le	match	group-write-bits-le-extraction	
+types/group	Group	Zero	is_zero	match	group-is-zero-extraction	
 types/integers	Integer		from_field_lossy	match	int-from-field-lossy-{8,16,32,64,128}-extraction	
 types/integers	Integer		karatsuba_multiply	match	int-karatsuba-multiply-{8,16,32,64,128}-extraction	
 types/integers	Integer		mul_and_check	match	int-mul-checked-*-{8,16,32,64,128}-extraction	
@@ -140,16 +140,16 @@ types/integers	Integer	FromBits	from_bits_be	match	int-from-bits-be-{8,16,32,64,
 types/integers	Integer	FromBits	from_bits_le	match	int-from-bits-le-{8,16,32,64,128}-extraction	
 types/integers	Integer	FromField	from_field	match	int-from-field-{8,16,32,64,128}-extraction	
 types/integers	Integer	Inject	new	match	int-new-{8,16,32,64,128}-extraction	
-types/integers	Integer	Modulo	modulo	not-checked		
+types/integers	Integer	Modulo	modulo	match-to-64	int-*-{8,16,32,64}-extraction (int-division-checks)	equals unsigned rem; 128-bit differs like division (int-unsigned-division-128-differs)
 types/integers	Integer	Mul	mul	match	int-mul-checked-*-{8,16,32,64,128}-extraction	
 types/integers	Integer	MulAssign	mul_assign	match	int-mul-checked-*-{8,16,32,64,128}-extraction	
 types/integers	Integer	MulChecked	mul_checked	match	int-mul-checked-*-{8,16,32,64,128}-extraction	
 types/integers	Integer	MulWrapped	mul_wrapped	match	int-mul-wrapped-{8,16,32,64,128}-extraction	
 types/integers	Integer	Neg	neg	match	int-neg-signed-{8,16,32,64,128}-extraction	
 types/integers	Integer	One	is_one	match	int-is-one-{8,16,32,64,128}-extraction	
-types/integers	Integer	Pow	pow	not-checked		
-types/integers	Integer	PowChecked	pow_checked	not-checked		
-types/integers	Integer	PowWrapped	pow_wrapped	not-checked		
+types/integers	Integer	Pow	pow	match	int-pow-checked-*-extraction	widths 8-128, 8-bit exponent; against the int-mulpow gadgets
+types/integers	Integer	PowChecked	pow_checked	match	int-pow-checked-*-extraction	widths 8-128, 8-bit exponent; against the int-mulpow gadgets
+types/integers	Integer	PowWrapped	pow_wrapped	match	int-pow-wrapped-*-extraction	widths 8-128, 8-bit exponent; against the int-mulpow gadgets
 types/integers	Integer	Rem	rem	match-to-64	int-*-{8,16,32,64}-extraction (int-division-checks)	128-bit: snarkVM uses Karatsuba, gadget uses medium mul (int-unsigned-division-128-differs, int-signed-division-128-differs)
 types/integers	Integer	RemAssign	rem_assign	match-to-64	int-*-{8,16,32,64}-extraction (int-division-checks)	128-bit: snarkVM uses Karatsuba, gadget uses medium mul (int-unsigned-division-128-differs, int-signed-division-128-differs)
 types/integers	Integer	RemChecked	rem_checked	match-to-64	int-*-{8,16,32,64}-extraction (int-division-checks)	128-bit: snarkVM uses Karatsuba, gadget uses medium mul (int-unsigned-division-128-differs, int-signed-division-128-differs)
@@ -190,14 +190,14 @@ types/scalar	Scalar	Zero	is_zero	match	scalar-is-zero-extraction
 types/string			is_invalid_digit_offset	not-checked		
 types/string			is_invalid_lowercase_offset	not-checked		
 types/string			is_invalid_uppercase_offset	not-checked		
-types/string			validate_byte	not-checked		
-types/string			validate_identifier_bytes	not-checked		
+types/string			validate_byte	not-checked		validate-byte-gadget has the same constraints in a different order
+types/string			validate_identifier_bytes	not-checked		validate-identifier-bytes-gadget is a 2-byte instance; snarkVM validates 31 bytes
 types/string			validate_trailing_nulls	not-checked		
 types/string	ByteValidationData		new	not-checked		
 types/string	IdentifierLiteral	Equal	is_equal	not-checked		
 types/string	IdentifierLiteral	Equal	is_not_equal	not-checked		
 types/string	IdentifierLiteral	FromBits	from_bits_be	not-checked		
-types/string	IdentifierLiteral	FromBits	from_bits_le	not-checked		
+types/string	IdentifierLiteral	FromBits	from_bits_le	not-checked		val-string-ops idlit-from-bits-le-gadget omits the byte validation; the full circuit is fsa-idlit-from-bits-le-gadget
 types/string	IdentifierLiteral	FromField	from_field	not-checked		
 types/string	IdentifierLiteral	ToBits	write_bits_be	not-checked		
 types/string	IdentifierLiteral	ToBits	write_bits_le	not-checked		
