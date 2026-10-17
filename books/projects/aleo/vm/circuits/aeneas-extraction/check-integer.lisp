@@ -27,6 +27,12 @@
 (include-book "../fun-circuits/int-mulpow-checked")
 (include-book "../fun-circuits/int-mulpow-karatsuba")
 (include-book "../fun-circuits/int-mulpow-signed-checked")
+(include-book "../fun-circuits/int-div")
+(include-book "../fun-circuits/int-divshift-unsigned-div")
+(include-book "../fun-circuits/int-divshift-signed-div")
+(include-book "../fun-circuits/int-divshift-signed-div-checked")
+(include-book "../fun-circuits/int-divshift-signed-div-128")
+(include-book "../fun-circuits/int-divshift-signed-div-checked-128")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -77,12 +83,103 @@
      (wv (+ b n 2)) (wvs (+ b n 3) n) (wv (+ b (* 2 n) 3)) (wvs (+ b (* 2 n) 4) n)
      'one (base-prime))))
 
+; Division. The gadgets are called on fresh internal symbols, and the checks
+; are up to a renaming of internal wires (same-circuit-renamed).
+
+(defun unsigned-div-gadget (xs ys n)
+  (if (< (* 2 n) 252)
+      (int-unsigned-division-via-witness-gadget xs ys (gs "Q" n) (gs "R" n) 'm (gs "D" n)
+                                                'd 'one (base-prime))
+    (unsigned-medium-div-gadget xs ys (gs "Q" n) (gs "R" n) 'll 'hl 'lh 'hh (gs "MS" n)
+                                (gs "MCL" (1+ (floor n 2))) (gs "MCH" n) (gs "LS" n) 'l
+                                (gs "D" n) 'd 'one (base-prime))))
+
+(defun signed-div-gadget (n rem)
+  (b* ((xs (xs n)) (ys (ys n)) (p (base-prime)))
+    (if (< (* 2 n) 252)
+        (if rem
+            (int-divshift-signed-rem-wrapped-gadget
+             xs ys (gs "AX" n) (gs "MX" n) 'cx (gs "AY" n) (gs "MY" n) 'cy
+             (gs "Q" n) (gs "R" n) 'm (gs "D" n) 'd (gs "N" n) 'nc (gs "Z" n) 'one p)
+          (int-divshift-signed-div-wrapped-gadget
+           xs ys (gs "AX" n) (gs "MX" n) 'cx (gs "AY" n) (gs "MY" n) 'cy
+           (gs "Q" n) (gs "R" n) 'm (gs "D" n) 'd 's (gs "N" n) 'nc (gs "Z" n) 'one p))
+      (if rem
+          (int-divshift-signed-rem-wrapped-128-gadget
+           xs ys (gs "AX" n) (gs "MX" n) 'cx (gs "AY" n) (gs "MY" n) 'cy
+           (gs "Q" n) (gs "R" n) 'll 'hl 'lh 'hh (gs "MS" n) (gs "MCL" (1+ (floor n 2)))
+           (gs "MCH" n) (gs "LS" n) 'l (gs "D" n) 'd (gs "N" n) 'nc (gs "Z" n) 'one p)
+        (int-divshift-signed-div-wrapped-128-gadget
+         xs ys (gs "AX" n) (gs "MX" n) 'cx (gs "AY" n) (gs "MY" n) 'cy
+         (gs "Q" n) (gs "R" n) 'll 'hl 'lh 'hh (gs "MS" n) (gs "MCL" (1+ (floor n 2)))
+         (gs "MCH" n) (gs "LS" n) 'l (gs "D" n) 'd 's (gs "N" n) 'nc (gs "Z" n) 'one p)))))
+
+; The checked gadgets add int-divshift-overflow-check-gadget, whose two
+; int-is-equal-gadget calls each start with the Boolean check that snarkVM
+; does not emit (see the equality checks). SNARKVM-OVERFLOW-CHECK is the
+; overflow check without those two constraints.
+
+(defun min-bits (n) (append (repeat (1- n) 'k0) (list 'k1)))
+(defun neg-one-bits (n) (repeat n 'k1))
+
+(defun overflow-check-parts (n)
+  (b* ((p (base-prime)))
+    (list (int-is-equal-gadget (xs n) (min-bits n) 'e1 'mul1 'one p)
+          (int-is-equal-gadget (ys n) (neg-one-bits n) 'e2 'mul2 'one p)
+          (append (boolean-nor-gadget 'e1 'e2 'ov p)
+                  (int-divshift-assert-not-gadget 'ov p)))))
+
+(defun snarkvm-overflow-check (n)
+  (b* (((list eq1 eq2 rest) (overflow-check-parts n)))
+    (append (cdr eq1) (cdr eq2) rest)))
+
+(defun overflow-check-differs (n)
+  (b* (((list eq1 eq2 rest) (overflow-check-parts n)))
+    (and (equal (int-divshift-overflow-check-gadget (xs n) (ys n) (min-bits n)
+                                                    (neg-one-bits n) 'e1 'mul1 'e2 'mul2 'ov
+                                                    'one (base-prime))
+                (append eq1 eq2 rest))
+         (equal (car eq1) (car (boolean-check-gadget 'e1 (base-prime))))
+         (equal (car eq2) (car (boolean-check-gadget 'e2 (base-prime)))))))
+
 (defun int-check-name (name n)
   (declare (xargs :mode :program))
   (acl2::packn-pos (list 'int- name '- n '-extraction) 'xs))
 
 (defmacro int-check (name n form)
   `(defcheck ,(int-check-name name n) ,form))
+
+(defmacro int-division-checks (n)
+  `(progn
+     ; Unsigned div and rem, wrapped and checked, are the quotient and the
+     ; remainder of one circuit; so is modulo.
+     (int-check unsigned-division ,n
+       (b* ((ext (ext-run (acl2::circuits-h-i-binop *fuel* ,n nil 16))))
+         (and (same-circuit-renamed ext (unsigned-div-gadget (xs ,n) (ys ,n) ,n)
+                                    (wvs 1 (* 2 ,n)) *one*)
+              (equal (ext-run (acl2::circuits-h-i-binop *fuel* ,n nil 17)) ext)
+              (equal (ext-run (acl2::circuits-h-i-binop *fuel* ,n nil 18)) ext)
+              (equal (ext-run (acl2::circuits-h-i-binop *fuel* ,n nil 19)) ext))))
+
+     (int-check div-wrapped-signed ,n
+       (same-circuit-renamed (ext-run (acl2::circuits-h-i-binop *fuel* ,n t 16))
+                             (signed-div-gadget ,n nil) (wvs 1 (* 2 ,n)) *one*))
+
+     (int-check rem-wrapped-signed ,n
+       (same-circuit-renamed (ext-run (acl2::circuits-h-i-binop *fuel* ,n t 18))
+                             (signed-div-gadget ,n t) (wvs 1 (* 2 ,n)) *one*))
+
+     (int-check div-checked-signed ,n
+       (and (overflow-check-differs ,n)
+            (same-circuit-renamed (ext-run (acl2::circuits-h-i-binop *fuel* ,n t 17))
+                                  (append (snarkvm-overflow-check ,n) (signed-div-gadget ,n nil))
+                                  (wvs 1 (* 2 ,n)) *k*)))
+
+     (int-check rem-checked-signed ,n
+       (and (overflow-check-differs ,n)
+            (same-circuit-renamed (ext-run (acl2::circuits-h-i-binop *fuel* ,n t 19))
+                                  (append (snarkvm-overflow-check ,n) (signed-div-gadget ,n t))
+                                  (wvs 1 (* 2 ,n)) *k*)))))
 
 (defmacro int-checks (n)
   `(progn
@@ -372,3 +469,58 @@
 (int-checks 32)
 (int-checks 64)
 (int-checks 128)
+
+(int-division-checks 8)
+(int-division-checks 16)
+(int-division-checks 32)
+(int-division-checks 64)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; 128-bit division. unsigned-medium-div-gadget, which the 128-bit division
+; proofs use, multiplies through unsigned-medium-mul-checked-gadget: four
+; partial products and a zero check of each of 128 high carry bits.
+; snarkVM's 128-bit mul_checked is Karatsuba with one assert_bits_are_zero
+; and z2 = 0 (int-mul-and-check-large-gadget), so the gadgets do not match.
+; snarkVM's circuit is the same composition with the Karatsuba mul_checked.
+
+(defun unsigned-div-128-snarkvm-gadget ()
+  (b* ((n 128) (p (base-prime)) (q (gs "Q" n)) (r (gs "R" n)) (ms (gs "MS" n)))
+    (append (boolean-check-gadget-list q p)
+            (boolean-check-gadget-list r p)
+            (int-mul-checked-unsigned-any-gadget q (ys n) 'z0 'z2 'm ms
+                                                 (gs "MC" (1+ (floor n 2))) p)
+            (int-add-checked-unsigned-gadget ms r (gs "LS" n) 'carry p)
+            (list (r1cs::make-r1cs-constraint :a (pow2sum-vector (xs n) 0)
+                                              :b (list (list 1 1))
+                                              :c (pow2sum-vector (gs "LS" n) 0)))
+            (unsigned-small-lt-gadget r (ys n) (gs "D" n) 'd p)
+            (zero-unit-gadget 'd 'one p))))
+
+(defcheck int-unsigned-division-128-extraction
+  (b* ((ext (ext-run (acl2::circuits-h-i-binop *fuel* 128 nil 16))))
+    (and (same-circuit-renamed ext (unsigned-div-128-snarkvm-gadget) (wvs 1 256)
+                               '((one . 1) (carry . 0)))
+         (equal (ext-run (acl2::circuits-h-i-binop *fuel* 128 nil 17)) ext)
+         (equal (ext-run (acl2::circuits-h-i-binop *fuel* 128 nil 18)) ext)
+         (equal (ext-run (acl2::circuits-h-i-binop *fuel* 128 nil 19)) ext))))
+
+(defcheck int-unsigned-division-128-differs
+  (b* ((ext (ext-run (acl2::circuits-h-i-binop *fuel* 128 nil 16)))
+       (gad (unsigned-div-gadget (xs 128) (ys 128) 128)))
+    (and (equal (len (canon-constraints ext nil (base-prime))) 716)
+         (equal (len (canon-constraints gad *one* (base-prime))) 1039))))
+
+(defun signed-division-128-differs (op rem checked)
+  (b* ((ext (ext-run (acl2::circuits-h-i-binop *fuel* 128 t op)))
+       (gad (if checked
+                (append (snarkvm-overflow-check 128) (signed-div-gadget 128 rem))
+              (signed-div-gadget 128 rem))))
+    (not (equal (len (canon-constraints ext nil (base-prime)))
+                (len (canon-constraints gad *k* (base-prime)))))))
+
+(defcheck int-signed-division-128-differs
+  (and (signed-division-128-differs 16 nil nil)
+       (signed-division-128-differs 17 nil t)
+       (signed-division-128-differs 18 t nil)
+       (signed-division-128-differs 19 t t)))

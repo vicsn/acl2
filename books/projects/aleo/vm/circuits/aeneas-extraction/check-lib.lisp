@@ -228,6 +228,69 @@
        (canon-sub-multiset (canon-constraints gadget subst (base-prime))
                            (canon-constraints ext nil (base-prime)))))
 
+; Internal wires up to renaming. A gadget whose internal wires are fresh
+; symbols is renamed onto the extracted circuit by pairing the internal
+; wires of each side in order of first occurrence. Neither list has
+; duplicates or inputs, and the lists have the same length, so the renaming
+; is a bijection between the two sets of internal wires.
+
+(defun vec-vars (vec)
+  (if (atom vec) nil (cons (second (car vec)) (vec-vars (cdr vec)))))
+
+(defun constraints-vars (constrs)
+  (if (atom constrs)
+      nil
+    (b* ((cn (car constrs)))
+      (append (vec-vars (r1cs::r1cs-constraint->a cn))
+              (vec-vars (r1cs::r1cs-constraint->b cn))
+              (vec-vars (r1cs::r1cs-constraint->c cn))
+              (constraints-vars (cdr constrs))))))
+
+(defun first-occurrences (vars known acc)
+  (cond ((atom vars) (reverse acc))
+        ((or (member-equal (car vars) known) (member-equal (car vars) acc))
+         (first-occurrences (cdr vars) known acc))
+        (t (first-occurrences (cdr vars) known (cons (car vars) acc)))))
+
+(defun rename-vec (vec ren)
+  (if (atom vec)
+      nil
+    (b* ((var (second (car vec)))
+         (hit (assoc-equal var ren)))
+      (cons (list (first (car vec)) (if hit (cdr hit) var))
+            (rename-vec (cdr vec) ren)))))
+
+(defun rename-constraints (constrs ren)
+  (if (atom constrs)
+      nil
+    (b* ((cn (car constrs)))
+      (cons (r1cs::make-r1cs-constraint
+             :a (rename-vec (r1cs::r1cs-constraint->a cn) ren)
+             :b (rename-vec (r1cs::r1cs-constraint->b cn) ren)
+             :c (rename-vec (r1cs::r1cs-constraint->c cn) ren))
+            (rename-constraints (cdr constrs) ren)))))
+
+(defun internal-renaming (ext gadget inputs subst)
+  (b* ((ext-int (first-occurrences (constraints-vars ext) (cons 1 inputs) nil))
+       (gad-int (first-occurrences (constraints-vars gadget)
+                                   (cons 1 (append inputs (strip-cars subst)))
+                                   nil)))
+    (and (equal (len ext-int) (len gad-int))
+         (pairlis$ gad-int ext-int))))
+
+; The extracted circuit on INPUTS is the gadget, up to a renaming of
+; internal wires.
+(defun same-circuit-renamed (ext gadget inputs subst)
+  (and (not (equal ext :fail))
+       (b* ((ren (internal-renaming ext gadget inputs subst)))
+         (and (or ren (atom (first-occurrences (constraints-vars ext) (cons 1 inputs) nil)))
+              (same-circuit ext (rename-constraints gadget ren) subst)))))
+
+; Fresh gadget symbols PREFIX0, PREFIX1, ...
+(defun gs (prefix n)
+  (declare (xargs :measure (nfix n)))
+  (if (zp n) nil (append (gs prefix (1- n)) (list (acl2::packn-pos (list prefix (1- n)) 'wv)))))
+
 ; For a failing check: the lengths, the index of the first difference, and the
 ; two canonical constraints there.
 (defun first-diff (xs ys i)
@@ -242,6 +305,12 @@
     (b* ((xs (canon-constraints ext nil (base-prime)))
          (ys (canon-constraints gadget subst (base-prime))))
       (list* (len xs) (len ys) (first-diff xs ys 0)))))
+
+(defun circuit-diff-renamed (ext gadget inputs subst)
+  (if (equal ext :fail)
+      :fail
+    (circuit-diff ext (rename-constraints gadget (internal-renaming ext gadget inputs subst))
+                  subst)))
 
 ; A check is a ground theorem; it is proved by evaluation.
 (defmacro defcheck (name form)
