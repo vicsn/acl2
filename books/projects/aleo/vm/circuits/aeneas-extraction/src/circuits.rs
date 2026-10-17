@@ -1240,6 +1240,90 @@ pub fn i_mul_checked(cs: &mut Cs, x: &Integer, y: &Integer) -> Integer {
     }
 }
 
+pub struct DivRem {
+    pub q: Integer,
+    pub r: Integer,
+}
+
+/// div_wrapped.rs `unsigned_division_via_witness`.
+pub fn i_unsigned_division_via_witness(cs: &mut Cs, x: &Integer, y: &Integer) -> DivRem {
+    let n = i_width(x);
+    let q = i_new(cs, n, false);
+    let r = i_new(cs, n, false);
+    if 2 * n < FIELD_DATA_BITS {
+        let fx = i_to_field(cs, x);
+        let fq = i_to_field(cs, &q);
+        let fy = i_to_field(cs, y);
+        let fr = i_to_field(cs, &r);
+        let qy = f_mul(cs, &fq, &fy);
+        env_assert_eq(cs, &fx.lc, &f_add(&qy, &fr).lc);
+    } else {
+        let qy = i_mul_checked(cs, &q, y);
+        let t = i_add_checked(cs, &qy, &r);
+        let fx = i_to_field(cs, x);
+        let ft = i_to_field(cs, &t);
+        env_assert_eq(cs, &fx.lc, &ft.lc);
+    }
+    let lt = i_is_less_than(cs, &r, y);
+    env_assert(cs, &lt.lc);
+    DivRem { q, r }
+}
+
+fn i_as_unsigned(x: &Integer) -> Integer {
+    Integer { bits: bits_copy(&x.bits), signed: false }
+}
+
+fn i_as_signed(x: &Integer) -> Integer {
+    Integer { bits: bits_copy(&x.bits), signed: true }
+}
+
+/// The signed overflow check of div_checked.rs and rem_checked.rs:
+/// `assert(!(self == MIN & other == -1))`.
+fn i_assert_not_min_div_neg_one(cs: &mut Cs, x: &Integer, y: &Integer) {
+    let n = i_width(x);
+    let mut minbits = Vec::new();
+    let mut i = 0;
+    while i < n {
+        minbits.push(i == n - 1);
+        i += 1;
+    }
+    let min = i_const_bits(&minbits, true);
+    let neg_one = i_const_ones(n, true);
+    let a = i_is_equal(cs, x, &min);
+    let b = i_is_equal(cs, y, &neg_one);
+    let overflows = b_and(cs, &a, &b);
+    env_assert(cs, &b_not(&overflows).lc);
+}
+
+/// div_wrapped.rs and div_checked.rs (`checked` adds the overflow check);
+/// `rem` selects rem_wrapped.rs and rem_checked.rs.
+pub fn i_div_rem(cs: &mut Cs, x: &Integer, y: &Integer, checked: bool, rem: bool) -> Integer {
+    if x.signed {
+        if checked {
+            i_assert_not_min_div_neg_one(cs, x, y);
+        }
+        let ax = i_as_unsigned(&i_abs(cs, x, false));
+        let ay = i_as_unsigned(&i_abs(cs, y, false));
+        let dr = i_unsigned_division_via_witness(cs, &ax, &ay);
+        let n = i_width(x);
+        let zero = i_const_small(n, 0, true);
+        if rem {
+            let sr = i_as_signed(&dr.r);
+            let neg = i_sub_wrapped(cs, &zero, &sr);
+            let c = b_not(&i_msb(x));
+            i_ternary(cs, &c, &sr, &neg)
+        } else {
+            let sq = i_as_signed(&dr.q);
+            let same = b_is_equal(cs, &i_msb(x), &i_msb(y));
+            let neg = i_sub_wrapped(cs, &zero, &sq);
+            i_ternary(cs, &same, &sq, &neg)
+        }
+    } else {
+        let dr = i_unsigned_division_via_witness(cs, x, y);
+        if rem { dr.r } else { dr.q }
+    }
+}
+
 /// `op`: 0 is_less_than, 1 is_greater_than, 2 is_less_than_or_equal,
 /// 3 is_greater_than_or_equal.
 pub fn i_compare(cs: &mut Cs, x: &Integer, y: &Integer, op: u32) -> Boolean {
@@ -1463,7 +1547,8 @@ fn in_int(cs: &mut Cs, n: usize, signed: bool) -> Integer {
 /// Integer binary operations on two `n`-bit inputs: 0 AND, 1 OR, 2 XOR,
 /// 3 is_equal, 4 is_not_equal, 5 add_checked, 6 add_wrapped, 7 sub_checked,
 /// 8 sub_wrapped, 9..12 the comparisons (`i_compare`), 13 mul_wrapped,
-/// 14 mul_checked, 15 karatsuba_multiply.
+/// 14 mul_checked, 15 karatsuba_multiply, 16 div_wrapped, 17 div_checked,
+/// 18 rem_wrapped, 19 rem_checked.
 pub fn h_i_binop(n: usize, signed: bool, op: u32) -> Cs {
     let mut cs = cs_new();
     let x = in_int(&mut cs, n, signed);
@@ -1488,8 +1573,16 @@ pub fn h_i_binop(n: usize, signed: bool, op: u32) -> Cs {
         let _ = i_mul_wrapped(&mut cs, &x, &y);
     } else if op == 14 {
         let _ = i_mul_checked(&mut cs, &x, &y);
-    } else {
+    } else if op == 15 {
         let _ = i_karatsuba_multiply(&mut cs, &x, &y);
+    } else if op == 16 {
+        let _ = i_div_rem(&mut cs, &x, &y, false, false);
+    } else if op == 17 {
+        let _ = i_div_rem(&mut cs, &x, &y, true, false);
+    } else if op == 18 {
+        let _ = i_div_rem(&mut cs, &x, &y, false, true);
+    } else {
+        let _ = i_div_rem(&mut cs, &x, &y, true, true);
     }
     cs
 }
