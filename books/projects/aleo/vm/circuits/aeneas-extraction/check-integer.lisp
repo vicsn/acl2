@@ -168,7 +168,8 @@
                                     (wvs 1 (* 2 ,n)) *one*)
               (equal (ext-run (acl2::circuits-h-i-binop *fuel* ,n nil 17)) ext)
               (equal (ext-run (acl2::circuits-h-i-binop *fuel* ,n nil 18)) ext)
-              (equal (ext-run (acl2::circuits-h-i-binop *fuel* ,n nil 19)) ext))))
+              (equal (ext-run (acl2::circuits-h-i-binop *fuel* ,n nil 19)) ext)
+              (equal (ext-run (acl2::circuits-h-i-modulo *fuel* ,n)) ext))))
 
      (int-check div-wrapped-signed ,n
        (same-circuit-renamed (ext-run (acl2::circuits-h-i-binop *fuel* ,n t 16))
@@ -512,7 +513,8 @@
                                '((one . 1) (carry . 0)))
          (equal (ext-run (acl2::circuits-h-i-binop *fuel* 128 nil 17)) ext)
          (equal (ext-run (acl2::circuits-h-i-binop *fuel* 128 nil 18)) ext)
-         (equal (ext-run (acl2::circuits-h-i-binop *fuel* 128 nil 19)) ext))))
+         (equal (ext-run (acl2::circuits-h-i-binop *fuel* 128 nil 19)) ext)
+         (equal (ext-run (acl2::circuits-h-i-modulo *fuel* 128)) ext))))
 
 (defcheck int-unsigned-division-128-differs
   (b* ((ext (ext-run (acl2::circuits-h-i-binop *fuel* 128 nil 16)))

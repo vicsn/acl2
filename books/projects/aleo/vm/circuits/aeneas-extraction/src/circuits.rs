@@ -1036,8 +1036,70 @@ fn f_plus_one(x: &Field) -> Field {
     f_add(x, &f_of(lc_one()))
 }
 
+fn i_value(x: &Integer) -> Vec<bool> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < x.bits.len() {
+        out.push(x.bits[i].k);
+        i += 1;
+    }
+    out
+}
+
+/// The low `x.len()` bits of `x + y + carry`.
+fn bools_add(x: &Vec<bool>, y: &Vec<bool>, carry: bool) -> Vec<bool> {
+    let mut out = Vec::new();
+    let mut c = carry;
+    let mut i = 0;
+    while i < x.len() {
+        let a = x[i];
+        let b = i < y.len() && y[i];
+        out.push(a != b && !c || a == b && c);
+        c = a && b || a && c || b && c;
+        i += 1;
+    }
+    out
+}
+
+fn bools_not(x: &Vec<bool>) -> Vec<bool> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < x.len() {
+        out.push(!x[i]);
+        i += 1;
+    }
+    out
+}
+
+/// `x << k`, truncated to the width of `x`.
+fn bools_shl(x: &Vec<bool>, k: usize) -> Vec<bool> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < x.len() {
+        out.push(i >= k && x[i - k]);
+        i += 1;
+    }
+    out
+}
+
+/// The wrapping product of two equal-width values.
+fn bools_mul(x: &Vec<bool>, y: &Vec<bool>) -> Vec<bool> {
+    let mut acc = bools_shl(x, x.len());
+    let mut i = 0;
+    while i < y.len() {
+        if y[i] {
+            acc = bools_add(&acc, &bools_shl(x, i), false);
+        }
+        i += 1;
+    }
+    acc
+}
+
 /// add_wrapped.rs: the low `n` of `to_lower_bits_le(n + 1)` of the field sum.
 pub fn i_add_wrapped(cs: &mut Cs, x: &Integer, y: &Integer) -> Integer {
+    if i_is_const(x) && i_is_const(y) {
+        return i_const_bits(&bools_add(&i_value(x), &i_value(y), false), x.signed);
+    }
     let n = i_width(x);
     let fx = i_to_field(cs, x);
     let fy = i_to_field(cs, y);
@@ -1073,6 +1135,9 @@ pub fn i_add_checked(cs: &mut Cs, x: &Integer, y: &Integer) -> Integer {
 
 /// sub_wrapped.rs: `self + !other + 1`, low `n` bits.
 pub fn i_sub_wrapped(cs: &mut Cs, x: &Integer, y: &Integer) -> Integer {
+    if i_is_const(x) && i_is_const(y) {
+        return i_const_bits(&bools_add(&i_value(x), &bools_not(&i_value(y)), true), x.signed);
+    }
     let n = i_width(x);
     let fx = i_to_field(cs, x);
     let fny = i_to_field(cs, &i_not(y));
@@ -1103,7 +1168,14 @@ pub fn i_sub_checked(cs: &mut Cs, x: &Integer, y: &Integer) -> Integer {
 
 /// abs_checked.rs and abs_wrapped.rs: `ternary(msb, 0 - self, self)` when signed.
 pub fn i_abs(cs: &mut Cs, x: &Integer, checked: bool) -> Integer {
-    if x.signed {
+    if x.signed && i_is_const(x) {
+        let v = i_value(x);
+        if v[v.len() - 1] {
+            i_const_bits(&bools_add(&bools_not(&v), &Vec::new(), true), true)
+        } else {
+            i_copy(x)
+        }
+    } else if x.signed {
         let zero = i_const_small(i_width(x), 0, true);
         let neg = if checked { i_sub_checked(cs, &zero, x) } else { i_sub_wrapped(cs, &zero, x) };
         i_ternary(cs, &i_msb(x), &neg, x)
@@ -1160,6 +1232,9 @@ fn f_pow2(cs: &mut Cs, h: usize) -> Field {
 
 /// mul_wrapped.rs `mul_wrapped`.
 pub fn i_mul_wrapped(cs: &mut Cs, x: &Integer, y: &Integer) -> Integer {
+    if i_is_const(x) && i_is_const(y) {
+        return i_const_bits(&bools_mul(&i_value(x), &i_value(y)), x.signed);
+    }
     let n = i_width(x);
     let h = n / 2;
     let x1 = f_bits_range(cs, &x.bits, h, n);
@@ -1233,8 +1308,11 @@ fn b_or_fold(cs: &mut Cs, bits: &Vec<Boolean>) -> Boolean {
 }
 
 /// mul_checked.rs `mul_checked`.
+/// A constant product that overflows halts in snarkVM; it is not modelled.
 pub fn i_mul_checked(cs: &mut Cs, x: &Integer, y: &Integer) -> Integer {
-    if x.signed {
+    if i_is_const(x) && i_is_const(y) {
+        i_const_bits(&bools_mul(&i_value(x), &i_value(y)), x.signed)
+    } else if x.signed {
         let n = i_width(x);
         let ax = i_abs(cs, x, false);
         let ay = i_abs(cs, y, false);
@@ -1257,6 +1335,105 @@ pub fn i_mul_checked(cs: &mut Cs, x: &Integer, y: &Integer) -> Integer {
     } else {
         i_mul_and_check(cs, x, y)
     }
+}
+
+pub struct ProductFlag {
+    pub product: Integer,
+    pub flag: Boolean,
+}
+
+/// pow_checked.rs `mul_with_flags`.
+fn i_mul_with_flags(cs: &mut Cs, x: &Integer, y: &Integer) -> ProductFlag {
+    let n = i_width(x);
+    if 2 * n < FIELD_BITS - 1 {
+        let product = i_new(cs, n, x.signed);
+        let fx = i_to_field(cs, x);
+        let fy = i_to_field(cs, y);
+        let computed = f_mul(cs, &fx, &fy);
+        let witnessed = i_to_field(cs, &product);
+        let flag = f_is_not_equal(cs, &computed, &witnessed);
+        ProductFlag { product, flag }
+    } else {
+        let k = i_karatsuba_multiply(cs, x, y);
+        let upper = f_from_bits_le(cs, &k.carry);
+        let sum = f_add(&upper, &k.z2);
+        let flag = f_is_not_equal(cs, &sum, &f_of(lc_zero()));
+        ProductFlag { product: k.product, flag }
+    }
+}
+
+/// pow_wrapped.rs, variable operands: from the most significant exponent bit,
+/// square, then multiply when the bit is set.
+pub fn i_pow_wrapped(cs: &mut Cs, x: &Integer, e: &Integer) -> Integer {
+    let one = i_const_small(i_width(x), 1, x.signed);
+    let bits = bits_rev(&e.bits);
+    i_pow_wrapped_from(cs, x, &bits, 0, one)
+}
+
+fn i_pow_wrapped_from(cs: &mut Cs, x: &Integer, bits: &Vec<Boolean>, i: usize, result: Integer) -> Integer {
+    if i < bits.len() {
+        let sq = i_mul_wrapped(cs, &result, &result);
+        let prod = i_mul_wrapped(cs, &sq, x);
+        let next = i_ternary(cs, &bits[i], &prod, &sq);
+        i_pow_wrapped_from(cs, x, bits, i + 1, next)
+    } else {
+        result
+    }
+}
+
+/// pow_checked.rs, variable operands.
+pub fn i_pow_checked(cs: &mut Cs, x: &Integer, e: &Integer) -> Integer {
+    let one = i_const_small(i_width(x), 1, x.signed);
+    let bits = bits_rev(&e.bits);
+    i_pow_checked_from(cs, x, &bits, 0, one)
+}
+
+fn i_pow_checked_times(cs: &mut Cs, result: &Integer, x: &Integer, bit: &Boolean) -> Integer {
+    if x.signed {
+        let n = i_width(x);
+        let ar = i_abs(cs, result, false);
+        let ax = i_abs(cs, x, false);
+        let pf = i_mul_with_flags(cs, &ar, &ax);
+        let product = pf.product;
+        let same_sign = b_is_equal(cs, &i_msb(result), &i_msb(x));
+        let pos_overflow = b_and(cs, &same_sign, &i_msb(&product));
+        let lower_nonzero = b_or_fold(cs, &bits_range(&product.bits, 0, n - 1));
+        let nmsb = b_not(&i_msb(&product));
+        let nlower = b_not(&lower_nonzero);
+        let msb_and = b_and(cs, &i_msb(&product), &nlower);
+        let lte_min = b_or(cs, &nmsb, &msb_and);
+        let nsame = b_not(&same_sign);
+        let nlte = b_not(&lte_min);
+        let neg_underflow = b_and(cs, &nsame, &nlte);
+        let o1 = b_or(cs, &pf.flag, &pos_overflow);
+        let overflow = b_or(cs, &o1, &neg_underflow);
+        let check = b_and(cs, &overflow, bit);
+        env_assert_eq(cs, &check.lc, &lc_zero());
+        let one = i_const_small(n, 1, true);
+        let negp = i_add_wrapped(cs, &i_not(&product), &one);
+        i_ternary(cs, &same_sign, &product, &negp)
+    } else {
+        let pf = i_mul_with_flags(cs, result, x);
+        let check = b_and(cs, &pf.flag, bit);
+        env_assert_eq(cs, &check.lc, &lc_zero());
+        pf.product
+    }
+}
+
+fn i_pow_checked_from(cs: &mut Cs, x: &Integer, bits: &Vec<Boolean>, i: usize, result: Integer) -> Integer {
+    if i < bits.len() {
+        let sq = i_mul_checked(cs, &result, &result);
+        let times = i_pow_checked_times(cs, &sq, x, &bits[i]);
+        let next = i_ternary(cs, &bits[i], &times, &sq);
+        i_pow_checked_from(cs, x, bits, i + 1, next)
+    } else {
+        result
+    }
+}
+
+/// modulo.rs: `rem_wrapped` (unsigned only).
+pub fn i_modulo(cs: &mut Cs, x: &Integer, y: &Integer) -> Integer {
+    i_div_rem(cs, x, y, false, true)
 }
 
 pub struct DivRem {
@@ -2363,5 +2540,28 @@ pub fn h_a_convert(op: u32) -> Cs {
     } else {
         let _ = a_from_group(&a);
     }
+    cs
+}
+
+/// Integer pow of an `n`-bit base (W1..) by an unsigned `m`-bit exponent:
+/// 0 pow_wrapped, 1 pow_checked (and pow).
+pub fn h_i_pow(n: usize, signed: bool, m: usize, op: u32) -> Cs {
+    let mut cs = cs_new();
+    let x = in_int(&mut cs, n, signed);
+    let e = in_int(&mut cs, m, false);
+    if op == 0 {
+        let _ = i_pow_wrapped(&mut cs, &x, &e);
+    } else {
+        let _ = i_pow_checked(&mut cs, &x, &e);
+    }
+    cs
+}
+
+/// Unsigned modulo of two `n`-bit integers.
+pub fn h_i_modulo(n: usize) -> Cs {
+    let mut cs = cs_new();
+    let x = in_int(&mut cs, n, false);
+    let y = in_int(&mut cs, n, false);
+    let _ = i_modulo(&mut cs, &x, &y);
     cs
 }
