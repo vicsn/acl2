@@ -117,3 +117,6 @@
 (include-book "int-mulpow-pow-checked-128")
 (include-book "int-mulpow-pow-checked-signed")
 (include-book "int-mulpow-shl-checked-128")
+(include-book "seq-framework")
+(include-book "seq-env-rows")
+(include-book "seq-instances")
