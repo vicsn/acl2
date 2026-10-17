@@ -81,3 +81,5 @@
 (include-book "int-divshift-signed-div-checked")
 (include-book "fsa-idlit-short")
 (include-book "fsa-address-from")
+(include-book "int-divshift-signed-div-128")
+(include-book "int-divshift-signed-div-checked-128")
