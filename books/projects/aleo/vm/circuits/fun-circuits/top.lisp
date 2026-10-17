@@ -72,3 +72,5 @@
 (include-book "int-mulpow-wrapped")
 (include-book "int-mulpow-karatsuba")
 (include-book "int-mulpow-checked")
+(include-book "grp-mul")
+(include-book "grp-is-in-group")
