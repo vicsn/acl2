@@ -93,3 +93,6 @@
 (include-book "int-divshift-shr-checked-unsigned")
 (include-book "int-divshift-shr-checked-unsigned-128")
 (include-book "int-divshift-shr-signed")
+(include-book "progx-field-cast-complete")
+(include-book "progx-idlit-cast")
+(include-book "progx-scalar-cast")
