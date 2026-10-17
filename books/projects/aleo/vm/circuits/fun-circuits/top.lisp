@@ -138,3 +138,4 @@
 (include-book "lit-signature")
 (include-book "lit-literal-signature")
 (include-book "lit-literal-dispatch")
+(include-book "ptx-from-bits")
