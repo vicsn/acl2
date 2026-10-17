@@ -142,3 +142,8 @@
 (include-book "rec-dynamic-record-eq")
 (include-book "rec-record")
 (include-book "ptx-lit")
+(include-book "ptx-vnew")
+(include-book "ptx-vequal")
+(include-book "ptx-vbits")
+(include-book "ptx-vlit")
+(include-book "ptx-dlit")
