@@ -61,8 +61,6 @@ collections	KaryMerklePath	Inject	new	spec	crypto-kary-merkle-path-new	projects/
 collections	Keccak	PathHash	hash_children	spec	crypto-merkle-hash-children	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
 collections	MerklePath		verify	spec	crypto-merkle-path-verify	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
 collections	MerkleTree		new	spec	crypto-merkle-tree-new	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
-environment			recursively_replace_self	spec	aleovm::recursively-replace-self-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
-environment			rename_selfs	spec	aleovm::rename-selfs-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
 environment	(t0,ty,*)	Inject	new	spec	aleovm::inject-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
 environment	(t0,ty,+)	ToBits	write_bits_be	spec	aleovm::write-bits-be-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
 environment	(t0,ty,+)	ToBits	write_bits_le	spec	aleovm::write-bits-le-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
@@ -168,7 +166,6 @@ program	Future	ToBits	write_bits_le	spec	future-to-bits-le	projects/aleo/vm/circ
 program	Future	ToFields	to_fields	spec	future-to-fields	projects/aleo/vm/circuits/fun-specs/values-value.lisp
 program	HeaderLeaf	ToBits	write_bits_be	spec	header-leaf-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-value.lisp
 program	HeaderLeaf	ToBits	write_bits_le	spec	header-leaf-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-value.lisp
-program	Identifier		public	spec	identifier-public	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	Identifier	Equal	is_equal	spec	identifier-is-equal	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	Identifier	Equal	is_not_equal	spec	identifier-is-not-equal	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	Identifier	FromBits	from_bits_be	spec	identifier-from-bits-be	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
@@ -223,13 +220,11 @@ program	Plaintext	ToBitsRaw	write_bits_raw_le	spec	plaintext-to-bits-raw-le	proj
 program	Plaintext	ToFields	to_fields	spec	plaintext-to-fields	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
 program	Plaintext	ToFieldsRaw	to_fields_raw	spec	plaintext-to-fields-raw	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
 program	Plaintext	Visibility	size_in_fields	spec	plaintext-size-in-fields	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
-program	ProgramID		public	spec	program-id-public	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	ProgramID		to_address	spec	program-id-to-address	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	ProgramID	Equal	is_equal	spec	program-id-is-equal	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	ProgramID	Equal	is_not_equal	spec	program-id-is-not-equal	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	ProgramID	ToBits	write_bits_be	spec	program-id-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	ProgramID	ToBits	write_bits_le	spec	program-id-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
-program	ProgramID	ToFields	to_fields	spec	program-id-to-fields	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	Record		decrypt	spec	crypto-record-decrypt	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
 program	Record		decrypt_symmetric_unchecked	spec	crypto-record-decrypt-symmetric-unchecked	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
 program	Record		decrypt_with_randomizers	spec	crypto-record-decrypt-with-randomizers	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp

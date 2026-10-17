@@ -57,6 +57,13 @@ CONSOLE_PATH = re.compile(r"\b(console|BaseField|ScalarField|Network|Affine|Proj
 # R1CS-COMPLETE (books/projects/aleo/vm/circuits/fun-specs/README.md). The AleoCanaryV0 and
 # AleoTestnetV0 networks are out of scope; AleoV0 is the formalised network.
 UNSUPPORTED_TYPES = {"StringType", "AleoCanaryV0", "AleoTestnetV0"}
+# Rows that the syntactic scan flags but that are not circuits. The two proc-macro helpers rewrite
+# Rust syntax at compile time. `public` builds a public Identifier or ProgramID from a host value
+# and emits no constraint. ProgramID is only constant or public, so no circuit constrains the
+# fields `to_fields` reads and its output is fixed by the public input.
+NOT_CIRCUITS = {("environment", "", "", "recursively_replace_self"), ("environment", "", "", "rename_selfs"),
+                ("program", "Identifier", "", "public"), ("program", "ProgramID", "", "public"),
+                ("program", "ProgramID", "ToFields", "to_fields")}
 STD_TYPES = {"F", "Vec", "String", "Box", "Option", "Result", "IndexMap", "IndexSet", "HashMap", "BTreeMap",
               "Rc", "Arc", "RefCell", "OnceCell", "Cow", "Iterator", "PhantomData"}
 
@@ -487,7 +494,8 @@ def main(root, out):
 
     rows = defaultdict(list)
     for d in defs:
-        if gen[id(d)] and d["type"] not in UNSUPPORTED_TYPES:
+        if (gen[id(d)] and d["type"] not in UNSUPPORTED_TYPES
+                and (d["crate"], d["type"], d["trait"], d["name"]) not in NOT_CIRCUITS):
             rows[(d["crate"], d["type"], d["trait"], d["name"])].append(d)
 
     def evidence(ds):

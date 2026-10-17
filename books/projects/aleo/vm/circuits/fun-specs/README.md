@@ -6,6 +6,35 @@ circuit crates, written against snarkVM `7dc117d45` (2026-10-14). Each row of
 to its spec in `aleovm_circuit_function_funspec_map.tsv`. `top.lisp` includes
 all books.
 
+## Scope
+
+The table has one row per constraint-generating function that
+`aleovm_circuit_functions_scan.py` finds in snarkVM's `circuit/` tree (451
+rows), merged over reference and generic variants of the same impl. A row is
+`verified` when a certified book proves, over the wires of the circuit snarkVM
+emits, both:
+
+- soundness: every satisfying assignment produces the funspec's output, either
+  unconditionally or given the prior circuit named in `R1CS-SOUND-IF`;
+- completeness: every input on which the funspec succeeds has a satisfying
+  assignment, unconditionally or under the condition in `R1CS-COMPLETE-IF`.
+
+Left out of the table:
+
+- `StringType` (its `new` halts on the host instead of emitting an
+  unsatisfiable circuit) and the `AleoCanaryV0` and `AleoTestnetV0` networks.
+- Functions that the syntactic scan flags but that are not circuits
+  (`NOT_CIRCUITS` in the scan):
+  - `recursively_replace_self` and `rename_selfs`, proc-macro helpers that
+    rewrite Rust syntax at compile time;
+  - `Identifier::public` and `ProgramID::public`, which build a public value
+    from a host value and emit no constraint;
+  - `ProgramID::to_fields`. A ProgramID is only constant or public, so its
+    output is fixed by the public input and there is nothing to constrain.
+
+Hash internals (the algorithms crate) stay in the table with FUN-SPEC
+`excluded`; rows that call them stay unverified until the hashes are modelled.
+
 ## Known limitations
 
 - **Hashes are abstract.** Poseidon, BHP, Pedersen, Keccak and Elligator2 are
@@ -61,8 +90,6 @@ Soundness audit. These rows had R1CS-SOUND 1 without a theorem that establishes 
 - **Field::div_unchecked.** `fb-field-div-unchecked-gadget-sound` and `r1cs/field-div-unchecked` assume y ≠ 0. At x = y = 0 every quotient satisfies `(q)(y) = (x)`, but `field-div-unchecked-funspec` returns 0. snarkVM documents that 0 / 0 is not enforced.
 - **Field::to_lower_bits_le / _be.** The theorems cover k ≤ 252. At k = 253 the bits of x + p also satisfy the constraints (snarkVM's `adversarial_witnesses`). No in-tree caller passes 253.
 - **Field::to_upper_bits_le / _be.** The theorems assume the shifted output bits are below p, which the constraints do not force: `to_upper_bits_be(2)` of 3·2^251 − p accepts `[1, 1]`.
-- **Identifier::public, ProgramID::public; recursively_replace_self, rename_selfs.** The soundness theorems only unfold the funspec and do not mention the assignment. The last two are proc-macros, not circuits; they could be excluded from the table instead.
-- **ProgramID to_fields.** The theorem assumes the wires are the fields of a well-typed program ID. ProgramID is only constant or public and no circuit constrains it, so R1CS-SOUND-IF stays empty.
 - **BooleanHash is_equal / is_not_equal / ternary.** Proved only for a two-bit hash; snarkVM folds VARIANT bits.
 - **KaryMerklePath::new.** It emits `U64::new` on the leaf index and `Inject::new` on each sibling; its gadget is empty, so R1CS-SPEC, PFCS-SPEC, R1CS-SOUND and R1CS-COMPLETE are 0.
 - **Integer mul_with_flags.** Below 128 bits a satisfying assignment may set the flag with an arbitrary product when nothing overflows; `int-mul-with-flags-spec` demands the exact flag. `int-mul-with-flags-gadget-sound` and `-128-gadget-sound` prove the guarantee callers use (flag 0 implies the correct product), which is what `pow_checked` relies on.
