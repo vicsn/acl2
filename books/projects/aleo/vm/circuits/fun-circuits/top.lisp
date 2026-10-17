@@ -120,3 +120,5 @@
 (include-book "seq-framework")
 (include-book "seq-env-rows")
 (include-book "seq-instances")
+(include-book "gap-boolean-hash")
+(include-book "gap-kary-path-new")
