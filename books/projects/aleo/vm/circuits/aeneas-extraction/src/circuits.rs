@@ -1580,6 +1580,280 @@ pub fn s_from_bits_le(cs: &mut Cs, bits: &Vec<Boolean>) -> Field {
 }
 
 // ---------------------------------------------------------------------------
+// circuit/types/group. Edwards BLS12: a = -1 and d = 3021.
+
+pub struct Group {
+    pub x: Field,
+    pub y: Field,
+}
+
+const EDWARDS_A: i128 = -1;
+const EDWARDS_D: i128 = 3021;
+
+fn g_copy(g: &Group) -> Group {
+    Group { x: f_copy(&g.x), y: f_copy(&g.y) }
+}
+
+/// helpers/zero.rs `Group::zero()`: the constant (0, 1).
+pub fn g_zero() -> Group {
+    Group { x: f_of(lc_zero()), y: f_of(lc_one()) }
+}
+
+fn lc_is_zero(x: &Vec<Term>) -> bool {
+    x.len() == 0
+}
+
+fn lc_is_one(x: &Vec<Term>) -> bool {
+    x.len() == 1 && x[0].v == 0 && x[0].c == 1 && x[0].sh == 0
+}
+
+/// `self.is_constant() && self.eject_value().is_zero()`.
+fn g_is_const_zero(g: &Group) -> bool {
+    lc_is_zero(&g.x.lc) && lc_is_one(&g.y.lc)
+}
+
+fn g_is_const(g: &Group) -> bool {
+    f_is_const(&g.x) && f_is_const(&g.y)
+}
+
+/// neg.rs: `(-x, y)`.
+pub fn g_neg(g: &Group) -> Group {
+    Group { x: f_of(lc_neg(&g.x.lc)), y: f_copy(&g.y) }
+}
+
+/// add.rs `add`.
+pub fn g_add(cs: &mut Cs, s: &Group, o: &Group) -> Group {
+    if g_is_const_zero(s) {
+        g_copy(o)
+    } else if g_is_const_zero(o) {
+        g_copy(s)
+    } else {
+        let this = if g_is_const(o) { g_copy(s) } else { g_copy(o) };
+        let that = if g_is_const(o) { g_copy(o) } else { g_copy(s) };
+        let a = f_of(lc_const(EDWARDS_A, 0));
+        let d = f_of(lc_const(EDWARDS_D, 0));
+        let neg_a = f_of(lc_neg(&a.lc));
+        let u1x = f_mul(cs, &this.x, &neg_a);
+        let u1 = f_add(&u1x, &this.y);
+        let u2 = f_add(&that.x, &that.y);
+        let u = f_mul(cs, &u1, &u2);
+        let v0 = f_mul(cs, &this.x, &that.y);
+        let v1 = f_mul(cs, &that.x, &this.y);
+        let v01 = f_mul(cs, &v0, &v1);
+        let v2 = f_mul(cs, &v01, &d);
+        let x3 = f_new(cs);
+        let y3 = f_new(cs);
+        let v2_plus_one = f_add(&v2, &f_of(lc_one()));
+        let v0_plus_v1 = f_add(&v0, &v1);
+        enforce(cs, lc_copy(&x3.lc), v2_plus_one.lc, v0_plus_v1.lc);
+        let one_minus_v2 = f_sub(&f_of(lc_one()), &v2);
+        let a_v0 = f_mul(cs, &v0, &a);
+        let rhs = f_sub(&f_add(&u, &a_v0), &v1);
+        enforce(cs, lc_copy(&y3.lc), one_minus_v2.lc, rhs.lc);
+        Group { x: x3, y: y3 }
+    }
+}
+
+/// sub.rs: `self + -other`.
+pub fn g_sub(cs: &mut Cs, s: &Group, o: &Group) -> Group {
+    let n = g_neg(o);
+    g_add(cs, s, &n)
+}
+
+struct DoubleTerms {
+    ax2_plus_y2: Field,
+    two_xy: Field,
+    two_minus: Field,
+    y2_minus_ax2: Field,
+}
+
+/// The products shared by `double` and `enforce_double`.
+fn g_double_terms(cs: &mut Cs, g: &Group) -> DoubleTerms {
+    let a = f_of(lc_const(EDWARDS_A, 0));
+    let two = f_of(lc_const(2, 0));
+    let xy = f_mul(cs, &g.x, &g.y);
+    let x2 = f_square(cs, &g.x);
+    let y2 = f_square(cs, &g.y);
+    let ax2 = f_mul(cs, &x2, &a);
+    let ax2_plus_y2 = f_add(&ax2, &y2);
+    let two_xy = f_add(&xy, &xy);
+    let y2_minus_ax2 = f_sub(&y2, &ax2);
+    let two_minus = f_sub(&two, &ax2_plus_y2);
+    DoubleTerms { ax2_plus_y2, two_xy, two_minus, y2_minus_ax2 }
+}
+
+/// double.rs `double`.
+pub fn g_double(cs: &mut Cs, g: &Group) -> Group {
+    if g_is_const_zero(g) {
+        g_copy(g)
+    } else {
+        let t = g_double_terms(cs, g);
+        let x3 = f_new(cs);
+        let y3 = f_new(cs);
+        enforce(cs, lc_copy(&x3.lc), t.ax2_plus_y2.lc, t.two_xy.lc);
+        enforce(cs, lc_copy(&y3.lc), t.two_minus.lc, t.y2_minus_ax2.lc);
+        Group { x: x3, y: y3 }
+    }
+}
+
+/// double.rs `enforce_double`.
+pub fn g_enforce_double(cs: &mut Cs, g: &Group, dbl: &Group) {
+    let t = g_double_terms(cs, g);
+    enforce(cs, lc_copy(&dbl.x.lc), t.ax2_plus_y2.lc, t.two_xy.lc);
+    enforce(cs, lc_copy(&dbl.y.lc), t.two_minus.lc, t.y2_minus_ax2.lc);
+}
+
+/// helpers/mul_by_cofactor.rs: two doublings.
+pub fn g_mul_by_cofactor(cs: &mut Cs, g: &Group) -> Group {
+    let d = g_double(cs, g);
+    g_double(cs, &d)
+}
+
+/// lib.rs `enforce_on_curve`: `(y^2) * (d x^2 - 1) = (a x^2 - 1)`.
+pub fn g_enforce_on_curve(cs: &mut Cs, g: &Group) {
+    let a = f_of(lc_const(EDWARDS_A, 0));
+    let d = f_of(lc_const(EDWARDS_D, 0));
+    let x2 = f_square(cs, &g.x);
+    let y2 = f_square(cs, &g.y);
+    let dx2 = f_mul(cs, &d, &x2);
+    let second = f_sub(&dx2, &f_of(lc_one()));
+    let ax2 = f_mul(cs, &a, &x2);
+    let third = f_sub(&ax2, &f_of(lc_one()));
+    enforce(cs, y2.lc, second.lc, third.lc);
+}
+
+/// lib.rs `enforce_in_group`: a witnessed point whose double is `self`.
+pub fn g_enforce_in_group(cs: &mut Cs, g: &Group) {
+    let point = if g_is_const(g) { g_zero() } else { g_witness(cs) };
+    g_enforce_on_curve(cs, &point);
+    let dbl = g_double(cs, &point);
+    g_enforce_double(cs, &dbl, g);
+}
+
+fn g_witness(cs: &mut Cs) -> Group {
+    let x = f_new(cs);
+    let y = f_new(cs);
+    Group { x, y }
+}
+
+/// lib.rs `Group::new(Mode::Private, _)`.
+pub fn g_new(cs: &mut Cs) -> Group {
+    let g = g_witness(cs);
+    g_enforce_in_group(cs, &g);
+    g
+}
+
+/// helpers/from_xy_coordinates.rs.
+pub fn g_from_xy_coordinates(cs: &mut Cs, x: &Field, y: &Field) -> Group {
+    let g = Group { x: f_copy(x), y: f_copy(y) };
+    g_enforce_in_group(cs, &g);
+    g
+}
+
+/// helpers/from_x_coordinate.rs: a witnessed y.
+pub fn g_from_x_coordinate(cs: &mut Cs, x: &Field) -> Group {
+    let y = if f_is_const(x) { f_of(lc_zero()) } else { f_new(cs) };
+    g_from_xy_coordinates(cs, x, &y)
+}
+
+/// helpers/from_bits.rs.
+pub fn g_from_bits_le(cs: &mut Cs, bits: &Vec<Boolean>) -> Group {
+    let x = f_from_bits_le(cs, bits);
+    g_from_x_coordinate(cs, &x)
+}
+
+pub fn g_from_bits_be(cs: &mut Cs, bits: &Vec<Boolean>) -> Group {
+    let x = f_from_bits_be(cs, bits);
+    g_from_x_coordinate(cs, &x)
+}
+
+/// equal.rs.
+pub fn g_is_equal(cs: &mut Cs, s: &Group, o: &Group) -> Boolean {
+    let ex = f_is_equal(cs, &s.x, &o.x);
+    let ey = f_is_equal(cs, &s.y, &o.y);
+    b_and(cs, &ex, &ey)
+}
+
+pub fn g_is_not_equal(cs: &mut Cs, s: &Group, o: &Group) -> Boolean {
+    let r = g_is_equal(cs, s, o);
+    b_not(&r)
+}
+
+/// helpers/zero.rs `is_zero`.
+pub fn g_is_zero(cs: &mut Cs, g: &Group) -> Boolean {
+    let ex = f_is_equal(cs, &g.x, &f_of(lc_zero()));
+    let ey = f_is_equal(cs, &g.y, &f_of(lc_one()));
+    b_and(cs, &ex, &ey)
+}
+
+/// ternary.rs.
+pub fn g_ternary(cs: &mut Cs, c: &Boolean, first: &Group, second: &Group) -> Group {
+    let x = f_ternary(cs, c, &first.x, &second.x);
+    let y = f_ternary(cs, c, &first.y, &second.y);
+    Group { x, y }
+}
+
+/// helpers/to_bits.rs: the bits of x.
+pub fn g_to_bits_le(cs: &mut Cs, g: &Group) -> Vec<Boolean> {
+    f_to_bits_le(cs, &g.x)
+}
+
+fn g_mul_step(cs: &mut Cs, bit: &Boolean, base: &Group, output: &Group) -> Group {
+    let dbl = g_double(cs, output);
+    let sum = g_add(cs, base, &dbl);
+    g_ternary(cs, bit, &sum, &dbl)
+}
+
+/// mul.rs `mul_assign` by big-endian bits: double-and-add from zero.
+pub fn g_mul_bits(cs: &mut Cs, g: &Group, bits_be: &Vec<Boolean>) -> Group {
+    g_mul_from(cs, g, bits_be, 0, g_zero())
+}
+
+fn g_mul_from(cs: &mut Cs, base: &Group, bits: &Vec<Boolean>, i: usize, output: Group) -> Group {
+    if i < bits.len() {
+        let next = g_mul_step(cs, &bits[i], base, &output);
+        g_mul_from(cs, base, bits, i + 1, next)
+    } else {
+        output
+    }
+}
+
+/// mul.rs `mul_assign` by a scalar: `to_bits_be` of the scalar.
+pub fn g_mul(cs: &mut Cs, g: &Group, s: &Field) -> Group {
+    let le = s_to_bits_le(cs, s);
+    let be = bits_rev(&le);
+    g_mul_bits(cs, g, &be)
+}
+
+fn bools_to_consts(k: &Vec<bool>) -> Vec<Boolean> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < k.len() {
+        out.push(b_const(k[i]));
+        i += 1;
+    }
+    out
+}
+
+/// lib.rs `is_in_group`: `[r]self` by the 256 big-endian bits of r, then `is_zero`.
+pub fn g_is_in_group(cs: &mut Cs, g: &Group) -> Boolean {
+    let r_le = limbs_bits(&R, 256);
+    let r_be = bools_to_consts(&bools_rev(&r_le));
+    let prod = g_mul_bits(cs, g, &r_be);
+    g_is_zero(cs, &prod)
+}
+
+fn bools_rev(x: &Vec<bool>) -> Vec<bool> {
+    let mut out = Vec::new();
+    let mut i = x.len();
+    while i > 0 {
+        i -= 1;
+        out.push(x[i]);
+    }
+    out
+}
+
+// ---------------------------------------------------------------------------
 // Harnesses: inputs are fresh wires 1, 2, ... in argument order.
 
 fn in_bits(cs: &mut Cs, n: usize) -> Vec<Boolean> {
@@ -1954,5 +2228,89 @@ pub fn h_s_from_bits(n: usize) -> Cs {
     let mut cs = cs_new();
     let bits = in_bits(&mut cs, n);
     let _ = s_from_bits_le(&mut cs, &bits);
+    cs
+}
+
+fn in_group(cs: &mut Cs) -> Group {
+    let x = f_new(cs);
+    let y = f_new(cs);
+    Group { x, y }
+}
+
+/// Group binary operations on (W1, W2) and (W3, W4): 0 add, 1 sub,
+/// 2 is_equal, 3 is_not_equal, 4 enforce_double (the second is the double).
+pub fn h_g_binop(op: u32) -> Cs {
+    let mut cs = cs_new();
+    let a = in_group(&mut cs);
+    let b = in_group(&mut cs);
+    if op == 0 {
+        let _ = g_add(&mut cs, &a, &b);
+    } else if op == 1 {
+        let _ = g_sub(&mut cs, &a, &b);
+    } else if op == 2 {
+        let _ = g_is_equal(&mut cs, &a, &b);
+    } else if op == 3 {
+        let _ = g_is_not_equal(&mut cs, &a, &b);
+    } else {
+        g_enforce_double(&mut cs, &a, &b);
+    }
+    cs
+}
+
+/// Group unary operations on (W1, W2): 0 double, 1 mul_by_cofactor,
+/// 2 enforce_on_curve, 3 enforce_in_group (and new, from_xy_coordinates),
+/// 4 is_zero, 5 write_bits_le (and _be), 6 is_in_group, 7 from_x_coordinate
+/// of W1.
+pub fn h_g_unop(op: u32) -> Cs {
+    let mut cs = cs_new();
+    let a = in_group(&mut cs);
+    if op == 0 {
+        let _ = g_double(&mut cs, &a);
+    } else if op == 1 {
+        let _ = g_mul_by_cofactor(&mut cs, &a);
+    } else if op == 2 {
+        g_enforce_on_curve(&mut cs, &a);
+    } else if op == 3 {
+        let _ = g_from_xy_coordinates(&mut cs, &a.x, &a.y);
+    } else if op == 4 {
+        let _ = g_is_zero(&mut cs, &a);
+    } else if op == 5 {
+        let _ = g_to_bits_le(&mut cs, &a);
+    } else if op == 6 {
+        let _ = g_is_in_group(&mut cs, &a);
+    } else {
+        let _ = g_from_x_coordinate(&mut cs, &a.x);
+    }
+    cs
+}
+
+/// Condition W1, first (W2, W3), second (W4, W5).
+pub fn h_g_ternary() -> Cs {
+    let mut cs = cs_new();
+    let c = b_var(new_var(&mut cs));
+    let a = in_group(&mut cs);
+    let b = in_group(&mut cs);
+    let _ = g_ternary(&mut cs, &c, &a, &b);
+    cs
+}
+
+/// Group (W1, W2) times scalar W3.
+pub fn h_g_mul() -> Cs {
+    let mut cs = cs_new();
+    let a = in_group(&mut cs);
+    let s = s_new(&mut cs);
+    let _ = g_mul(&mut cs, &a, &s);
+    cs
+}
+
+/// `Group::from_bits_le` (or `_be`) of `n` input bits.
+pub fn h_g_from_bits(n: usize, be: bool) -> Cs {
+    let mut cs = cs_new();
+    let bits = in_bits(&mut cs, n);
+    if be {
+        let _ = g_from_bits_be(&mut cs, &bits);
+    } else {
+        let _ = g_from_bits_le(&mut cs, &bits);
+    }
     cs
 }
