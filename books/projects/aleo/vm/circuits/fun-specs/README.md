@@ -43,8 +43,11 @@ all books.
   - `crypto-response-from-outputs`,
     `crypto-response-process-outputs-from-callback` and the output-ID helpers
 - **Not modelled.**
-  - Variable modes, except for the `both-variable` flag of
-    `field-div-unchecked-funspec`.
+  - Constant operands in most integer and group circuits. A condition
+    "variable operands" (or "variable base and exponent") in R1CS-SOUND-IF or
+    R1CS-COMPLETE-IF means the theorem is about the circuit snarkVM emits when
+    every operand is a variable; constant operands fold differently and are not
+    covered.
   - The requirement that `find` indices be constants.
   - snarkVM's constraint and density limits.
   - Console-only optional data of dynamic records and futures.
@@ -58,11 +61,11 @@ Soundness audit. These rows had R1CS-SOUND 1 without a theorem that establishes 
 - **Field::div_unchecked.** `fb-field-div-unchecked-gadget-sound` and `r1cs/field-div-unchecked` assume y ≠ 0. At x = y = 0 every quotient satisfies `(q)(y) = (x)`, but `field-div-unchecked-funspec` returns 0. snarkVM documents that 0 / 0 is not enforced.
 - **Field::to_lower_bits_le / _be.** The theorems cover k ≤ 252. At k = 253 the bits of x + p also satisfy the constraints (snarkVM's `adversarial_witnesses`). No in-tree caller passes 253.
 - **Field::to_upper_bits_le / _be.** The theorems assume the shifted output bits are below p, which the constraints do not force: `to_upper_bits_be(2)` of 3·2^251 − p accepts `[1, 1]`.
-- **Identifier::public, ProgramID::public; IdentifierLiteral write_bits_le, write_bits_be, to_field, to_fields; recursively_replace_self, rename_selfs.** The soundness theorems only unfold the funspec and do not mention the assignment. The last two are proc-macros, not circuits; they could be excluded from the table instead.
-- **Identifier is_equal / is_not_equal, ProgramID is_equal / is_not_equal / to_fields.** The theorems assume the wires are the fields of well-typed identifiers. Identifier and ProgramID are only constant or public and no circuit constrains them, so R1CS-SOUND-IF stays empty.
+- **Identifier::public, ProgramID::public; recursively_replace_self, rename_selfs.** The soundness theorems only unfold the funspec and do not mention the assignment. The last two are proc-macros, not circuits; they could be excluded from the table instead.
+- **ProgramID to_fields.** The theorem assumes the wires are the fields of a well-typed program ID. ProgramID is only constant or public and no circuit constrains it, so R1CS-SOUND-IF stays empty.
 - **BooleanHash is_equal / is_not_equal / ternary.** Proved only for a two-bit hash; snarkVM folds VARIANT bits.
-- **validate_identifier_bytes.** `validate-identifier-bytes-gadget-sound` is a two-byte instance with no funspec in its conclusion. `id-flags-sound` and `id-trailing-sound` in `fun-circuits/identifier-list-sound.lisp` cover the general loop and could back a conditional claim.
-- **IdentifierLiteral from_bits_le / from_bits_be / from_field; KaryMerklePath::new.** The formal gadgets omit constraints snarkVM emits, so R1CS-SPEC, PFCS-SPEC, R1CS-SOUND and R1CS-COMPLETE are 0. `from_bits_le` asserts the excess bits zero and then validates the bytes (`from_bytes`); the gadget has only the excess assert. `from_field` also emits `Field::to_bits_le`; its gadget is empty. `KaryMerklePath::new` emits `U64::new` on the leaf index and `Inject::new` on each sibling; its gadget is empty. The old `idlit-from-bits-le-gadget-sound` was false (p excess bits set to 1 sum to 0 mod p) and is replaced by `-bounded`; `idlit-from-bits-be-gadget-sound` is the funspec definition.
+- **KaryMerklePath::new.** It emits `U64::new` on the leaf index and `Inject::new` on each sibling; its gadget is empty, so R1CS-SPEC, PFCS-SPEC, R1CS-SOUND and R1CS-COMPLETE are 0.
+- **Integer mul_with_flags.** Below 128 bits a satisfying assignment may set the flag with an arbitrary product when nothing overflows; `int-mul-with-flags-spec` demands the exact flag. `int-mul-with-flags-gadget-sound` and `-128-gadget-sound` prove the guarantee callers use (flag 0 implies the correct product), which is what `pow_checked` relies on.
 
 The audit also made conditional the rows whose theorems take `bitp` of their input bits (Boolean gates, adder, subtractor, the lte-constant checks, `assert_bits_are_zero`, Field from_bits and from_boolean and ternary, the string validation helpers), with R1CS-SOUND-IF naming `Boolean::new`. It did the same for `Record::is_hiding` (`Integer::new` on the version) and IdentifierLiteral equality (the identifier arm of `Literal::new`). Most R1CS-SAMPLES 1s have no matching check in `aleovm_sample_circuits.py`; that is not yet audited.
 
