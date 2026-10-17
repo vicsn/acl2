@@ -116,3 +116,4 @@
 (include-book "int-mulpow-pow-checked")
 (include-book "int-mulpow-pow-checked-128")
 (include-book "int-mulpow-pow-checked-signed")
+(include-book "int-mulpow-shl-checked-128")
