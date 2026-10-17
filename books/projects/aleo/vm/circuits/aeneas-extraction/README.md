@@ -18,7 +18,7 @@ and complete:
 
 The checks are in `check-boolean`, `check-field`, `check-integer`,
 `check-integer-pow`, `check-scalar`, `check-group`, `check-address` and
-`check-account`. Integer checks run at 8, 16, 32, 64 and 128 bits. A `*-differs` check records
+`check-account` and `check-program`. Integer checks run at 8, 16, 32, 64 and 128 bits. A `*-differs` check records
 a circuit that does not match its gadget.
 
 `manifest.tsv` lists each row with STATUS `verified` in

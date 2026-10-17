@@ -9,26 +9,26 @@ environment	CanaryCircuit	Environment	enforce	match	env-enforce-extraction
 environment	Circuit	Environment	enforce	match	env-enforce-extraction	
 environment	TestnetCircuit	Environment	enforce	match	env-enforce-extraction	
 network	AleoV0	Environment	enforce	match	env-enforce-extraction	
-program	Boolean	Cast	cast	not-checked		
-program	Boolean	CastLossy	cast_lossy	not-checked		
-program	DynamicFuture	Equal	is_equal	not-checked		
-program	DynamicFuture	Equal	is_not_equal	not-checked		
-program	Field	Cast	cast	not-checked		
-program	Identifier	Equal	is_equal	not-checked		
-program	Identifier	Equal	is_not_equal	not-checked		
-program	IdentifierLiteral	Cast	cast	not-checked		
-program	Integer	Cast	cast	not-checked		
-program	Literal	Inject	new	not-checked		
-program	OutputID		dynamic_future	not-checked		
-program	OutputID		dynamic_record	not-checked		
-program	OutputID		external_record	not-checked		
-program	OutputID		future	not-checked		
-program	OutputID		private	not-checked		
-program	OutputID		public	not-checked		
-program	ProgramID	Equal	is_equal	not-checked		
-program	ProgramID	Equal	is_not_equal	not-checked		
-program	Record		is_hiding	not-checked		
-program	Scalar	Cast	cast	not-checked		
+program	Boolean	Cast	cast	match	boolean-cast-extraction	
+program	Boolean	CastLossy	cast_lossy	match	boolean-cast-lossy-extraction	no constraints
+program	DynamicFuture	Equal	is_equal	match	dynamic-future-is-equal-extraction	same constraints in a different order: snarkVM interleaves each AND with the next equality
+program	DynamicFuture	Equal	is_not_equal	match	dynamic-future-is-not-equal-extraction	same constraints in a different order: snarkVM interleaves each AND with the next equality
+program	Field	Cast	cast	match	field-cast-extraction	Boolean destination: snarkVM computes is_one before is_zero; same constraints in a different order
+program	Identifier	Equal	is_equal	match	identifier-is-equal-extraction	
+program	Identifier	Equal	is_not_equal	match	identifier-is-not-equal-extraction	
+program	IdentifierLiteral	Cast	cast	differs	identifier-literal-cast-scalar-differs	Scalar destination: snarkVM reuses the bits cached by to_field (247 constraints), the gadget decomposes the field again (759); other destinations match (identifier-literal-cast-extraction). Boolean destination: snarkVM computes is_one before is_zero; same constraints in a different order
+program	Integer	Cast	cast	differs	integer-cast-identifier-literal-differs	IdentifierLiteral destination: snarkVM reuses the bits cached by to_field (22 constraints at u8), the gadget decomposes the field again (1069); other destinations match (integer-cast-extraction). Boolean destination: snarkVM computes is_one before is_zero; same constraints in a different order
+program	Literal	Inject	new	match	literal-new-extraction	with the Scalar::new patch; the signature arm leaves out the compute key hash_to_scalar on both sides
+program	OutputID		dynamic_future	match	output-id-dynamic-future-extraction	
+program	OutputID		dynamic_record	match	output-id-dynamic-record-extraction	
+program	OutputID		external_record	match	output-id-external-record-extraction	
+program	OutputID		future	match	output-id-future-extraction	
+program	OutputID		private	match	output-id-private-extraction	
+program	OutputID		public	match	output-id-public-extraction	
+program	ProgramID	Equal	is_equal	match	program-id-is-equal-extraction	
+program	ProgramID	Equal	is_not_equal	match	program-id-is-not-equal-extraction	
+program	Record		is_hiding	match	record-is-hiding-extraction	
+program	Scalar	Cast	cast	match	scalar-cast-extraction	Boolean destination: snarkVM computes is_one before is_zero; same constraints in a different order
 types/address	Address	Compare	is_greater_than	match	address-is-greater-than-extraction	
 types/address	Address	Compare	is_greater_than_or_equal	match	address-is-greater-than-or-equal-extraction	
 types/address	Address	Compare	is_less_than	match	address-is-less-than-extraction	

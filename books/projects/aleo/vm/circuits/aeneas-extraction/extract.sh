@@ -40,7 +40,8 @@ echo '== certify'
 cd /ws
 books/build/cert.pl --include-excludes --acl2 /root/acl2/saved_acl2 -j 3 \
   $EXT/check-boolean $EXT/check-field $EXT/check-integer $EXT/check-scalar \
-  $EXT/check-group $EXT/check-address $EXT/check-integer-pow $EXT/check-account
+  $EXT/check-group $EXT/check-address $EXT/check-integer-pow $EXT/check-account \
+  $EXT/check-program
 "
 
 echo '== manifest'
