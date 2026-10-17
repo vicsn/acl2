@@ -122,3 +122,8 @@
 (include-book "seq-instances")
 (include-book "gap-boolean-hash")
 (include-book "gap-kary-path-new")
+(include-book "rec-leaves")
+(include-book "rec-ciphertext")
+(include-book "rec-owner")
+(include-book "rec-dynamic-future")
+(include-book "rec-dynamic-record")
