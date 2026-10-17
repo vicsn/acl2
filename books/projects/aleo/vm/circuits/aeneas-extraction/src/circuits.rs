@@ -41,6 +41,12 @@ pub struct Cs {
 /// BLS12-377 scalar field: `p - 1` and `(p - 1) / 2`, little-endian limbs.
 const P_MINUS_ONE: [u64; 4] = [0x0a11800000000000, 0x59aa76fed0000001, 0x60b44d1e5c37b001, 0x12ab655e9a2ca556];
 const P_HALF: [u64; 4] = [0x8508c00000000000, 0xacd53b7f68000000, 0x305a268f2e1bd800, 0x0955b2af4d1652ab];
+/// The Edwards BLS12 scalar field modulus r, and r - 1.
+const R: [u64; 4] = [0xb95aee9ac33fd9ff, 0x5293a3afc43c8afe, 0x982d1347970dec00, 0x04aad957a68b2955];
+const R_MINUS_ONE: [u64; 4] = [0xb95aee9ac33fd9fe, 0x5293a3afc43c8afe, 0x982d1347970dec00, 0x04aad957a68b2955];
+/// `E::ScalarField::size_in_bits()` and `size_in_data_bits()`.
+const SCALAR_BITS: usize = 251;
+const SCALAR_DATA_BITS: usize = 250;
 /// `E::BaseField::size_in_bits()` and `size_in_data_bits()`.
 const FIELD_BITS: usize = 253;
 const FIELD_DATA_BITS: usize = 252;
@@ -734,6 +740,19 @@ pub fn f_const_is_less_than(cs: &mut Cs, kbits: &Vec<bool>, y: &Field) -> Boolea
     let mut i = 0;
     while i < kbits.len() && i < yb.len() {
         acc = if kbits[i] { b_and(cs, &yb[i], &acc) } else { b_or(cs, &yb[i], &acc) };
+        i += 1;
+    }
+    acc
+}
+
+/// compare.rs `is_less_than` with a constant right operand, given by its bits.
+pub fn f_is_less_than_const(cs: &mut Cs, x: &Field, kbits: &Vec<bool>) -> Boolean {
+    let xb = f_to_bits_le(cs, x);
+    let mut acc = b_const(false);
+    let mut i = 0;
+    while i < kbits.len() && i < xb.len() {
+        let nx = b_not(&xb[i]);
+        acc = if kbits[i] { b_or(cs, &nx, &acc) } else { b_and(cs, &nx, &acc) };
         i += 1;
     }
     acc
@@ -1479,6 +1498,88 @@ pub fn i_compare(cs: &mut Cs, x: &Integer, y: &Integer, op: u32) -> Boolean {
 }
 
 // ---------------------------------------------------------------------------
+// circuit/types/scalar
+
+/// The constant field element with little-endian bits `k`.
+fn f_const_bits(k: &Vec<bool>) -> Field {
+    let mut lc = lc_zero();
+    let mut i = 0;
+    while i < k.len() {
+        if k[i] {
+            lc = lc_add(&lc, &lc_const(1, i as u32));
+        }
+        i += 1;
+    }
+    f_of(lc)
+}
+
+/// lib.rs `Scalar::new(Mode::Private, _)`: a field witness, no constraint.
+pub fn s_new(cs: &mut Cs) -> Field {
+    f_new(cs)
+}
+
+/// helpers/to_bits.rs `write_bits_le`: to_lower_bits_le(251) and
+/// `assert_less_than_or_equal_constant` against r - 1.
+pub fn s_to_bits_le(cs: &mut Cs, x: &Field) -> Vec<Boolean> {
+    let bits = f_to_lower_bits_le(cs, x, SCALAR_BITS);
+    b_assert_less_than_or_equal_constant(cs, &bits, &limbs_bits(&R_MINUS_ONE, SCALAR_BITS));
+    bits
+}
+
+/// compare.rs `is_less_than`: the low bit of `to_bits_le` of 2(x - y).
+pub fn s_is_less_than(cs: &mut Cs, x: &Field, y: &Field) -> Boolean {
+    let d = f_sub(x, y);
+    let outcome = f_add(&d, &d);
+    let bits = f_to_bits_le(cs, &outcome);
+    b_copy(&bits[0])
+}
+
+/// `op`: 0 is_less_than, 1 is_greater_than, 2 is_less_than_or_equal,
+/// 3 is_greater_than_or_equal.
+pub fn s_compare(cs: &mut Cs, x: &Field, y: &Field, op: u32) -> Boolean {
+    if op == 0 {
+        s_is_less_than(cs, x, y)
+    } else if op == 1 {
+        s_is_less_than(cs, y, x)
+    } else if op == 2 {
+        let r = s_is_less_than(cs, y, x);
+        b_not(&r)
+    } else {
+        let r = s_is_less_than(cs, x, y);
+        b_not(&r)
+    }
+}
+
+/// add.rs `add_assign`.
+pub fn s_add(cs: &mut Cs, x: &Field, y: &Field) -> Field {
+    let sum = f_add(x, y);
+    let bits = f_to_lower_bits_le(cs, &sum, SCALAR_BITS + 1);
+    let sumf = f_from_bits_le(cs, &bits);
+    let rbits = limbs_bits(&R, FIELD_BITS);
+    let modulus = f_const_bits(&rbits);
+    let lt = f_is_less_than_const(cs, &sumf, &rbits);
+    let wrapping = f_ternary(cs, &lt, &sumf, &f_sub(&sumf, &modulus));
+    let _ = f_to_lower_bits_le(cs, &wrapping, SCALAR_BITS);
+    wrapping
+}
+
+/// helpers/from_bits.rs `from_bits_le`.
+pub fn s_from_bits_le(cs: &mut Cs, bits: &Vec<Boolean>) -> Field {
+    let n = bits.len();
+    if n > SCALAR_BITS {
+        b_assert_bits_are_zero(cs, &bits_range(bits, SCALAR_BITS, n));
+    }
+    if n > SCALAR_DATA_BITS {
+        let low = bits_range(bits, 0, SCALAR_BITS);
+        let f = f_from_bits_le(cs, &low);
+        b_assert_less_than_or_equal_constant(cs, &low, &limbs_bits(&R_MINUS_ONE, SCALAR_BITS));
+        f
+    } else {
+        f_from_bits_le(cs, bits)
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Harnesses: inputs are fresh wires 1, 2, ... in argument order.
 
 fn in_bits(cs: &mut Cs, n: usize) -> Vec<Boolean> {
@@ -1795,5 +1896,63 @@ pub fn h_i_from_field(n: usize, signed: bool, lossy: bool) -> Cs {
     let mut cs = cs_new();
     let f = f_new(&mut cs);
     let _ = if lossy { i_from_field_lossy(&mut cs, &f, n, signed) } else { i_from_field(&mut cs, &f, n, signed) };
+    cs
+}
+
+/// Scalar binary operations: 0 is_equal, 1 is_not_equal, 2..5 the
+/// comparisons (`s_compare`), 6 add.
+pub fn h_s_binop(op: u32) -> Cs {
+    let mut cs = cs_new();
+    let x = s_new(&mut cs);
+    let y = s_new(&mut cs);
+    if op == 0 {
+        let _ = f_is_equal(&mut cs, &x, &y);
+    } else if op == 1 {
+        let r = f_is_equal(&mut cs, &x, &y);
+        let _ = b_not(&r);
+    } else if op <= 5 {
+        let _ = s_compare(&mut cs, &x, &y, op - 2);
+    } else {
+        let _ = s_add(&mut cs, &x, &y);
+    }
+    cs
+}
+
+/// Scalar unary operations: 0 is_zero, 1 is_one, 2 write_bits_le (and _be),
+/// 3 from_field, 4 from_field_lossy (the input of 3 and 4 is a field).
+pub fn h_s_unop(op: u32) -> Cs {
+    let mut cs = cs_new();
+    let x = s_new(&mut cs);
+    if op == 0 {
+        let _ = f_is_zero(&mut cs, &x);
+    } else if op == 1 {
+        let _ = f_is_one(&mut cs, &x);
+    } else if op == 2 {
+        let _ = s_to_bits_le(&mut cs, &x);
+    } else {
+        let bits = f_to_bits_le(&mut cs, &x);
+        if op == 3 {
+            let _ = s_from_bits_le(&mut cs, &bits);
+        } else {
+            let _ = s_from_bits_le(&mut cs, &bits_range(&bits, 0, SCALAR_DATA_BITS));
+        }
+    }
+    cs
+}
+
+pub fn h_s_ternary() -> Cs {
+    let mut cs = cs_new();
+    let c = b_var(new_var(&mut cs));
+    let x = s_new(&mut cs);
+    let y = s_new(&mut cs);
+    let _ = f_ternary(&mut cs, &c, &x, &y);
+    cs
+}
+
+/// `Scalar::from_bits_le` of `n` input bits.
+pub fn h_s_from_bits(n: usize) -> Cs {
+    let mut cs = cs_new();
+    let bits = in_bits(&mut cs, n);
+    let _ = s_from_bits_le(&mut cs, &bits);
     cs
 }
