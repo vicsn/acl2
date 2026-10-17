@@ -147,3 +147,5 @@
 (include-book "ptx-vbits")
 (include-book "ptx-vlit")
 (include-book "ptx-dlit")
+(include-book "ptx-elit")
+(include-book "ptx-glit")
