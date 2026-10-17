@@ -135,3 +135,6 @@
 (include-book "ptx-new")
 (include-book "ptx-equal")
 (include-book "ptx-entry")
+(include-book "lit-signature")
+(include-book "lit-literal-signature")
+(include-book "lit-literal-dispatch")
