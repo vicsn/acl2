@@ -76,3 +76,6 @@
 (include-book "grp-is-in-group")
 (include-book "grp-from-bits")
 (include-book "grp-from-x-flagged")
+(include-book "int-divshift-signed-arith")
+(include-book "int-divshift-signed-div")
+(include-book "int-divshift-signed-div-checked")
