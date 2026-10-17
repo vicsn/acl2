@@ -171,7 +171,7 @@
   :enable int-divshift-sc-double-power
   :disable (int-divshift-sc-below-expt-plus expt acl2::expt-of-+-of-1-arg2))
 
-(defruledl int-divshift-sc-after-bound
+(defruled int-divshift-sc-after-bound
   (implies (and (natp width)
                 (natp cur)
                 (natp i)
