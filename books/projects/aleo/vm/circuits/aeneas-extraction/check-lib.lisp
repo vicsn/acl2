@@ -168,14 +168,24 @@
                    (list :bil a1 b1 c1)
                  (list :bil b1 a1 c1)))))))
 
+; A substitution maps a wire to a constant or to a linear combination, given
+; as a list of (coefficient wire) pairs.
+(defun scale-vec (vec k)
+  (if (atom vec)
+      nil
+    (cons (list (* k (ifix (first (car vec)))) (second (car vec)))
+          (scale-vec (cdr vec) k))))
+
 (defun subst-vec (vec subst)
   (if (atom vec)
       nil
     (b* ((coef (ifix (first (car vec))))
          (var (second (car vec)))
          (hit (assoc-equal var subst)))
-      (cons (if hit (list (* coef (ifix (cdr hit))) 1) (list coef var))
-            (subst-vec (cdr vec) subst)))))
+      (append (cond ((not hit) (list (list coef var)))
+                    ((consp (cdr hit)) (scale-vec (cdr hit) coef))
+                    (t (list (list (* coef (ifix (cdr hit))) 1))))
+              (subst-vec (cdr vec) subst)))))
 
 (defun canon-constraints (constrs subst p)
   (if (atom constrs)
