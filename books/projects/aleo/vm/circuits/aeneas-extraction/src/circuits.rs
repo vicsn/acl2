@@ -2625,3 +2625,428 @@ pub fn h_bh_new(variant: usize) -> Cs {
     let _ = bh_new(&mut cs, variant);
     cs
 }
+
+// ---------------------------------------------------------------------------
+// circuit/types/string/src/identifier_literal. An IdentifierLiteral is its
+// 31 bytes as 248 little-endian bits.
+
+const IL_BYTES: usize = 31;
+const IL_BITS: usize = 248;
+
+/// mod.rs `validate_byte`, with `ByteValidationData::new` and the
+/// `is_invalid_*_offset` helpers inlined. Returns the null flag.
+pub fn il_validate_byte(cs: &mut Cs, bits: &Vec<Boolean>, first: bool) -> Boolean {
+    let b0 = b_copy(&bits[0]);
+    let b1 = b_copy(&bits[1]);
+    let b2 = b_copy(&bits[2]);
+    let b3 = b_copy(&bits[3]);
+    let b4 = b_copy(&bits[4]);
+    let b5 = b_copy(&bits[5]);
+    let b6 = b_copy(&bits[6]);
+    let b7 = b_copy(&bits[7]);
+    env_assert_eq(cs, &b7.lc, &lc_zero());
+    let b4b3 = b_and(cs, &b4, &b3);
+    let b1b0 = b_and(cs, &b1, &b0);
+    let sum = f_add(
+        &f_add(&f_add(&f_add(&f_from_boolean(&b0), &f_from_boolean(&b1)), &f_from_boolean(&b2)), &f_from_boolean(&b3)),
+        &f_from_boolean(&b4),
+    );
+    let all_zero_5 = f_is_equal(cs, &sum, &f_of(lc_zero()));
+    let null = b_and(cs, &b_not(&b6), &b_not(&b5));
+    let lower = b_and(cs, &b6, &b5);
+    let upper_lc = lc_sub(&b6.lc, &lower.lc);
+    let digit_lc = lc_sub(&b5.lc, &lower.lc);
+    let any_low5 = b_not(&all_zero_5);
+    enforce(cs, lc_copy(&null.lc), any_low5.lc, lc_zero());
+    let b2_or_b1 = b_or(cs, &b2, &b1);
+    let invalid_digit = b_and(cs, &b3, &b2_or_b1);
+    enforce(cs, digit_lc, lc_add(&lc_sub(&lc_one(), &b4.lc), &invalid_digit.lc), lc_zero());
+    let xor_b2_b1b0 = b_xor(cs, &b2, &b1b0);
+    let bad_upper = b_and(cs, &b4b3, &xor_b2_b1b0);
+    enforce(cs, upper_lc, lc_add(&all_zero_5.lc, &bad_upper.lc), lc_zero());
+    let b2_or_b1b0 = b_or(cs, &b2, &b1b0);
+    let bad_lower = b_and(cs, &b4b3, &b2_or_b1b0);
+    enforce(cs, lc_copy(&lower.lc), lc_add(&all_zero_5.lc, &bad_lower.lc), lc_zero());
+    if first {
+        il_first_byte_letter(cs, &b4b3, &b1b0, &b2, &b6);
+    }
+    null
+}
+
+fn il_first_byte_letter(cs: &mut Cs, b4b3: &Boolean, b1b0: &Boolean, b2: &Boolean, b6: &Boolean) {
+    let partial = b_and(cs, b4b3, b1b0);
+    let is_underscore_offset = b_and(cs, &partial, b2);
+    let is_letter = b_and(cs, b6, &b_not(&is_underscore_offset));
+    env_assert(cs, &is_letter.lc);
+}
+
+/// mod.rs `validate_trailing_nulls`.
+pub fn il_validate_trailing_nulls(cs: &mut Cs, nulls: &Vec<Boolean>) {
+    let mut i = 1;
+    while i < nulls.len() {
+        let not_null = b_not(&nulls[i]);
+        enforce(cs, lc_copy(&nulls[i - 1].lc), not_null.lc, lc_zero());
+        i += 1;
+    }
+}
+
+/// mod.rs `validate_identifier_bits` (and `validate_identifier_bytes`).
+pub fn il_validate_bits(cs: &mut Cs, bits: &Vec<Boolean>) {
+    let mut nulls = Vec::new();
+    let mut i = 0;
+    while i < IL_BYTES {
+        let byte = bits_range(bits, 8 * i, 8 * i + 8);
+        let null = il_validate_byte(cs, &byte, i == 0);
+        nulls.push(null);
+        i += 1;
+    }
+    il_validate_trailing_nulls(cs, &nulls);
+}
+
+/// helpers/from_bits.rs `from_bits_le`: excess bits asserted zero, padding
+/// with constant false, then `from_bytes`.
+pub fn il_from_bits_le(cs: &mut Cs, bits: &Vec<Boolean>) -> Vec<Boolean> {
+    if bits.len() > IL_BITS {
+        b_assert_bits_are_zero(cs, &bits_range(bits, IL_BITS, bits.len()));
+    }
+    let mut out = bits_range(bits, 0, IL_BITS);
+    while out.len() < IL_BITS {
+        out.push(b_const(false));
+    }
+    il_validate_bits(cs, &out);
+    out
+}
+
+pub fn il_from_bits_be(cs: &mut Cs, bits: &Vec<Boolean>) -> Vec<Boolean> {
+    il_from_bits_le(cs, &bits_rev(bits))
+}
+
+/// helpers/from_field.rs.
+pub fn il_from_field(cs: &mut Cs, f: &Field) -> Vec<Boolean> {
+    let bits = f_to_bits_le(cs, f);
+    il_from_bits_le(cs, &bits)
+}
+
+/// helpers/to_field.rs: `Field::from_bits_le` of the 248 bits.
+pub fn il_to_field(cs: &mut Cs, il: &Vec<Boolean>) -> Field {
+    f_from_bits_le(cs, il)
+}
+
+/// mod.rs `Inject::new`: `U8::new` of each byte, then `from_bytes`.
+pub fn il_new(cs: &mut Cs) -> Vec<Boolean> {
+    let mut bits = Vec::new();
+    let mut i = 0;
+    while i < IL_BITS {
+        bits.push(b_new(cs));
+        i += 1;
+    }
+    il_validate_bits(cs, &bits);
+    bits
+}
+
+// ---------------------------------------------------------------------------
+// circuit/program
+
+/// The patched `Scalar::new` (snarkVM-scalar-new-range-check.patch): a
+/// variable scalar calls `to_bits_le`, which caches the bits.
+pub fn s_new_patched(cs: &mut Cs) -> Field {
+    let s = f_new(cs);
+    let bits = s_to_bits_le(cs, &s);
+    f_cache_bits(&s, &bits)
+}
+
+const GENERATOR_X: [u64; 4] = [0x137e82844bbe49c5, 0xe7608833a9dd83f3, 0x16b294b80d905006, 0x036824eb02475007];
+const GENERATOR_Y: [u64; 4] = [0xd50dce7d8bcda9d4, 0x7f6758f4c08bc255, 0x37c0a81e810abce5, 0x11b1d8d5c1d897a3];
+
+pub fn g_generator() -> Group {
+    Group {
+        x: f_const_bits(&limbs_bits(&GENERATOR_X, FIELD_BITS)),
+        y: f_const_bits(&limbs_bits(&GENERATOR_Y, FIELD_BITS)),
+    }
+}
+
+/// Literal type codes: 0 address, 1 boolean, 2 field, 3 group, 4 integer
+/// (width `tw`, signedness `ts`), 5 scalar, 6 identifier literal.
+fn p_zero_or_one(cs: &mut Cs, x: &Field) {
+    let is_one = f_is_one(cs, x);
+    let is_zero = f_is_zero(cs, x);
+    let r = b_or(cs, &is_zero, &is_one);
+    env_assert(cs, &r.lc);
+}
+
+/// cast/field.rs.
+pub fn p_field_cast(cs: &mut Cs, x: &Field, to: u32, tw: usize, ts: bool) {
+    if to == 0 || to == 3 {
+        let _ = g_from_x_coordinate(cs, x);
+    } else if to == 1 {
+        p_zero_or_one(cs, x);
+    } else if to == 4 {
+        let _ = i_from_field(cs, x, tw, ts);
+    } else if to == 5 {
+        let bits = f_to_bits_le(cs, x);
+        let _ = s_from_bits_le(cs, &bits);
+    } else if to == 6 {
+        let _ = il_from_field(cs, x);
+    }
+}
+
+/// cast/boolean.rs and cast_lossy/boolean.rs.
+pub fn p_boolean_cast(cs: &mut Cs, b: &Boolean, to: u32, tw: usize, ts: bool) {
+    if to == 0 || to == 3 {
+        let _ = g_ternary(cs, b, &g_generator(), &g_zero());
+    } else if to == 4 {
+        let _ = i_ternary(cs, b, &i_const_small(tw, 1, ts), &i_const_small(tw, 0, ts));
+    } else if to == 5 {
+        let _ = f_ternary(cs, b, &f_of(lc_one()), &f_of(lc_zero()));
+    } else if to == 6 {
+        let f = f_from_boolean(b);
+        let _ = il_from_field(cs, &f);
+    }
+}
+
+fn p_assert_eq_msb(cs: &mut Cs, msb: &Boolean, bits: &Vec<Boolean>, lo: usize, hi: usize) {
+    let mut j = lo;
+    while j < hi {
+        env_assert_eq(cs, &msb.lc, &bits[j].lc);
+        j += 1;
+    }
+}
+
+fn p_sign_extend(bits: &Vec<Boolean>, n: usize) -> Vec<Boolean> {
+    let msb = b_copy(&bits[bits.len() - 1]);
+    let mut out = bits_copy(bits);
+    while out.len() < n {
+        out.push(b_copy(&msb));
+    }
+    out
+}
+
+/// cast/integer.rs, the Integer destination.
+pub fn p_int_cast_int(cs: &mut Cs, x: &Integer, tw: usize, ts: bool) {
+    let n0 = x.bits.len();
+    let s0 = x.signed;
+    if !s0 && !ts {
+        let _ = i_from_bits_le(cs, &x.bits, tw, ts);
+    } else if !s0 && ts {
+        if n0 < tw {
+            let _ = i_from_bits_le(cs, &x.bits, tw, ts);
+        } else {
+            b_assert_bits_are_zero(cs, &bits_range(&x.bits, tw - 1, n0));
+            let _ = i_from_bits_le(cs, &bits_range(&x.bits, 0, tw), tw, ts);
+        }
+    } else if s0 && !ts {
+        if n0 <= tw {
+            let not_msb = b_not(&x.bits[n0 - 1]);
+            env_assert(cs, &not_msb.lc);
+            let _ = i_from_bits_le(cs, &x.bits, tw, ts);
+        } else {
+            b_assert_bits_are_zero(cs, &bits_range(&x.bits, tw, n0));
+            let _ = i_from_bits_le(cs, &bits_range(&x.bits, 0, tw), tw, ts);
+        }
+    } else if n0 <= tw {
+        let _ = i_from_bits_le(cs, &p_sign_extend(&x.bits, tw), tw, ts);
+    } else {
+        let msb = b_copy(&x.bits[n0 - 1]);
+        p_assert_eq_msb(cs, &msb, &x.bits, tw - 1, n0 - 1);
+        let mut lower = bits_range(&x.bits, 0, tw - 1);
+        lower.push(msb);
+        let _ = i_from_bits_le(cs, &lower, tw, ts);
+    }
+}
+
+/// cast/integer.rs.
+pub fn p_integer_cast(cs: &mut Cs, x: &Integer, to: u32, tw: usize, ts: bool) {
+    if to == 1 {
+        let is_one = i_is_one(cs, x);
+        let is_zero = i_is_zero(cs, x);
+        let r = b_or(cs, &is_zero, &is_one);
+        env_assert(cs, &r.lc);
+    } else if to == 4 {
+        p_int_cast_int(cs, x, tw, ts);
+    } else if to == 5 {
+        let _ = s_from_bits_le(cs, &x.bits);
+    } else if to != 2 {
+        let f = i_to_field(cs, x);
+        p_field_cast(cs, &f, to, tw, ts);
+    } else {
+        let _ = i_to_field(cs, x);
+    }
+}
+
+/// cast/scalar.rs. Scalar::is_one / is_zero are Field::is_equal on the field.
+pub fn p_scalar_cast(cs: &mut Cs, s: &Field, to: u32, tw: usize, ts: bool) {
+    if to == 4 {
+        let bits = s_to_bits_le(cs, s);
+        let _ = i_from_bits_le(cs, &bits, tw, ts);
+    } else if to != 2 && to != 5 {
+        p_field_cast(cs, s, to, tw, ts);
+    }
+}
+
+/// cast/identifier.rs.
+pub fn p_idlit_cast(cs: &mut Cs, il: &Vec<Boolean>, to: u32, tw: usize, ts: bool) {
+    if to != 2 && to != 6 {
+        let f = il_to_field(cs, il);
+        p_field_cast(cs, &f, to, tw, ts);
+    }
+}
+
+/// Source codes as the destination codes; an integer source has width `fw`
+/// and signedness `fs`. The input is W1 (boolean, field, scalar), the bits
+/// W1..W`fw` (integer) or the 248 bits W1..W248 (identifier literal).
+pub fn h_p_cast(from: u32, fw: usize, fs: bool, to: u32, tw: usize, ts: bool) -> Cs {
+    let mut cs = cs_new();
+    if from == 1 {
+        let b = b_var(new_var(&mut cs));
+        p_boolean_cast(&mut cs, &b, to, tw, ts);
+    } else if from == 2 {
+        let x = f_new(&mut cs);
+        p_field_cast(&mut cs, &x, to, tw, ts);
+    } else if from == 4 {
+        let x = in_int(&mut cs, fw, fs);
+        p_integer_cast(&mut cs, &x, to, tw, ts);
+    } else if from == 5 {
+        let s = s_new(&mut cs);
+        p_scalar_cast(&mut cs, &s, to, tw, ts);
+    } else {
+        let il = in_bits(&mut cs, IL_BITS);
+        p_idlit_cast(&mut cs, &il, to, tw, ts);
+    }
+    cs
+}
+
+/// 0 Identifier::is_equal, 1 is_not_equal (W1, W2); 2 ProgramID::is_equal,
+/// 3 is_not_equal (name W1, network W2; name W3, network W4); 4
+/// DynamicFuture::is_equal, 5 is_not_equal (W1..W4; W5..W8).
+pub fn h_p_equal(op: u32) -> Cs {
+    let mut cs = cs_new();
+    if op <= 1 {
+        let x = f_new(&mut cs);
+        let y = f_new(&mut cs);
+        if op == 0 {
+            let _ = f_is_equal(&mut cs, &x, &y);
+        } else {
+            let _ = f_is_not_equal(&mut cs, &x, &y);
+        }
+    } else if op <= 3 {
+        let xn = f_new(&mut cs);
+        let xw = f_new(&mut cs);
+        let yn = f_new(&mut cs);
+        let yw = f_new(&mut cs);
+        if op == 2 {
+            let a = f_is_equal(&mut cs, &xn, &yn);
+            let b = f_is_equal(&mut cs, &xw, &yw);
+            let _ = b_and(&mut cs, &a, &b);
+        } else {
+            let a = f_is_not_equal(&mut cs, &xn, &yn);
+            let b = f_is_not_equal(&mut cs, &xw, &yw);
+            let _ = b_or(&mut cs, &a, &b);
+        }
+    } else {
+        let r = p_dynamic_future_is_equal(&mut cs);
+        if op == 5 {
+            let _ = b_not(&r);
+        }
+    }
+    cs
+}
+
+fn p_dynamic_future_is_equal(cs: &mut Cs) -> Boolean {
+    let xn = f_new(cs);
+    let xw = f_new(cs);
+    let xf = f_new(cs);
+    let xc = f_new(cs);
+    let yn = f_new(cs);
+    let yw = f_new(cs);
+    let yf = f_new(cs);
+    let yc = f_new(cs);
+    let a = f_is_equal(cs, &xn, &yn);
+    let b = f_is_equal(cs, &xw, &yw);
+    let ab = b_and(cs, &a, &b);
+    let c = f_is_equal(cs, &xf, &yf);
+    let abc = b_and(cs, &ab, &c);
+    let d = f_is_equal(cs, &xc, &yc);
+    b_and(cs, &abc, &d)
+}
+
+/// Record::is_hiding: `!version.is_zero()` on the U8 bits W1..W8.
+pub fn h_p_record_is_hiding() -> Cs {
+    let mut cs = cs_new();
+    let v = in_int(&mut cs, 8, false);
+    let z = i_is_zero(&mut cs, &v);
+    let _ = b_not(&z);
+    cs
+}
+
+/// response/mod.rs OutputID public, private, external_record, future,
+/// dynamic_record and dynamic_future: the expected hash W1, the injected
+/// public hash W2 and `assert_eq(W2, W1)`.
+pub fn h_p_output_id() -> Cs {
+    let mut cs = cs_new();
+    let expected = f_new(&mut cs);
+    let output = f_new(&mut cs);
+    env_assert_eq(&mut cs, &output.lc, &expected.lc);
+    cs
+}
+
+/// data/literal/mod.rs `Literal::new` in a non-constant mode. `variant`: 0
+/// address, 1 boolean, 2 field, 3 group, 4 integer of width `n`, 5 scalar
+/// (patched), 6 signature without the compute key's hash_to_scalar, 7
+/// identifier literal.
+pub fn h_p_literal_new(variant: u32, n: usize, signed: bool) -> Cs {
+    let mut cs = cs_new();
+    if variant == 0 || variant == 3 {
+        let _ = g_new(&mut cs);
+    } else if variant == 1 {
+        let _ = b_new(&mut cs);
+    } else if variant == 2 {
+        let _ = f_new(&mut cs);
+    } else if variant == 4 {
+        let _ = i_new(&mut cs, n, signed);
+    } else if variant == 5 {
+        let _ = s_new_patched(&mut cs);
+    } else if variant == 6 {
+        let _ = s_new_patched(&mut cs);
+        let _ = s_new_patched(&mut cs);
+        let _ = g_new(&mut cs);
+        let _ = g_new(&mut cs);
+    } else {
+        let _ = il_new(&mut cs);
+    }
+    cs
+}
+
+/// IdentifierLiteral harnesses on input bits W1..W`n`: 0 validate_byte of
+/// one byte (`first`), 1 validate bits, 2 from_bits_le, 3 from_bits_be.
+/// 4 from_field of W1; 5 is_equal and 6 is_not_equal of W1..W248 and
+/// W249..W496.
+pub fn h_il(op: u32, n: usize, first: bool) -> Cs {
+    let mut cs = cs_new();
+    if op == 0 {
+        let bits = in_bits(&mut cs, 8);
+        let _ = il_validate_byte(&mut cs, &bits, first);
+    } else if op == 1 {
+        let bits = in_bits(&mut cs, IL_BITS);
+        il_validate_bits(&mut cs, &bits);
+    } else if op == 2 {
+        let bits = in_bits(&mut cs, n);
+        let _ = il_from_bits_le(&mut cs, &bits);
+    } else if op == 3 {
+        let bits = in_bits(&mut cs, n);
+        let _ = il_from_bits_be(&mut cs, &bits);
+    } else if op == 4 {
+        let x = f_new(&mut cs);
+        let _ = il_from_field(&mut cs, &x);
+    } else {
+        let a = in_bits(&mut cs, IL_BITS);
+        let b = in_bits(&mut cs, IL_BITS);
+        let fa = il_to_field(&mut cs, &a);
+        let fb = il_to_field(&mut cs, &b);
+        if op == 5 {
+            let _ = f_is_equal(&mut cs, &fa, &fb);
+        } else {
+            let _ = f_is_not_equal(&mut cs, &fa, &fb);
+        }
+    }
+    cs
+}
