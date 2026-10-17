@@ -21,6 +21,8 @@
 (include-book "../r1cs/boolean-nor")
 (include-book "../r1cs/boolean-check")
 (include-book "../r1cs/if")
+(include-book "../r1cs/bits-lte-const")
+(include-book "../r1cs/bits-lte-const-check")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -119,3 +121,35 @@
   (same-circuit (ext-run (acl2::circuits-h-b-assert-bits-are-zero *fuel* 8))
                 (fb-boolean-assert-bits-are-zero-gadget (wvs 1 8))
                 nil))
+
+; The constant is given as little-endian bits; the extraction folds away the
+; low 1 bits, so internal wires are matched up to renaming.
+(defun lte-const-bools (cs)
+  (if (endp cs) nil (cons (equal (car cs) 1) (lte-const-bools (cdr cs)))))
+
+(defun lte-const-is-ok (cs)
+  (same-circuit-renamed
+   (ext-run (acl2::circuits-h-b-lte-const *fuel* (lte-const-bools cs) nil))
+   (bits-lte-const-gadget (wvs 1 (len cs)) cs
+                          (gs "RS" (bits-lte-const-rlen cs)) (base-prime))
+   (wvs 1 (len cs)) nil))
+
+(defun lte-const-assert-ok (cs)
+  (same-circuit-renamed
+   (ext-run (acl2::circuits-h-b-lte-const *fuel* (lte-const-bools cs) t))
+   (bits-lte-const-check-gadget (wvs 1 (len cs)) cs
+                                (gs "RS" (bits-lte-const-check-rlen cs))
+                                (base-prime))
+   (wvs 1 (len cs)) nil))
+
+(defcheck boolean-is-less-than-or-equal-constant-extraction
+  (and (lte-const-is-ok '(0 1))
+       (lte-const-is-ok '(1 0 1))
+       (lte-const-is-ok '(0 0 1 1))
+       (lte-const-is-ok '(1 1 0 1 0 1 1 0 1))))
+
+(defcheck boolean-assert-less-than-or-equal-constant-extraction
+  (and (lte-const-assert-ok '(0 1))
+       (lte-const-assert-ok '(1 0 1))
+       (lte-const-assert-ok '(0 0 1 1))
+       (lte-const-assert-ok '(1 1 0 1 0 1 1 0 1))))
