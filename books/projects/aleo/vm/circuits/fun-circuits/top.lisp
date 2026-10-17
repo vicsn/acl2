@@ -141,3 +141,4 @@
 (include-book "ptx-from-bits")
 (include-book "rec-dynamic-record-eq")
 (include-book "rec-record")
+(include-book "ptx-lit")
