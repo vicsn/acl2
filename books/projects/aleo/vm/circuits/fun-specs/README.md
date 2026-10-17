@@ -81,6 +81,14 @@ Hash internals (the algorithms crate) stay in the table with FUN-SPEC
   - snarkVM's constraint and density limits.
   - Console-only optional data of dynamic records and futures.
 
+## Spec changes to match snarkVM
+
+`crypto-record.lisp` was restated so the Record specs compute what snarkVM computes (the circuit books in `fun-circuits/rec-record*.lisp` prove against these):
+
+- Entry bits and the constant/public ciphertext-entry bits use the concrete `plaintext-to-bits-le/-be`, and the private arm of `crypto-entry-num-randomizers` uses `plaintext-size-in-fields`, instead of the abstract `crypto-plaintext-bits-*` (still used by the hash rows).
+- Entry equality is `values-plaintext-equalp`, which compares identifiers by their field encoding, as snarkVM does; record data equality and `crypto-record-entry-lookup` compare entry names on `identifier->field`.
+- `crypto-entry-find` is `entry-find`.
+
 ## Open TODOs
 
 Remove an item only when a certified book discharges it.

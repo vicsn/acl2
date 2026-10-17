@@ -150,3 +150,8 @@
 (include-book "ptx-elit")
 (include-book "ptx-glit")
 (include-book "ptx-ilit")
+(include-book "rec-record-bits")
+(include-book "rec-record-eq")
+(include-book "rec-future")
+(include-book "rec-future-bits")
+(include-book "rec-future-eq")

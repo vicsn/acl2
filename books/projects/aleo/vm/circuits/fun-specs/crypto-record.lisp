@@ -17,6 +17,7 @@
 (in-package "ALEOVM")
 
 (include-book "crypto-values")
+(include-book "values-plaintext")
 
 (local (include-book "arithmetic-5/top" :dir :system))
 
@@ -251,26 +252,26 @@
   :returns (bits bit-listp)
   (append (crypto-entry-visibility-bits (entry-kind e))
           (entry-case e
-            :constant (crypto-plaintext-bits-le e.get)
-            :public (crypto-plaintext-bits-le e.get)
-            :private (crypto-plaintext-bits-le e.get))))
+            :constant (plaintext-to-bits-le e.get)
+            :public (plaintext-to-bits-le e.get)
+            :private (plaintext-to-bits-le e.get))))
 
 ; snarkVM circuit/program/src/data/record/entry/to_bits.rs: Entry::<Plaintext>::write_bits_be.
 (define crypto-entry-bits-be ((e entryp))
   :returns (bits bit-listp)
   (append (crypto-entry-visibility-bits (entry-kind e))
           (entry-case e
-            :constant (crypto-plaintext-bits-be e.get)
-            :public (crypto-plaintext-bits-be e.get)
-            :private (crypto-plaintext-bits-be e.get))))
+            :constant (plaintext-to-bits-be e.get)
+            :public (plaintext-to-bits-be e.get)
+            :private (plaintext-to-bits-be e.get))))
 
 ; snarkVM circuit/program/src/data/record/entry/to_bits.rs: Entry::<Ciphertext>::write_bits_le.
 (define crypto-ciphertext-entry-bits-le ((e crypto-ciphertext-entryp))
   :returns (bits bit-listp)
   (append (crypto-entry-visibility-bits (crypto-ciphertext-entry-kind e))
           (crypto-ciphertext-entry-case e
-            :constant (crypto-plaintext-bits-le e.get)
-            :public (crypto-plaintext-bits-le e.get)
+            :constant (plaintext-to-bits-le e.get)
+            :public (plaintext-to-bits-le e.get)
             :private (crypto-ciphertext-write-bits-le e.get))))
 
 ; snarkVM circuit/program/src/data/record/entry/to_bits.rs: Entry::<Ciphertext>::write_bits_be.
@@ -278,8 +279,8 @@
   :returns (bits bit-listp)
   (append (crypto-entry-visibility-bits (crypto-ciphertext-entry-kind e))
           (crypto-ciphertext-entry-case e
-            :constant (crypto-plaintext-bits-be e.get)
-            :public (crypto-plaintext-bits-be e.get)
+            :constant (plaintext-to-bits-be e.get)
+            :public (plaintext-to-bits-be e.get)
             :private (crypto-ciphertext-write-bits-be e.get))))
 
 ; snarkVM circuit/program/src/data/record/entry/num_randomizers.rs: Entry::<Plaintext>::num_randomizers.
@@ -288,7 +289,7 @@
   (entry-case e
     :constant 0
     :public 0
-    :private (crypto-plaintext-size-in-fields e.get))
+    :private (plaintext-size-in-fields e.get))
   ///
   (defret crypto-entry-num-randomizers-natp-or-consp
     (or (natp n) (consp n))
@@ -310,14 +311,15 @@
 (define crypto-entry-is-equal ((a entryp) (b entryp))
   :returns (r bitp)
   (if (equal (entry-kind a) (entry-kind b))
-      (crypto-plaintext-is-equal (entry-case a
-                                   :constant a.get
-                                   :public a.get
-                                   :private a.get)
-                                 (entry-case b
-                                   :constant b.get
-                                   :public b.get
-                                   :private b.get))
+      (values-bool-to-bit
+       (values-plaintext-equalp (entry-case a
+                                  :constant a.get
+                                  :public a.get
+                                  :private a.get)
+                                (entry-case b
+                                  :constant b.get
+                                  :public b.get
+                                  :private b.get)))
     0))
 
 ; snarkVM circuit/program/src/data/record/entry/equal.rs: Entry::is_equal (Ciphertext).
@@ -330,13 +332,14 @@
         ((crypto-ciphertext-entry-case a :private)
          (crypto-ciphertext-is-equal (crypto-ciphertext-entry-private->get a)
                                      (crypto-ciphertext-entry-private->get b)))
-        (t (crypto-plaintext-is-equal
-            (if (crypto-ciphertext-entry-case a :constant)
-                (crypto-ciphertext-entry-constant->get a)
-              (crypto-ciphertext-entry-public->get a))
-            (if (crypto-ciphertext-entry-case b :constant)
-                (crypto-ciphertext-entry-constant->get b)
-              (crypto-ciphertext-entry-public->get b))))))
+        (t (values-bool-to-bit
+            (values-plaintext-equalp
+             (if (crypto-ciphertext-entry-case a :constant)
+                 (crypto-ciphertext-entry-constant->get a)
+               (crypto-ciphertext-entry-public->get a))
+             (if (crypto-ciphertext-entry-case b :constant)
+                 (crypto-ciphertext-entry-constant->get b)
+               (crypto-ciphertext-entry-public->get b)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -615,8 +618,8 @@
   (if (or (endp a) (endp b))
       1
     (crypto-bit-and
-     (crypto-bit-and (crypto-bit-eq (record-entry->name (car a))
-                                    (record-entry->name (car b)))
+     (crypto-bit-and (crypto-bit-eq (identifier->field (record-entry->name (car a)))
+                                    (identifier->field (record-entry->name (car b))))
                      (crypto-entry-is-equal (record-entry->entry (car a))
                                             (record-entry->entry (car b))))
      (crypto-record-data-is-equal (cdr a) (cdr b)))))
@@ -646,8 +649,10 @@
   (if (or (endp a) (endp b))
       1
     (crypto-bit-and
-     (crypto-bit-and (crypto-bit-eq (crypto-ciphertext-record-entry->name (car a))
-                                    (crypto-ciphertext-record-entry->name (car b)))
+     (crypto-bit-and (crypto-bit-eq (identifier->field
+                                     (crypto-ciphertext-record-entry->name (car a)))
+                                    (identifier->field
+                                     (crypto-ciphertext-record-entry->name (car b))))
                      (crypto-ciphertext-entry-is-equal
                       (crypto-ciphertext-record-entry->entry (car a))
                       (crypto-ciphertext-record-entry->entry (car b))))
@@ -695,7 +700,8 @@
 (define crypto-record-entry-lookup ((name identifierp) (data record-entry-listp))
   :returns (e (implies (not (reserrp e)) (entryp e)))
   (b* (((when (endp data)) (spec-error)))
-    (if (equal (record-entry->name (car data)) (identifier-fix name))
+    (if (equal (identifier->field (record-entry->name (car data)))
+               (identifier->field name))
         (record-entry->entry (car data))
       (crypto-record-entry-lookup name (cdr data)))))
 
@@ -703,11 +709,7 @@
 ; (Plaintext::find on the plaintext, keeping the visibility).
 (define crypto-entry-find ((e entryp) (path access-listp))
   :returns (e1 (implies (not (reserrp e1)) (entryp e1)))
-  (entry-case e
-    :constant (b* (((fty::ok p) (crypto-plaintext-find e.get path))) (entry-constant p))
-    :public (b* (((fty::ok p) (crypto-plaintext-find e.get path))) (entry-public p))
-    :private (b* (((fty::ok p) (crypto-plaintext-find e.get path))) (entry-private p)))
-  :verify-guards nil)
+  (entry-find e path))
 
 ; snarkVM circuit/program/src/data/record/find.rs: Record::find.
 ; The path [owner] gives the owner as an entry; otherwise the first access
