@@ -204,7 +204,7 @@
   :short "The children ordering at one level:
           the indicator is the negated leaf index bit;
           if the index bit is 0, the current hash is the left child."
-  (if (equal indicator-bit 0)
+  (if (equal indicator-bit 1)
       (mv current sibling)
     (mv sibling current)))
 
