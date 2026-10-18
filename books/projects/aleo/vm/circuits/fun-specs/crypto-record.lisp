@@ -718,8 +718,10 @@
 (define crypto-record-find ((r recordp) (path access-listp))
   :returns (e (implies (not (reserrp e)) (entryp e)))
   (b* (((when (and (equal (len path) 1)
-                   (equal (acl2::access-fix (car path))
-                          (acl2::access-member (crypto-owner-identifier)))))
+                   (acl2::access-case (car path) :member)
+                   (equal (identifier->field
+                           (acl2::access-member->name (car path)))
+                          (identifier->field (crypto-owner-identifier)))))
         (crypto-owner-to-entry (record->owner r)))
        ((when (endp path)) (spec-error))
        (first (car path))

@@ -490,8 +490,10 @@
 
 (define rec-record-find (data path)
   (b* (((when (and (equal (len path) 1)
-                   (equal (acl2::access-fix (car path))
-                          (acl2::access-member (crypto-owner-identifier)))))
+                   (acl2::access-case (car path) :member)
+                   (equal (identifier->field
+                           (acl2::access-member->name (car path)))
+                          (identifier->field (crypto-owner-identifier)))))
         :owner)
        ((when (endp path)) :error)
        (first (car path))

@@ -155,3 +155,7 @@
 (include-book "rec-future")
 (include-book "rec-future-bits")
 (include-book "rec-future-eq")
+(include-book "rec-value-bridge")
+(include-book "rec-value")
+(include-book "rec-value-bits")
+(include-book "rec-value-eq")
