@@ -197,3 +197,6 @@
 (include-book "hbhp-wrap")
 (include-book "hbhp-xwin")
 (include-book "hbhp-hc")
+(include-book "hpos-ell2-wit")
+(include-book "hpos-ell2")
+(include-book "hpos-gadd")

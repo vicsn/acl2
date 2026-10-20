@@ -47,7 +47,7 @@ algorithms	Poseidon		permute	spec	hpos-permute	projects/aleo/vm/circuits/fun-spe
 algorithms	Poseidon		squeeze	spec	hpos-squeeze	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
 algorithms	Poseidon		squeeze_internal	spec	hpos-squeeze-internal	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
 algorithms	Poseidon	HashMany	hash_many	spec	hpos-poseidon-hash-many	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
-algorithms	Poseidon	HashToGroup	hash_to_group	excluded-hash		
+algorithms	Poseidon	HashToGroup	hash_to_group	spec	hpos-hash-to-group-fields	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
 algorithms	Poseidon	HashToScalar	hash_to_scalar	spec	hpos-hash-to-scalar	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
 algorithms	Poseidon	Inject	new	spec	hpos-aleo-params	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
 collections	<trait default>	PathHash	hash_empty	spec	crypto-kary-merkle-hash-empty	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
