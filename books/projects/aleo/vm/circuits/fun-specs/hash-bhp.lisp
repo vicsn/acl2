@@ -498,6 +498,12 @@
                                   bits)))
     (if (reserrp h) (ecurve::twisted-edwards-zero) h)))
 
+(define hbhp-bhp-hash ((size natp) (bits bit-listp))
+  :verify-guards nil
+  :short "@('BHP::hash') at a network instance: the x-coordinate of
+          @(tsee hbhp-bhp-hash-uncompressed)."
+  (ecurve::point-finite->x (hbhp-bhp-hash-uncompressed size bits)))
+
 (define hbhp-bhp-commit-uncompressed ((size natp) (bits bit-listp) randomizer)
   :verify-guards nil
   :short "Replacement for the @('bhp-commit-uncompressed') stub of base.lisp."

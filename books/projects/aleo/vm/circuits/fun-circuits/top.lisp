@@ -195,3 +195,5 @@
 (include-book "hbhp-phasher")
 (include-book "hbhp-window")
 (include-book "hbhp-wrap")
+(include-book "hbhp-xwin")
+(include-book "hbhp-hc")
