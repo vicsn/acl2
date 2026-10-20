@@ -25,10 +25,10 @@ account	Signature	ToBits	write_bits_le	spec	signature-write-bits-le-funspec	proj
 account	Signature	ToFields	to_fields	spec	signature-to-fields-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
 account	ViewKey		from_private_key	spec	view-key-from-private-key-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
 account	ViewKey		to_address	spec	view-key-to-address-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
-algorithms	BHP	Commit	commit	excluded-hash		
-algorithms	BHP	CommitUncompressed	commit_uncompressed	excluded-hash		
-algorithms	BHP	HashUncompressed	hash_uncompressed	excluded-hash		
-algorithms	BHPHasher	HashUncompressed	hash_uncompressed	excluded-hash		
+algorithms	BHP	Commit	commit	spec	hbhp-bhp-commit	projects/aleo/vm/circuits/fun-specs/hash-bhp.lisp
+algorithms	BHP	CommitUncompressed	commit_uncompressed	spec	hbhp-bhp-commit-uncompressed	projects/aleo/vm/circuits/fun-specs/hash-bhp.lisp
+algorithms	BHP	HashUncompressed	hash_uncompressed	spec	hbhp-hash-uncompressed	projects/aleo/vm/circuits/fun-specs/hash-bhp.lisp
+algorithms	BHPHasher	HashUncompressed	hash_uncompressed	spec	hbhp-hasher-hash-uncompressed	projects/aleo/vm/circuits/fun-specs/hash-bhp.lisp
 algorithms	BHPHasher	Inject	new	excluded-hash		
 algorithms	Elligator2		encode	spec	hped-elligator2-encode	projects/aleo/vm/circuits/fun-specs/hash-elligator2.lisp
 algorithms	Keccak		pad_keccak	spec	hkec-pad-keccak	projects/aleo/vm/circuits/fun-specs/hash-keccak.lisp

@@ -509,6 +509,12 @@
                                     (nfix randomizer))))
     (if (reserrp c) (ecurve::twisted-edwards-zero) c)))
 
+(define hbhp-bhp-commit ((size natp) (bits bit-listp) randomizer)
+  :verify-guards nil
+  :short "@('BHP::commit') at a network instance: the x-coordinate of
+          @(tsee hbhp-bhp-commit-uncompressed)."
+  (ecurve::point-finite->x (hbhp-bhp-commit-uncompressed size bits randomizer)))
+
 (defrule hbhp-r-pointp-of-bhp-hash-uncompressed
   (ecurve::edwards-bls12-r-pointp (hbhp-bhp-hash-uncompressed size bits))
   :enable (hbhp-bhp-hash-uncompressed hbhp-r-pointp-when-okresp))
