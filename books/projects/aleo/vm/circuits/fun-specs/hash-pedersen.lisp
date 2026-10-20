@@ -259,3 +259,63 @@
                   (hped-ped-r-point-listp rbases))
              (ecurve::edwards-bls12-r-pointp
               (hped-pedersen-commit-uncompressed-total num-bits bases rbases input randomizer)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Network instances (AleoPedersen64, AleoPedersen128).
+
+; The bases come from Blake2Xs::hash_to_curve (see the head of this book),
+; which is not modelled: hped-setup-bases and hped-setup-random-bases are
+; constrained only to be lists of NUM_BITS and 251 subgroup points.
+
+(local
+ (defrule hped-ped-r-point-listp-of-repeat-zero
+   (hped-ped-r-point-listp (repeat n (ecurve::twisted-edwards-zero)))
+   :enable (hped-ped-r-point-listp repeat)))
+
+(encapsulate
+  (((hped-setup-bases *) => * :formals (size) :guard t)
+   ((hped-setup-random-bases *) => * :formals (size) :guard t))
+
+  (local (defun hped-setup-bases (size)
+           (repeat (nfix size) (ecurve::twisted-edwards-zero))))
+  (local (defun hped-setup-random-bases (size)
+           (declare (ignore size))
+           (repeat 251 (ecurve::twisted-edwards-zero))))
+
+  (defrule hped-ped-r-point-listp-of-setup-bases
+    (hped-ped-r-point-listp (hped-setup-bases size)))
+
+  (defrule hped-len-of-setup-bases
+    (equal (len (hped-setup-bases size)) (nfix size)))
+
+  (defrule hped-ped-r-point-listp-of-setup-random-bases
+    (hped-ped-r-point-listp (hped-setup-random-bases size)))
+
+  (defrule hped-len-of-setup-random-bases
+    (equal (len (hped-setup-random-bases size)) 251)))
+
+(defrule hped-ped-bases-p-of-setup
+  (hped-ped-bases-p size (hped-setup-bases size) (hped-setup-random-bases size))
+  :enable hped-ped-bases-p)
+
+(define hped-aleo-pedersen-hash-uncompressed ((size natp) (bits bit-listp))
+  :verify-guards nil
+  :short "Replacement for the @('pedersen-hash-uncompressed') stub of
+          base.lisp: @('Pedersen<NUM_BITS = size>::setup(\"AleoPedersen{size}\")'),
+          the zero point on inputs longer than @('size')."
+  (hped-pedersen-hash-uncompressed-total size (hped-setup-bases size) bits)
+  ///
+  (defrule hped-r-pointp-of-aleo-pedersen-hash-uncompressed
+    (ecurve::edwards-bls12-r-pointp (hped-aleo-pedersen-hash-uncompressed size bits))))
+
+(define hped-aleo-pedersen-commit-uncompressed ((size natp) (bits bit-listp) randomizer)
+  :verify-guards nil
+  :short "Replacement for the @('pedersen-commit-uncompressed') stub of base.lisp."
+  (hped-pedersen-commit-uncompressed-total size (hped-setup-bases size)
+                                           (hped-setup-random-bases size)
+                                           bits randomizer)
+  ///
+  (defrule hped-r-pointp-of-aleo-pedersen-commit-uncompressed
+    (ecurve::edwards-bls12-r-pointp
+     (hped-aleo-pedersen-commit-uncompressed size bits randomizer))))

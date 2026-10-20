@@ -85,30 +85,10 @@
 
 ;; Failure of Elligator2.
 
-(encapsulate
-  (((curve-elligator2-encode-validp *) => *
-    :formals (input) :guard t))
-
-  (local (defun curve-elligator2-encode-validp (input)
-           (not (equal input 0))))
-
-  (defrule booleanp-of-curve-elligator2-encode-validp
-    (booleanp (curve-elligator2-encode-validp input))
-    :rule-classes :type-prescription)
-
-  (defrule curve-elligator2-encode-validp-of-0
-    (not (curve-elligator2-encode-validp 0))))
-
-(defxdoc curve-elligator2-encode-validp
-  :parents (elligator2-encode)
-  :short "Abstract condition under which snarkVM's circuit
-          @('Elligator2::encode') (circuit/algorithms/src/elligator2/encode.rs)
-          neither halts nor generates unsatisfiable constraints."
-  :long "<p>Elligator2 internals are excluded from FUN-SPEC.
-         The circuit asserts that the input is non-zero,
-         that @($A^2 u r^2 \\neq B (1 + u r^2)^2$) and that
-         @($v e x y \\neq 0$); we only constrain the first condition.
-         When the condition holds the result is @(tsee elligator2-encode).</p>")
+; The circuit Elligator2::encode (circuit/algorithms/src/elligator2/encode.rs)
+; neither halts nor generates unsatisfiable constraints exactly when the
+; console encoding succeeds: hped-elligator2-encode-validp (hash-elligator2.lisp),
+; which fails at 0 and wherever A^2 u r^2 = B (1 + u r^2)^2 or v e x y = 0.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -170,8 +150,8 @@
        (hs (poseidon-hash-many rate inputs 2))
        (h0 (first hs))
        (h1 (second hs))
-       ((unless (and (curve-elligator2-encode-validp h0)
-                     (curve-elligator2-encode-validp h1)))
+       ((unless (and (hped-elligator2-encode-validp h0)
+                     (hped-elligator2-encode-validp h1)))
         (spec-error)))
     (ecurve::edwards-bls12-add (elligator2-encode h1) (elligator2-encode h0))))
 

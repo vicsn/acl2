@@ -32,16 +32,33 @@ Left out of the table:
   - `ProgramID::to_fields`. A ProgramID is only constant or public, so its
     output is fixed by the public input and there is nothing to constrain.
 
-Hash internals (the algorithms crate) stay in the table with FUN-SPEC
-`excluded`; rows that call them stay unverified until the hashes are modelled.
+Hash internals (the algorithms crate) are specified by the concrete
+`hash-*.lisp` books that `base.lisp` includes.
 
 ## Known limitations
 
-- **Hashes are abstract.** Poseidon, BHP, Pedersen, Keccak and Elligator2 are
-  constrained functions in `base.lisp` with only their result types known. The
-  25 algorithms-crate rows are excluded from FUN-SPEC. Elligator2 failure is
-  modelled only for input 0 (`curve-elligator2-encode-validp` in
-  `curve-network.lisp`).
+- **Hash-to-curve setup is abstract.** Poseidon, BHP, Pedersen, Keccak and
+  Elligator2 in `base.lisp` are the concrete network instances of
+  `hash-poseidon.lisp` (Poseidon2/4/8, or `(domain . rate)` for other
+  `Poseidon::setup(domain)` instances such as `DynamicRecordLeafHasher`),
+  `hash-bhp.lisp` (BHP256/512/768/1024), `hash-pedersen.lisp`
+  (AleoPedersen64/128), `hash-keccak.lisp` (instance `(TYPE . VARIANT)`, TYPE 0
+  Keccak, 1 SHA-3) and `hash-elligator2.lisp`. Only the bases that snarkVM
+  derives with `Blake2Xs::hash_to_curve` are abstract: `hbhp-setup-gens` and
+  `hbhp-setup-random-base` (BHP), `hped-setup-bases` and
+  `hped-setup-random-bases` (Pedersen), constrained to be subgroup points of the
+  right count.
+- **BHP bases are assumed nonzero.** `Blake2Xs::hash_to_curve` clears the
+  cofactor, so a base is in the order-r subgroup or is zero, and snarkVM never
+  checks that a base is nonzero. The BHP theorems assume it (`hbhp-gens-okp`,
+  which `hbhp-setup-gens` satisfies by its encapsulate).
+- **Elligator2 failure set.** `Elligator2::encode` halts or is unsatisfiable
+  exactly when `hped-elligator2-encode-validp` fails: at input 0 and wherever
+  `A^2 u r^2 = B (1 + u r^2)^2` or `v e x y = 0`, not just at input 0.
+  `curve-hash-to-group-psd` uses that predicate. `crypto-hash-to-group-psd`
+  (`crypto-model.lisp`) still checks only for zero hashes. The square root
+  the circuit witnesses is not free: the canonical-bits and least-significant-bit
+  constraints fix it, so the encoded point is unique.
 - **Subgroup membership.** `edwards-bls12-cofactor-clears-holds` proves 4Q is in the
   prime-order subgroup for every curve point Q. Other group-valued results are proved to be
   curve points (`ecurve::edwards-bls12-pointp`) only. `values-to-group` in `values-helpers.lisp` assumes membership.

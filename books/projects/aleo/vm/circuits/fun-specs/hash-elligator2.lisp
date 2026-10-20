@@ -8,10 +8,9 @@
 
 ; Concrete Elligator2 (snarkVM console/algorithms/src/elligator2/encode.rs).
 ;
-; This book does not include base.lisp, so that base.lisp can include it and
-; define its abstract elligator2-encode and curve-elligator2-encode-validp
-; (curve-network.lisp) as hped-elligator2-encode-total and
-; hped-elligator2-encode-validp.  The field is (ecurve::edwards-bls12-q),
+; This book does not include base.lisp, so that base.lisp can include it:
+; base.lisp's elligator2-encode is hped-elligator2-encode-total, and the
+; failure condition used by curve-network.lisp is hped-elligator2-encode-validp.  The field is (ecurve::edwards-bls12-q),
 ; which is (base-prime).
 ;
 ; The console code is followed step by step.  The Legendre symbol is computed
