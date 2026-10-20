@@ -172,3 +172,8 @@
 (include-book "hpos-subst")
 (include-book "hpos-hash-to-scalar")
 (include-book "hpos-hash-to-group")
+(include-book "hped-ell2-field")
+(include-book "hped-elligator2")
+(include-book "hped-lc")
+(include-book "hped-pedersen")
+(include-book "hped-pow")

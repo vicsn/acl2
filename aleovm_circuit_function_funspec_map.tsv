@@ -30,15 +30,15 @@ algorithms	BHP	CommitUncompressed	commit_uncompressed	excluded-hash
 algorithms	BHP	HashUncompressed	hash_uncompressed	excluded-hash		
 algorithms	BHPHasher	HashUncompressed	hash_uncompressed	excluded-hash		
 algorithms	BHPHasher	Inject	new	excluded-hash		
-algorithms	Elligator2		encode	excluded-hash		
+algorithms	Elligator2		encode	spec	hped-elligator2-encode	projects/aleo/vm/circuits/fun-specs/hash-elligator2.lisp
 algorithms	Keccak		pad_keccak	spec	hkec-pad-keccak	projects/aleo/vm/circuits/fun-specs/hash-keccak.lisp
 algorithms	Keccak		pad_sha3	spec	hkec-pad-sha3	projects/aleo/vm/circuits/fun-specs/hash-keccak.lisp
 algorithms	Keccak		permutation_f	spec	hkec-permutation-f	projects/aleo/vm/circuits/fun-specs/hash-keccak.lisp
 algorithms	Keccak		rotate_left	spec	hkec-rotate-left	projects/aleo/vm/circuits/fun-specs/hash-keccak.lisp
 algorithms	Keccak		round	spec	hkec-round	projects/aleo/vm/circuits/fun-specs/hash-keccak.lisp
-algorithms	Pedersen	Commit	commit	excluded-hash		
-algorithms	Pedersen	CommitUncompressed	commit_uncompressed	excluded-hash		
-algorithms	Pedersen	HashUncompressed	hash_uncompressed	excluded-hash		
+algorithms	Pedersen	Commit	commit	spec	hped-pedersen-commit	projects/aleo/vm/circuits/fun-specs/hash-pedersen.lisp
+algorithms	Pedersen	CommitUncompressed	commit_uncompressed	spec	hped-pedersen-commit-uncompressed	projects/aleo/vm/circuits/fun-specs/hash-pedersen.lisp
+algorithms	Pedersen	HashUncompressed	hash_uncompressed	spec	hped-pedersen-hash-uncompressed	projects/aleo/vm/circuits/fun-specs/hash-pedersen.lisp
 algorithms	Poseidon		absorb	spec	hpos-absorb	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
 algorithms	Poseidon		apply_ark	spec	hpos-apply-ark	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
 algorithms	Poseidon		apply_mds	spec	hpos-apply-mds	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
