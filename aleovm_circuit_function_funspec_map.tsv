@@ -31,11 +31,11 @@ algorithms	BHP	HashUncompressed	hash_uncompressed	excluded-hash
 algorithms	BHPHasher	HashUncompressed	hash_uncompressed	excluded-hash		
 algorithms	BHPHasher	Inject	new	excluded-hash		
 algorithms	Elligator2		encode	excluded-hash		
-algorithms	Keccak		pad_keccak	excluded-hash		
-algorithms	Keccak		pad_sha3	excluded-hash		
-algorithms	Keccak		permutation_f	excluded-hash		
-algorithms	Keccak		rotate_left	excluded-hash		
-algorithms	Keccak		round	excluded-hash		
+algorithms	Keccak		pad_keccak	spec	hkec-pad-keccak	projects/aleo/vm/circuits/fun-specs/hash-keccak.lisp
+algorithms	Keccak		pad_sha3	spec	hkec-pad-sha3	projects/aleo/vm/circuits/fun-specs/hash-keccak.lisp
+algorithms	Keccak		permutation_f	spec	hkec-permutation-f	projects/aleo/vm/circuits/fun-specs/hash-keccak.lisp
+algorithms	Keccak		rotate_left	spec	hkec-rotate-left	projects/aleo/vm/circuits/fun-specs/hash-keccak.lisp
+algorithms	Keccak		round	spec	hkec-round	projects/aleo/vm/circuits/fun-specs/hash-keccak.lisp
 algorithms	Pedersen	Commit	commit	excluded-hash		
 algorithms	Pedersen	CommitUncompressed	commit_uncompressed	excluded-hash		
 algorithms	Pedersen	HashUncompressed	hash_uncompressed	excluded-hash		
