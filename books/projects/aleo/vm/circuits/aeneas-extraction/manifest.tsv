@@ -203,3 +203,142 @@ types/string	IdentifierLiteral	ToBits	write_bits_be	not-checked
 types/string	IdentifierLiteral	ToBits	write_bits_le	not-checked		
 types/string	IdentifierLiteral	ToField	to_field	not-checked		
 types/string	IdentifierLiteral	ToFields	to_fields	not-checked		
+account	ComputeKey	Equal	is_equal	match	compute-key-is-equal-extraction	same constraints in a different order: snarkVM ANDs the pk_sig and pr_sig results before comparing sk_prf
+account	ComputeKey	Equal	is_not_equal	match	compute-key-is-not-equal-extraction	same constraints in a different order: snarkVM ANDs the pk_sig and pr_sig results before comparing sk_prf
+account	Signature	Equal	is_equal	match	signature-is-equal-extraction	same constraints in a different order (the compute key comparison, see ComputeKey::is_equal)
+account	Signature	Equal	is_not_equal	match	signature-is-not-equal-extraction	same constraints in a different order (the compute key comparison, see ComputeKey::is_equal)
+account	Signature	Ternary	ternary	match	signature-ternary-extraction	
+account	Signature	ToBits	write_bits_be	match	signature-write-bits-extraction	same constraints as write_bits_le
+account	Signature	ToBits	write_bits_le	match	signature-write-bits-extraction	
+algorithms	BHP	Commit	commit	not-checked		the BHP bases are abstract hash-to-curve outputs in the formalisation (hbhp-setup-gens), and the window lookups use 253-bit constants the model's i128 constants cannot hold
+algorithms	BHP	CommitUncompressed	commit_uncompressed	not-checked		the BHP bases are abstract hash-to-curve outputs in the formalisation (hbhp-setup-gens), and the window lookups use 253-bit constants the model's i128 constants cannot hold
+algorithms	BHP	HashUncompressed	hash_uncompressed	not-checked		the BHP bases are abstract hash-to-curve outputs in the formalisation (hbhp-setup-gens), and the window lookups use 253-bit constants the model's i128 constants cannot hold
+algorithms	BHPHasher	HashUncompressed	hash_uncompressed	not-checked		the BHP bases are abstract hash-to-curve outputs in the formalisation (hbhp-setup-gens), and the window lookups use 253-bit constants the model's i128 constants cannot hold
+algorithms	Elligator2		encode	not-checked		the circuit uses the Montgomery and Edwards curve constants and (p - 1) / 2, which do not fit the model's i128 constants
+algorithms	Keccak		pad_keccak	match	keccak-pad-extraction	no constraints
+algorithms	Keccak		pad_sha3	match	keccak-pad-extraction	no constraints
+algorithms	Keccak		permutation_f	match	keccak-permutation-extraction	all 24 rounds
+algorithms	Keccak		rotate_left	match	keccak-round-extraction	no constraints; covered by round (rho)
+algorithms	Keccak		round	match	keccak-round-extraction	rounds 0, 1 and 23
+algorithms	Pedersen	Commit	commit	not-checked		the Pedersen bases are 253-bit group constants the model's i128 constants cannot hold
+algorithms	Pedersen	CommitUncompressed	commit_uncompressed	not-checked		the Pedersen bases are 253-bit group constants the model's i128 constants cannot hold
+algorithms	Pedersen	HashUncompressed	hash_uncompressed	not-checked		the Pedersen bases are 253-bit group constants the model's i128 constants cannot hold
+algorithms	Poseidon		absorb	match	poseidon-sponge-extraction	test parameters (ark 7i + j + 3, mds i + 2j + 1, alpha 17), as the hpos- generators are generic over the constants; the model cannot hold the network constants
+algorithms	Poseidon		apply_ark	match	poseidon-permute-extraction	no constraints; covered by permute; test parameters (ark 7i + j + 3, mds i + 2j + 1, alpha 17), as the hpos- generators are generic over the constants; the model cannot hold the network constants
+algorithms	Poseidon		apply_mds	match	poseidon-permute-extraction	no constraints; covered by permute; test parameters (ark 7i + j + 3, mds i + 2j + 1, alpha 17), as the hpos- generators are generic over the constants; the model cannot hold the network constants
+algorithms	Poseidon		apply_s_box	match	poseidon-permute-extraction	full and partial rounds, covered by permute; test parameters (ark 7i + j + 3, mds i + 2j + 1, alpha 17), as the hpos- generators are generic over the constants; the model cannot hold the network constants
+algorithms	Poseidon		permute	match	poseidon-permute-extraction	test parameters (ark 7i + j + 3, mds i + 2j + 1, alpha 17), as the hpos- generators are generic over the constants; the model cannot hold the network constants
+algorithms	Poseidon		squeeze	match	poseidon-sponge-extraction	test parameters (ark 7i + j + 3, mds i + 2j + 1, alpha 17), as the hpos- generators are generic over the constants; the model cannot hold the network constants
+algorithms	Poseidon		squeeze_internal	match	poseidon-sponge-extraction	test parameters (ark 7i + j + 3, mds i + 2j + 1, alpha 17), as the hpos- generators are generic over the constants; the model cannot hold the network constants
+algorithms	Poseidon	HashMany	hash_many	match	poseidon-hash-many-extraction	zero rounds: the first permutation runs on the constant preimage block, which snarkVM folds mod p and the model's i128 constants cannot; the rounds are checked by permute and the sponge; test parameters (ark 7i + j + 3, mds i + 2j + 1, alpha 17), as the hpos- generators are generic over the constants; the model cannot hold the network constants
+algorithms	Poseidon	HashToGroup	hash_to_group	not-checked		Elligator2 on the hash outputs; see Elligator2::encode
+algorithms	Poseidon	HashToScalar	hash_to_scalar	match	poseidon-hash-to-scalar-extraction	zero rounds, as for hash_many; test parameters (ark 7i + j + 3, mds i + 2j + 1, alpha 17), as the hpos- generators are generic over the constants; the model cannot hold the network constants
+algorithms	Poseidon	Inject	new	match	poseidon-new-extraction	no constraints
+collections	BHP	PathHash	hash_children	not-checked		BHP hash; see the BHP rows
+collections	BooleanHash	Equal	is_equal	match	boolean-hash-is-equal-extraction	same constraints in a different order: the lazy map interleaves each XOR with the AND fold
+collections	BooleanHash	Equal	is_not_equal	match	boolean-hash-is-not-equal-extraction	same constraints in a different order: the lazy map interleaves each XOR with the AND fold
+collections	BooleanHash	Ternary	ternary	match	boolean-hash-ternary-extraction	
+collections	KaryMerklePath	Inject	new	match	kary-merkle-path-new-extraction	field and BooleanHash siblings
+collections	Keccak	PathHash	hash_children	match	keccak-hash-children-extraction	Keccak-256 (2 children) and SHA3-256 (4 children)
+environment	(t0,ty,*)	Inject	new	not-checked		the environment sequence impls only sequence their elements; the fun-circuits proofs are over an abstract element circuit (seq-framework.lisp), so there is no concrete gadget to compare; each element type is checked in its own row
+environment	(t0,ty,+)	ToBits	write_bits_be	not-checked		the environment sequence impls only sequence their elements; the fun-circuits proofs are over an abstract element circuit (seq-framework.lisp), so there is no concrete gadget to compare; each element type is checked in its own row
+environment	(t0,ty,+)	ToBits	write_bits_le	not-checked		the environment sequence impls only sequence their elements; the fun-circuits proofs are over an abstract element circuit (seq-framework.lisp), so there is no concrete gadget to compare; each element type is checked in its own row
+environment	(t0,ty,+)	ToBitsRaw	write_bits_raw_be	not-checked		the environment sequence impls only sequence their elements; the fun-circuits proofs are over an abstract element circuit (seq-framework.lisp), so there is no concrete gadget to compare; each element type is checked in its own row
+environment	(t0,ty,+)	ToBitsRaw	write_bits_raw_le	not-checked		the environment sequence impls only sequence their elements; the fun-circuits proofs are over an abstract element circuit (seq-framework.lisp), so there is no concrete gadget to compare; each element type is checked in its own row
+environment	<trait default>	ToBits	to_bits_be	not-checked		the environment sequence impls only sequence their elements; the fun-circuits proofs are over an abstract element circuit (seq-framework.lisp), so there is no concrete gadget to compare; each element type is checked in its own row
+environment	<trait default>	ToBits	to_bits_le	not-checked		the environment sequence impls only sequence their elements; the fun-circuits proofs are over an abstract element circuit (seq-framework.lisp), so there is no concrete gadget to compare; each element type is checked in its own row
+environment	<trait default>	ToBitsRaw	to_bits_raw_be	not-checked		the environment sequence impls only sequence their elements; the fun-circuits proofs are over an abstract element circuit (seq-framework.lisp), so there is no concrete gadget to compare; each element type is checked in its own row
+environment	<trait default>	ToBitsRaw	to_bits_raw_le	not-checked		the environment sequence impls only sequence their elements; the fun-circuits proofs are over an abstract element circuit (seq-framework.lisp), so there is no concrete gadget to compare; each element type is checked in its own row
+environment	Vec	Inject	new	not-checked		the environment sequence impls only sequence their elements; the fun-circuits proofs are over an abstract element circuit (seq-framework.lisp), so there is no concrete gadget to compare; each element type is checked in its own row
+environment	Vec	ToBits	write_bits_be	not-checked		the environment sequence impls only sequence their elements; the fun-circuits proofs are over an abstract element circuit (seq-framework.lisp), so there is no concrete gadget to compare; each element type is checked in its own row
+environment	Vec	ToBits	write_bits_le	not-checked		the environment sequence impls only sequence their elements; the fun-circuits proofs are over an abstract element circuit (seq-framework.lisp), so there is no concrete gadget to compare; each element type is checked in its own row
+environment	Vec	ToBitsRaw	write_bits_raw_be	not-checked		the environment sequence impls only sequence their elements; the fun-circuits proofs are over an abstract element circuit (seq-framework.lisp), so there is no concrete gadget to compare; each element type is checked in its own row
+environment	Vec	ToBitsRaw	write_bits_raw_le	not-checked		the environment sequence impls only sequence their elements; the fun-circuits proofs are over an abstract element circuit (seq-framework.lisp), so there is no concrete gadget to compare; each element type is checked in its own row
+environment	[C]	ToBits	write_bits_be	not-checked		the environment sequence impls only sequence their elements; the fun-circuits proofs are over an abstract element circuit (seq-framework.lisp), so there is no concrete gadget to compare; each element type is checked in its own row
+environment	[C]	ToBits	write_bits_le	not-checked		the environment sequence impls only sequence their elements; the fun-circuits proofs are over an abstract element circuit (seq-framework.lisp), so there is no concrete gadget to compare; each element type is checked in its own row
+environment	[C]	ToBitsRaw	write_bits_raw_be	not-checked		the environment sequence impls only sequence their elements; the fun-circuits proofs are over an abstract element circuit (seq-framework.lisp), so there is no concrete gadget to compare; each element type is checked in its own row
+environment	[C]	ToBitsRaw	write_bits_raw_le	not-checked		the environment sequence impls only sequence their elements; the fun-circuits proofs are over an abstract element circuit (seq-framework.lisp), so there is no concrete gadget to compare; each element type is checked in its own row
+program	Argument	Equal	is_equal	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Argument	Equal	is_not_equal	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Argument	Inject	new	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Argument	ToBits	write_bits_be	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Argument	ToBits	write_bits_le	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Ciphertext	Equal	is_equal	match	ciphertext-is-equal-extraction	equal and different lengths
+program	Ciphertext	Equal	is_not_equal	match	ciphertext-is-not-equal-extraction	equal and different lengths
+program	Ciphertext	Inject	new	match	ciphertext-new-extraction	no constraints
+program	Ciphertext	ToBits	write_bits_be	match	ciphertext-write-bits-extraction	same constraints as write_bits_le
+program	Ciphertext	ToBits	write_bits_le	match	ciphertext-write-bits-extraction	
+program	DynamicFuture	Inject	new	match	dynamic-future-new-extraction	no constraints
+program	DynamicFuture	ToBits	write_bits_be	match	dynamic-future-write-bits-extraction	same constraints as write_bits_le
+program	DynamicFuture	ToBits	write_bits_le	match	dynamic-future-write-bits-extraction	
+program	DynamicFuture	ToFields	to_fields	match	dynamic-future-to-fields-extraction	the 252-bit chunks are linear combinations
+program	DynamicRecord		find	match	dynamic-record-find-extraction	no constraints
+program	DynamicRecord	Equal	is_equal	match	dynamic-record-is-equal-extraction	
+program	DynamicRecord	Equal	is_not_equal	match	dynamic-record-is-not-equal-extraction	
+program	DynamicRecord	Inject	new	match	dynamic-record-new-extraction	
+program	DynamicRecord	ToBits	write_bits_be	match	dynamic-record-write-bits-extraction	same constraints as write_bits_le
+program	DynamicRecord	ToBits	write_bits_le	match	dynamic-record-write-bits-extraction	
+program	DynamicRecord	ToFields	to_fields	match	dynamic-record-to-fields-extraction	the 252-bit chunks are linear combinations
+program	Entry		find	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Entry	Equal	is_equal	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Entry	Equal	is_not_equal	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Entry	Inject	new	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Entry	ToBits	write_bits_be	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Entry	ToBits	write_bits_le	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Entry	ToFields	to_fields	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Future	Equal	is_equal	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Future	Equal	is_not_equal	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Future	Inject	new	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Future	ToBits	write_bits_be	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Future	ToBits	write_bits_le	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Future	ToFields	to_fields	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	HeaderLeaf	ToBits	write_bits_be	match	header-leaf-write-bits-extraction	same constraints as write_bits_le
+program	HeaderLeaf	ToBits	write_bits_le	match	header-leaf-write-bits-extraction	
+program	Identifier	ToBits	write_bits_be	match	identifier-write-bits-extraction	same constraints as write_bits_le
+program	Identifier	ToBits	write_bits_le	match	identifier-write-bits-extraction	
+program	Literal	Equal	is_equal	match	literal-is-equal-mismatch-extraction	mismatched variants only (the verified gadget); equal variants are the per-type rows
+program	Literal	Equal	is_not_equal	match	literal-is-not-equal-mismatch-extraction	mismatched variants only (the verified gadget); equal variants are the per-type rows
+program	Literal	ToBits	write_bits_be	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Literal	ToBits	write_bits_le	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Literal	ToFields	to_fields	match	literal-to-fields-extraction	no constraints on any arm (StringType is deprecated)
+program	Owner		to_entry	match	owner-to-entry-extraction	no constraints
+program	Owner	Equal	is_equal	match	owner-is-equal-extraction	Owner<Plaintext>, all four variant pairs
+program	Owner	Equal	is_not_equal	match	owner-is-not-equal-extraction	Owner<Plaintext>, all four variant pairs
+program	Owner	Inject	new	match	owner-new-extraction	Address::new; a private Owner<Ciphertext> is Ciphertext::new (ciphertext-new-extraction)
+program	Plaintext		find	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Plaintext		from_bit_array	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Plaintext		num_randomizers	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Plaintext	Equal	is_equal	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Plaintext	Equal	is_not_equal	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Plaintext	Inject	new	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Plaintext	ToBits	write_bits_be	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Plaintext	ToBits	write_bits_le	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Plaintext	ToBitsRaw	write_bits_raw_be	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Plaintext	ToBitsRaw	write_bits_raw_le	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Plaintext	ToFields	to_fields	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Plaintext	ToFieldsRaw	to_fields_raw	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Plaintext	Visibility	size_in_fields	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	ProgramID	ToBits	write_bits_be	match	program-id-write-bits-extraction	same constraints as write_bits_le
+program	ProgramID	ToBits	write_bits_le	match	program-id-write-bits-extraction	
+program	Record		find	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Record		num_randomizers	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Record	Equal	is_equal	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Record	Equal	is_not_equal	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Record	Inject	new	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Record	ToBits	write_bits_be	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Record	ToBits	write_bits_le	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Record	ToFields	to_fields	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	TransactionLeaf	ToBits	write_bits_be	match	transaction-leaf-write-bits-extraction	same constraints as write_bits_le
+program	TransactionLeaf	ToBits	write_bits_le	match	transaction-leaf-write-bits-extraction	
+program	TransitionLeaf	ToBits	write_bits_be	match	transition-leaf-write-bits-extraction	same constraints as write_bits_le
+program	TransitionLeaf	ToBits	write_bits_le	match	transition-leaf-write-bits-extraction	
+program	Value		find	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Value	Equal	is_equal	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Value	Equal	is_not_equal	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Value	Inject	new	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Value	ToBits	write_bits_be	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Value	ToBits	write_bits_le	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Value	ToBitsRaw	write_bits_raw_be	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Value	ToBitsRaw	write_bits_raw_le	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Value	ToFields	to_fields	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+program	Value	ToFieldsRaw	to_fields_raw	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled

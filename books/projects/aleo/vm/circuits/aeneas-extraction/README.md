@@ -18,8 +18,18 @@ and complete:
 
 The checks are in `check-boolean`, `check-field`, `check-integer`,
 `check-integer-pow`, `check-scalar`, `check-group`, `check-address` and
-`check-account` and `check-program`. Integer checks run at 8, 16, 32, 64 and 128 bits. A `*-differs` check records
+`check-account`, `check-program`, `check-program-data`, `check-poseidon` and
+`check-keccak`. Integer checks run at 8, 16, 32, 64 and 128 bits. A `*-differs` check records
 a circuit that does not match its gadget.
+
+The model stores constants as `i128 * 2^sh` without reducing them mod p, so it
+cannot fold 253-bit constants. BHP, Pedersen and Elligator2 (253-bit bases) are
+therefore `not-checked`, and Poseidon `hash_many` and `hash_to_scalar` are
+checked with zero rounds (the permutation itself is checked with full rounds on
+variable inputs). The environment sequence rows are proved over an abstract
+element circuit, and the recursive Plaintext, Entry, Future, Argument, Record
+and Value rows (and Literal `write_bits_*`) are over abstract leaf contracts,
+so neither has a concrete gadget to compare.
 
 `manifest.tsv` lists each row with STATUS `verified` in
 `aleovm_circuit_function_formalisation_status.csv`, together with its check
