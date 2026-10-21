@@ -30,7 +30,7 @@ type Raw = { n: RawNode[]; e: [number, number][]; d: [string, number[]][]; de: [
 const DATA: Raw = {
   n: [
     ["account","ComputeKey","","from_private_key","100000","","","account/src/compute_key/from_private_key.rs:20"],
-    ["account","ComputeKey","","to_address","100000","","","account/src/compute_key/to_address.rs:20"],
+    ["account","ComputeKey","","to_address","110011","Group::new on pk_sig and pr_sig (points on the curve); allocated wires bound","sk_prf bits/range witnesses and canonical fold-step witnesses, whose constraints mention only bound wires","account/src/compute_key/to_address.rs:20"],
     ["account","ComputeKey","Equal","is_equal","110111","Literal::new signature arm on the signature holding each compute key (pk_sig, pr_sig in the group; sk_prf a scalar)","","account/src/compute_key/equal.rs:24"],
     ["account","ComputeKey","Equal","is_not_equal","110111","Literal::new signature arm on the signature holding each compute key (pk_sig, pr_sig in the group; sk_prf a scalar)","","account/src/compute_key/equal.rs:42"],
     ["account","ComputeKey","From","from","110111","Group::new on pk_sig and pr_sig (points on the curve)","","account/src/compute_key/from.rs:20"],
@@ -54,7 +54,7 @@ const DATA: Raw = {
     ["account","Signature","ToBits","write_bits_le","110011","Literal::new signature arm on the input (challenge and response scalars; pk_sig, pr_sig in the group); public unit wire 1","","account/src/signature/helpers/to_bits.rs:22"],
     ["account","Signature","ToFields","to_fields","111111","","","account/src/signature/helpers/to_fields.rs:22"],
     ["account","ViewKey","","from_private_key","100000","","","account/src/view_key/from_private_key.rs:20"],
-    ["account","ViewKey","","to_address","100000","","","account/src/view_key/to_address.rs:20"],
+    ["account","ViewKey","","to_address","110011","","view key bits/range witnesses and canonical fold-step witnesses","account/src/view_key/to_address.rs:20"],
     ["algorithms","BHP","Commit","commit","110011","Boolean::new on each input bit","","algorithms/src/bhp/commit.rs:24"],
     ["algorithms","BHP","CommitUncompressed","commit_uncompressed","110011","Boolean::new on each input bit","","algorithms/src/bhp/commit_uncompressed.rs:26"],
     ["algorithms","BHP","HashUncompressed","hash_uncompressed","110011","Boolean::new on each input bit","","algorithms/src/bhp/hash_uncompressed.rs:28"],

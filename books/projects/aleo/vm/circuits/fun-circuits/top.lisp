@@ -218,3 +218,4 @@
 (include-book "req-program-address")
 (include-book "enc-record-sym")
 (include-book "enc-record-enc")
+(include-book "key-ck-addr")
