@@ -62,14 +62,14 @@ Hash internals (the algorithms crate) are specified by the concrete
 - **Subgroup membership.** `edwards-bls12-cofactor-clears-holds` proves 4Q is in the
   prime-order subgroup for every curve point Q. Other group-valued results are proved to be
   curve points (`ecurve::edwards-bls12-pointp`) only. `values-to-group` in `values-helpers.lisp` assumes membership.
-- **Two generators.** `curve-generator-g` (`curve-network.lisp`) is snarkVM's
-  concrete G. The `crypto-*` books use the abstract `crypto-generator-g` and
-  abstract commitment, encryption and serial-number domains
-  (`crypto-model.lisp`). Nothing ties the two together.
-- **Abstract serialization in `crypto-*`.** The bit encodings of plaintexts,
-  futures, dynamic records and dynamic futures are abstract in
-  `crypto-values.lisp`, not the `values-*` definitions. `crypto-state-path.lisp`
-  has its own leaf representation.
+- **Generator and domains.** `crypto-generator-g` (`crypto-model.lisp`) is
+  `curve-generator-g`, snarkVM's concrete G. The commitment, encryption and
+  serial-number domains are `Field::new_domain_separator` of snarkVM's strings.
+- **Abstract serialization in `crypto-*`.** Plaintext `to_fields`,
+  `size_in_fields` and `from_fields` in `crypto-values.lisp` are the concrete
+  `values-plaintext.lisp` definitions. The bit encodings of plaintexts,
+  futures, dynamic records and dynamic futures are still abstract there.
+  `crypto-state-path.lisp` has its own leaf representation.
 - **Plaintext bit cache.** snarkVM's `Plaintext::from_bits_*` keeps the raw
   input bits, which later `write_bits_*` and `to_fields*` return. The specs
   recompute the bits instead, so they can differ for plaintexts built from bits
