@@ -260,7 +260,7 @@ const DATA: Raw = {
     ["program","Record","","decrypt_with_randomizers","100000","","","program/src/data/record/decrypt.rs:44"],
     ["program","Record","","encrypt","100000","","","program/src/data/record/encrypt.rs:20"],
     ["program","Record","","encrypt_symmetric","100000","","","program/src/data/record/encrypt.rs:27"],
-    ["program","Record","","encrypt_symmetric_unchecked","100000","","","program/src/data/record/encrypt.rs:42"],
+    ["program","Record","","encrypt_symmetric_unchecked","110011","Record::new on the record wires (owner a group point, entries typed), view key a wire","entry leaf witnesses; entry constraints mention only bound wires; Poseidon wire supply bound","program/src/data/record/encrypt.rs:42"],
     ["program","Record","","encrypt_with_randomizers","110011","Record::new on the record wires (Address::new on the owner, Literal::new on each entry leaf)","the entry leaf witnesses (Literal::new) satisfy their constraints","program/src/data/record/encrypt.rs:52"],
     ["program","Record","","find","110011","none beyond well-formed wire trees (rec-record-datawp, access-listp path)","none (no constraints)","program/src/data/record/find.rs:20"],
     ["program","Record","","is_hiding","111111","Integer::new on the version","","program/src/data/record/mod.rs:155"],
