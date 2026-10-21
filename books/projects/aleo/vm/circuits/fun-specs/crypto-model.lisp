@@ -354,7 +354,9 @@
        (hs (crypto-hash-many-psd rate inputs 2))
        (h0 (first hs))
        (h1 (second hs))
-       ((when (or (equal h0 0) (equal h1 0))) (spec-error)))
+       ((unless (and (hped-elligator2-encode-validp h0)
+                     (hped-elligator2-encode-validp h1)))
+        (spec-error)))
     (ecurve::edwards-bls12-add (elligator2-encode h1) (elligator2-encode h0))))
 
 ; snarkVM circuit/algorithms/src/bhp/hash.rs: BHP::hash

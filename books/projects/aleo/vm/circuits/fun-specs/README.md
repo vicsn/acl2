@@ -55,8 +55,8 @@ Hash internals (the algorithms crate) are specified by the concrete
 - **Elligator2 failure set.** `Elligator2::encode` halts or is unsatisfiable
   exactly when `hped-elligator2-encode-validp` fails: at input 0 and wherever
   `A^2 u r^2 = B (1 + u r^2)^2` or `v e x y = 0`, not just at input 0.
-  `curve-hash-to-group-psd` uses that predicate. `crypto-hash-to-group-psd`
-  (`crypto-model.lisp`) still checks only for zero hashes. The square root
+  `curve-hash-to-group-psd` and `crypto-hash-to-group-psd` use that
+  predicate. The square root
   the circuit witnesses is not free: the canonical-bits and least-significant-bit
   constraints fix it, so the encoded point is unique.
 - **Subgroup membership.** `edwards-bls12-cofactor-clears-holds` proves 4Q is in the
