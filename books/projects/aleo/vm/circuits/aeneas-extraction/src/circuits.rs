@@ -2620,6 +2620,1024 @@ pub fn h_account_to_fields(op: u32) -> Cs {
     cs
 }
 
+pub struct ComputeKey {
+    pub pk_sig: Group,
+    pub pr_sig: Group,
+    pub sk_prf: Field,
+}
+
+pub struct Signature {
+    pub challenge: Field,
+    pub response: Field,
+    pub compute_key: ComputeKey,
+}
+
+fn in_compute_key(cs: &mut Cs) -> ComputeKey {
+    let pk_sig = in_group(cs);
+    let pr_sig = in_group(cs);
+    let sk_prf = s_new(cs);
+    ComputeKey { pk_sig, pr_sig, sk_prf }
+}
+
+fn in_signature(cs: &mut Cs) -> Signature {
+    let challenge = s_new(cs);
+    let response = s_new(cs);
+    let compute_key = in_compute_key(cs);
+    Signature { challenge, response, compute_key }
+}
+
+/// compute_key/equal.rs: `(pk_sig == pk_sig') & (pr_sig == pr_sig')` is
+/// evaluated before `sk_prf == sk_prf'`.
+pub fn ck_is_equal(cs: &mut Cs, a: &ComputeKey, b: &ComputeKey) -> Boolean {
+    let pk = g_is_equal(cs, &a.pk_sig, &b.pk_sig);
+    let pr = g_is_equal(cs, &a.pr_sig, &b.pr_sig);
+    let t = b_and(cs, &pk, &pr);
+    let sk = f_is_equal(cs, &a.sk_prf, &b.sk_prf);
+    b_and(cs, &t, &sk)
+}
+
+/// signature/equal.rs.
+pub fn sig_is_equal(cs: &mut Cs, a: &Signature, b: &Signature) -> Boolean {
+    let c = f_is_equal(cs, &a.challenge, &b.challenge);
+    let r = f_is_equal(cs, &a.response, &b.response);
+    let t = b_and(cs, &c, &r);
+    let ck = ck_is_equal(cs, &a.compute_key, &b.compute_key);
+    b_and(cs, &t, &ck)
+}
+
+/// compute_key/ternary.rs.
+pub fn ck_ternary(cs: &mut Cs, c: &Boolean, a: &ComputeKey, b: &ComputeKey) -> ComputeKey {
+    let pk_sig = g_ternary(cs, c, &a.pk_sig, &b.pk_sig);
+    let pr_sig = g_ternary(cs, c, &a.pr_sig, &b.pr_sig);
+    let sk_prf = f_ternary(cs, c, &a.sk_prf, &b.sk_prf);
+    ComputeKey { pk_sig, pr_sig, sk_prf }
+}
+
+/// signature/ternary.rs.
+pub fn sig_ternary(cs: &mut Cs, c: &Boolean, a: &Signature, b: &Signature) -> Signature {
+    let challenge = f_ternary(cs, c, &a.challenge, &b.challenge);
+    let response = f_ternary(cs, c, &a.response, &b.response);
+    let compute_key = ck_ternary(cs, c, &a.compute_key, &b.compute_key);
+    Signature { challenge, response, compute_key }
+}
+
+/// signature/helpers/to_bits.rs `write_bits_le`; `write_bits_be` reverses each
+/// component's bits and adds the same constraints.
+pub fn sig_write_bits_le(cs: &mut Cs, s: &Signature) -> Vec<Boolean> {
+    let c = s_to_bits_le(cs, &s.challenge);
+    let r = s_to_bits_le(cs, &s.response);
+    let pk = g_to_bits_le(cs, &s.compute_key.pk_sig);
+    let pr = g_to_bits_le(cs, &s.compute_key.pr_sig);
+    bits_append(&bits_append(&c, &r), &bits_append(&pk, &pr))
+}
+
+/// 0 ComputeKey is_equal, 1 is_not_equal of (W1..W5) and (W6..W10);
+/// 2 Signature is_equal, 3 is_not_equal of (W1..W7) and (W8..W14).
+pub fn h_account_equal(op: u32) -> Cs {
+    let mut cs = cs_new();
+    if op < 2 {
+        let a = in_compute_key(&mut cs);
+        let b = in_compute_key(&mut cs);
+        let r = ck_is_equal(&mut cs, &a, &b);
+        if op == 1 {
+            let _ = b_not(&r);
+        }
+    } else {
+        let a = in_signature(&mut cs);
+        let b = in_signature(&mut cs);
+        let r = sig_is_equal(&mut cs, &a, &b);
+        if op == 3 {
+            let _ = b_not(&r);
+        }
+    }
+    cs
+}
+
+/// Condition W1, signatures (W2..W8) and (W9..W15).
+pub fn h_sig_ternary() -> Cs {
+    let mut cs = cs_new();
+    let c = b_var(new_var(&mut cs));
+    let a = in_signature(&mut cs);
+    let b = in_signature(&mut cs);
+    let _ = sig_ternary(&mut cs, &c, &a, &b);
+    cs
+}
+
+/// Signature (W1..W7) `write_bits_le`.
+pub fn h_sig_write_bits() -> Cs {
+    let mut cs = cs_new();
+    let s = in_signature(&mut cs);
+    let _ = sig_write_bits_le(&mut cs, &s);
+    cs
+}
+
+/// kary_merkle_tree/helpers/mod.rs `BooleanHash::is_equal`: the lazy map
+/// interleaves each bit comparison with the AND fold from constant true.
+pub fn bh_is_equal(cs: &mut Cs, a: &Vec<Boolean>, b: &Vec<Boolean>) -> Boolean {
+    let mut acc = b_const(true);
+    let mut i = 0;
+    while i < a.len() {
+        let e = b_is_equal(cs, &a[i], &b[i]);
+        acc = b_and(cs, &acc, &e);
+        i += 1;
+    }
+    acc
+}
+
+pub fn bh_ternary(cs: &mut Cs, c: &Boolean, a: &Vec<Boolean>, b: &Vec<Boolean>) -> Vec<Boolean> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < a.len() {
+        out.push(b_ternary(cs, c, &a[i], &b[i]));
+        i += 1;
+    }
+    out
+}
+
+/// BooleanHash of `n` bits: 0 is_equal, 1 is_not_equal of W1..Wn and
+/// Wn+1..W2n; 2 ternary with condition W1 of W2..Wn+1 and Wn+2..W2n+1.
+pub fn h_bh_op(n: usize, op: u32) -> Cs {
+    let mut cs = cs_new();
+    if op < 2 {
+        let a = in_bits(&mut cs, n);
+        let b = in_bits(&mut cs, n);
+        let r = bh_is_equal(&mut cs, &a, &b);
+        if op == 1 {
+            let _ = b_not(&r);
+        }
+    } else {
+        let c = b_var(new_var(&mut cs));
+        let a = in_bits(&mut cs, n);
+        let b = in_bits(&mut cs, n);
+        let _ = bh_ternary(&mut cs, &c, &a, &b);
+    }
+    cs
+}
+
+/// data/ciphertext/equal.rs `is_equal`: `equal &= a.is_equal(b)` from
+/// constant true; vectors of different lengths are constant false.
+pub fn ct_is_equal(cs: &mut Cs, a: &Vec<Field>, b: &Vec<Field>) -> Boolean {
+    if a.len() != b.len() {
+        b_const(false)
+    } else {
+        let mut acc = b_const(true);
+        let mut i = 0;
+        while i < a.len() {
+            let e = f_is_equal(cs, &a[i], &b[i]);
+            acc = b_and(cs, &acc, &e);
+            i += 1;
+        }
+        acc
+    }
+}
+
+/// `is_not_equal`: `not_equal |= a.is_not_equal(b)` from constant false.
+pub fn ct_is_not_equal(cs: &mut Cs, a: &Vec<Field>, b: &Vec<Field>) -> Boolean {
+    if a.len() != b.len() {
+        b_const(true)
+    } else {
+        let mut acc = b_const(false);
+        let mut i = 0;
+        while i < a.len() {
+            let e = f_is_not_equal(cs, &a[i], &b[i]);
+            acc = b_or(cs, &acc, &e);
+            i += 1;
+        }
+        acc
+    }
+}
+
+/// data/ciphertext/to_bits.rs: `Field::write_bits_le` per element.
+pub fn ct_write_bits_le(cs: &mut Cs, a: &Vec<Field>) -> Vec<Boolean> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < a.len() {
+        let bits = f_to_bits_le(cs, &a[i]);
+        out = bits_append(&out, &bits);
+        i += 1;
+    }
+    out
+}
+
+fn in_fields(cs: &mut Cs, n: usize) -> Vec<Field> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < n {
+        out.push(f_new(cs));
+        i += 1;
+    }
+    out
+}
+
+/// Ciphertexts of `n` and `m` fields W1..Wn, Wn+1..Wn+m: 0 is_equal,
+/// 1 is_not_equal; 2 `Ciphertext::new` of `n` fields; 3 write_bits_le of W1..Wn
+/// (write_bits_be adds the same constraints).
+pub fn h_ct_op(n: usize, m: usize, op: u32) -> Cs {
+    let mut cs = cs_new();
+    let a = in_fields(&mut cs, n);
+    if op == 0 {
+        let b = in_fields(&mut cs, m);
+        let _ = ct_is_equal(&mut cs, &a, &b);
+    } else if op == 1 {
+        let b = in_fields(&mut cs, m);
+        let _ = ct_is_not_equal(&mut cs, &a, &b);
+    } else if op == 3 {
+        let _ = ct_write_bits_le(&mut cs, &a);
+    }
+    cs
+}
+
+/// state_path/helpers `HeaderLeaf` (0: u8 index), `TransactionLeaf` (1: u8
+/// variant, u16 index) and `TransitionLeaf` (2: u8 version, index and variant)
+/// `write_bits_le`: the integers' bits are copied, then `Field::write_bits_le`
+/// of the id. `write_bits_be` adds the same constraints.
+pub fn h_leaf_write_bits(kind: u32) -> Cs {
+    let mut cs = cs_new();
+    let mut bits = Vec::new();
+    if kind == 0 {
+        let index = in_int(&mut cs, 8, false);
+        bits = bits_append(&bits, &index.bits);
+    } else if kind == 1 {
+        let variant = in_int(&mut cs, 8, false);
+        let index = in_int(&mut cs, 16, false);
+        bits = bits_append(&bits_append(&bits, &variant.bits), &index.bits);
+    } else {
+        let version = in_int(&mut cs, 8, false);
+        let index = in_int(&mut cs, 8, false);
+        let variant = in_int(&mut cs, 8, false);
+        bits = bits_append(&bits_append(&bits_append(&bits, &version.bits), &index.bits), &variant.bits);
+    }
+    let id = f_new(&mut cs);
+    let id_bits = f_to_bits_le(&mut cs, &id);
+    let _ = bits_append(&bits, &id_bits);
+    cs
+}
+
+/// data/identifier/to_bits.rs: `Field::write_bits_le` truncated to `8 * size`.
+pub fn id_write_bits_le(cs: &mut Cs, x: &Field, size: usize) -> Vec<Boolean> {
+    let bits = f_to_bits_le(cs, x);
+    bits_range(&bits, 0, 8 * size)
+}
+
+/// 0 Identifier W1 of `n` bytes; 1 ProgramID with name W1 of `n` bytes and
+/// network W2 of `m` bytes (id/to_bits.rs: name, then network).
+pub fn h_id_write_bits(op: u32, n: usize, m: usize) -> Cs {
+    let mut cs = cs_new();
+    let name = f_new(&mut cs);
+    if op == 0 {
+        let _ = id_write_bits_le(&mut cs, &name, n);
+    } else {
+        let network = f_new(&mut cs);
+        let a = id_write_bits_le(&mut cs, &name, n);
+        let b = id_write_bits_le(&mut cs, &network, m);
+        let _ = bits_append(&a, &b);
+    }
+    cs
+}
+
+/// data/record/helpers/owner.rs on owners (W1, W2) and (W3, W4), `pa` and `pb`
+/// their visibilities: 0 is_equal, 1 is_not_equal (`Address::is_equal` when
+/// the variants agree, else a constant); 2 `Owner::new` of (W1, W2), which is
+/// `Address::new`; 3 `to_entry` (no constraint).
+pub fn h_owner(op: u32, pa: bool, pb: bool) -> Cs {
+    let mut cs = cs_new();
+    let a = in_group(&mut cs);
+    if op < 2 {
+        let b = in_group(&mut cs);
+        let r = if pa == pb { g_is_equal(&mut cs, &a, &b) } else { b_const(false) };
+        if op == 1 {
+            let _ = b_not(&r);
+        }
+    } else if op == 2 {
+        let _ = g_from_xy_coordinates(&mut cs, &a.x, &a.y);
+    }
+    cs
+}
+
+/// `to_fields` of DynamicFuture and DynamicRecord: the bits with a constant
+/// true appended, packed into 252-bit `Field::from_bits_le` chunks.
+pub fn pack_fields(cs: &mut Cs, bits: &Vec<Boolean>) -> Vec<Field> {
+    let mut all = bits_append(bits, &Vec::new());
+    all.push(b_const(true));
+    let mut out = Vec::new();
+    let mut lo = 0;
+    while lo < all.len() {
+        let hi = if lo + 252 < all.len() { lo + 252 } else { all.len() };
+        out.push(f_from_bits_le(cs, &bits_range(&all, lo, hi)));
+        lo = hi;
+    }
+    out
+}
+
+/// DynamicFuture of W1..W4: 0 `new` (Field::new each), 1 write_bits_le
+/// (write_bits_be adds the same constraints), 2 to_fields.
+pub fn h_dynamic_future(op: u32) -> Cs {
+    let mut cs = cs_new();
+    let f = in_fields(&mut cs, 4);
+    if op > 0 {
+        let bits = ct_write_bits_le(&mut cs, &f);
+        if op == 2 {
+            let _ = pack_fields(&mut cs, &bits);
+        }
+    }
+    cs
+}
+
+pub struct DynamicRecord {
+    pub owner: Group,
+    pub root: Field,
+    pub nonce: Group,
+    pub version: Integer,
+}
+
+/// data/dynamic/record/mod.rs `new`: Address::new, Field::new, Group::new and
+/// U8::new in private mode.
+pub fn dr_new(cs: &mut Cs) -> DynamicRecord {
+    let o = in_group(cs);
+    let owner = g_from_xy_coordinates(cs, &o.x, &o.y);
+    let root = f_new(cs);
+    let n = in_group(cs);
+    let nonce = g_from_xy_coordinates(cs, &n.x, &n.y);
+    let version = i_new(cs, 8, false);
+    DynamicRecord { owner, root, nonce, version }
+}
+
+fn in_dynamic_record(cs: &mut Cs) -> DynamicRecord {
+    let owner = in_group(cs);
+    let root = f_new(cs);
+    let nonce = in_group(cs);
+    let version = in_int(cs, 8, false);
+    DynamicRecord { owner, root, nonce, version }
+}
+
+/// to_bits.rs: owner, root and nonce field bits, then the version's bits.
+pub fn dr_write_bits_le(cs: &mut Cs, r: &DynamicRecord) -> Vec<Boolean> {
+    let o = g_to_bits_le(cs, &r.owner);
+    let root = f_to_bits_le(cs, &r.root);
+    let n = g_to_bits_le(cs, &r.nonce);
+    bits_append(&bits_append(&o, &root), &bits_append(&n, &r.version.bits))
+}
+
+/// equal.rs.
+pub fn dr_is_equal(cs: &mut Cs, a: &DynamicRecord, b: &DynamicRecord) -> Boolean {
+    let o = g_is_equal(cs, &a.owner, &b.owner);
+    let r = f_is_equal(cs, &a.root, &b.root);
+    let z1 = b_and(cs, &o, &r);
+    let n = g_is_equal(cs, &a.nonce, &b.nonce);
+    let z2 = b_and(cs, &z1, &n);
+    let v = i_is_equal(cs, &a.version, &b.version);
+    b_and(cs, &z2, &v)
+}
+
+/// 0 `new`; 1 write_bits_le of (W1, W2), W3, (W4, W5), version W6..W13
+/// (write_bits_be adds the same constraints); 2 to_fields; 3 is_equal and
+/// 4 is_not_equal against W14..W26; 5 `find` (no constraint).
+pub fn h_dynamic_record(op: u32) -> Cs {
+    let mut cs = cs_new();
+    if op == 0 {
+        let _ = dr_new(&mut cs);
+    } else {
+        let a = in_dynamic_record(&mut cs);
+        if op == 1 || op == 2 {
+            let bits = dr_write_bits_le(&mut cs, &a);
+            if op == 2 {
+                let _ = pack_fields(&mut cs, &bits);
+            }
+        } else if op == 3 || op == 4 {
+            let b = in_dynamic_record(&mut cs);
+            let r = dr_is_equal(&mut cs, &a, &b);
+            if op == 4 {
+                let _ = b_not(&r);
+            }
+        }
+    }
+    cs
+}
+
+/// data/literal/to_fields.rs on an unconstrained literal of type code
+/// `variant` as in `h_p_cast` (0 address, 1 boolean, 2 field, 3 group,
+/// 4 integer of `n` bits, 5 scalar, 6 identifier literal) or 7 signature.
+pub fn h_lit_to_fields(variant: u32, n: usize) -> Cs {
+    let mut cs = cs_new();
+    if variant == 0 || variant == 3 {
+        let g = in_group(&mut cs);
+        let _ = a_to_field(&g);
+    } else if variant == 1 {
+        let b = b_var(new_var(&mut cs));
+        let _ = f_from_boolean(&b);
+    } else if variant == 2 || variant == 5 {
+        let f = f_new(&mut cs);
+        let _ = f_copy(&f);
+    } else if variant == 4 {
+        let i = in_int(&mut cs, n, false);
+        let _ = i_to_field(&mut cs, &i);
+    } else if variant == 6 {
+        let bits = in_bits(&mut cs, IL_BITS);
+        let _ = il_to_field(&mut cs, &bits);
+    } else {
+        let s = in_signature(&mut cs);
+        let _ = sig_to_fields(&s.challenge, &s.response, &s.compute_key.pk_sig, &s.compute_key.pr_sig);
+    }
+    cs
+}
+
+/// data/literal/equal.rs on literals of different variants: a constant, with
+/// `is_not_equal` its negation.
+pub fn h_lit_equal_mismatch(not: bool) -> Cs {
+    let mut cs = cs_new();
+    let _ = f_new(&mut cs);
+    let _ = b_var(new_var(&mut cs));
+    let r = b_const(false);
+    if not {
+        let _ = b_not(&r);
+    }
+    cs
+}
+
+/// kary_merkle_tree/mod.rs `KaryMerklePath::new`: `U64::new` on the leaf
+/// index, then `Inject::new` on each of the `arity - 1` siblings per level,
+/// a field (`variant` 0) or a BooleanHash of `variant` bits.
+pub fn h_kary_path_new(depth: usize, arity: usize, variant: usize) -> Cs {
+    let mut cs = cs_new();
+    let _ = i_new(&mut cs, 64, false);
+    let mut d = 0;
+    while d < depth {
+        let mut k = 0;
+        while k + 1 < arity {
+            if variant == 0 {
+                let _ = f_new(&mut cs);
+            } else {
+                let _ = bh_new(&mut cs, variant);
+            }
+            k += 1;
+        }
+        d += 1;
+    }
+    cs
+}
+
+// ---------------------------------------------------------------------------
+// circuit/algorithms/src/poseidon, with the parameters as inputs.
+
+/// pow.rs on a constant exponent with big-endian bits `e`: square, then
+/// multiply when the bit is set.
+pub fn f_pow_const(cs: &mut Cs, x: &Field, e: &Vec<bool>) -> Field {
+    let mut out = f_of(lc_one());
+    let mut i = 0;
+    while i < e.len() {
+        out = f_square(cs, &out);
+        if e[i] {
+            out = f_mul(cs, &out, x);
+        }
+        i += 1;
+    }
+    out
+}
+
+/// The 253 big-endian bits of `k`, as `Field::to_bits_be` of a constant.
+fn const_bits_be(k: u64) -> Vec<bool> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < FIELD_BITS {
+        let pos = FIELD_BITS - 1 - i;
+        out.push(pos < 64 && (k >> pos) & 1 == 1);
+        i += 1;
+    }
+    out
+}
+
+pub struct Poseidon {
+    pub rate: usize,
+    pub domain: Field,
+    pub full: usize,
+    pub partial: usize,
+    pub alpha: Vec<bool>,
+    pub ark: Vec<Vec<Field>>,
+    pub mds: Vec<Vec<Field>>,
+}
+
+fn f_k(k: i128) -> Field {
+    f_of(lc_const(k, 0))
+}
+
+fn pos_row(ark: bool, i: usize, n: usize) -> Vec<Field> {
+    let mut row = Vec::new();
+    let mut j = 0;
+    while j < n {
+        let k = if ark { 7 * i + j + 3 } else { i + 2 * j + 1 };
+        row.push(f_k(k as i128));
+        j += 1;
+    }
+    row
+}
+
+/// Test parameters: ark[i][j] = 7i + j + 3, mds[i][j] = i + 2j + 1, domain 5.
+pub fn pos_test(rate: usize, full: usize, partial: usize, alpha: u64) -> Poseidon {
+    let mut ark = Vec::new();
+    let mut i = 0;
+    while i < full + partial {
+        ark.push(pos_row(true, i, rate + 1));
+        i += 1;
+    }
+    let mut mds = Vec::new();
+    let mut i = 0;
+    while i < rate + 1 {
+        mds.push(pos_row(false, i, rate + 1));
+        i += 1;
+    }
+    Poseidon { rate, domain: f_k(5), full, partial, alpha: const_bits_be(alpha), ark, mds }
+}
+
+/// hash_many.rs `apply_ark`.
+pub fn pos_apply_ark(p: &Poseidon, st: &Vec<Field>, round: usize) -> Vec<Field> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < st.len() {
+        out.push(f_add(&st[i], &p.ark[round][i]));
+        i += 1;
+    }
+    out
+}
+
+fn pos_s_box_elem(cs: &mut Cs, p: &Poseidon, x: &Field, apply: bool) -> Field {
+    if apply {
+        f_pow_const(cs, x, &p.alpha)
+    } else {
+        f_copy(x)
+    }
+}
+
+/// `apply_s_box`: every element in a full round, the first otherwise.
+pub fn pos_apply_s_box(cs: &mut Cs, p: &Poseidon, st: &Vec<Field>, full: bool) -> Vec<Field> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < st.len() {
+        let e = pos_s_box_elem(cs, p, &st[i], full || i == 0);
+        out.push(e);
+        i += 1;
+    }
+    out
+}
+
+/// Row `i` of `apply_mds`: the sum of `state[j] * mds[i][j]` from zero.
+fn pos_mds_row(cs: &mut Cs, p: &Poseidon, st: &Vec<Field>, i: usize) -> Field {
+    let mut acc = f_of(lc_zero());
+    let mut j = 0;
+    while j < st.len() {
+        let t = f_mul(cs, &st[j], &p.mds[i][j]);
+        acc = f_add(&acc, &t);
+        j += 1;
+    }
+    acc
+}
+
+/// `apply_mds`.
+pub fn pos_apply_mds(cs: &mut Cs, p: &Poseidon, st: &Vec<Field>) -> Vec<Field> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < st.len() {
+        let e = pos_mds_row(cs, p, st, i);
+        out.push(e);
+        i += 1;
+    }
+    out
+}
+
+fn pos_round(cs: &mut Cs, p: &Poseidon, st: &Vec<Field>, i: usize) -> Vec<Field> {
+    let half = p.full / 2;
+    let is_full = !(half <= i && i < half + p.partial);
+    let a = pos_apply_ark(p, st, i);
+    let b = pos_apply_s_box(cs, p, &a, is_full);
+    pos_apply_mds(cs, p, &b)
+}
+
+/// `permute`: the partial rounds are the middle `partial` of the rounds.
+pub fn pos_permute(cs: &mut Cs, p: &Poseidon, st: &Vec<Field>) -> Vec<Field> {
+    let mut s = f_vec_copy(st);
+    let mut i = 0;
+    while i < p.full + p.partial {
+        s = pos_round(cs, p, &s, i);
+        i += 1;
+    }
+    s
+}
+
+fn f_vec_copy(x: &Vec<Field>) -> Vec<Field> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < x.len() {
+        out.push(f_copy(&x[i]));
+        i += 1;
+    }
+    out
+}
+
+/// The sponge state and `DuplexSpongeMode`: `squeezing` with the next index.
+pub struct Sponge {
+    pub st: Vec<Field>,
+    pub squeezing: bool,
+    pub index: usize,
+}
+
+fn pos_add_elem(st: &Vec<Field>, i: usize, start: usize, input: &Vec<Field>, lo: usize, n: usize) -> Field {
+    if start <= i && i < start + n {
+        f_add(&st[i], &input[lo + i - start])
+    } else {
+        f_copy(&st[i])
+    }
+}
+
+/// `state[start + i] += input[lo + i]` for `i < n`.
+fn pos_add_into(st: &Vec<Field>, start: usize, input: &Vec<Field>, lo: usize, n: usize) -> Vec<Field> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < st.len() {
+        out.push(pos_add_elem(st, i, start, input, lo, n));
+        i += 1;
+    }
+    out
+}
+
+/// The `absorb` loop from absorb index `idx` on `input[lo..]`.
+fn pos_absorb_loop(cs: &mut Cs, p: &Poseidon, st: Vec<Field>, idx: usize, input: &Vec<Field>, lo: usize) -> Sponge {
+    let remaining = input.len() - lo;
+    if idx + remaining <= p.rate {
+        let st2 = pos_add_into(&st, 1 + idx, input, lo, remaining);
+        Sponge { st: st2, squeezing: false, index: idx + remaining }
+    } else {
+        let n = p.rate - idx;
+        let st2 = pos_add_into(&st, 1 + idx, input, lo, n);
+        let st3 = pos_permute(cs, p, &st2);
+        pos_absorb_loop(cs, p, st3, 0, input, lo + n)
+    }
+}
+
+/// hash_many.rs `absorb` (CAPACITY 1).
+pub fn pos_absorb(cs: &mut Cs, p: &Poseidon, s: Sponge, input: &Vec<Field>) -> Sponge {
+    if input.len() == 0 {
+        s
+    } else if s.squeezing || s.index == p.rate {
+        let st = pos_permute(cs, p, &s.st);
+        pos_absorb_loop(cs, p, st, 0, input, 0)
+    } else {
+        pos_absorb_loop(cs, p, s.st, s.index, input, 0)
+    }
+}
+
+fn pos_take(st: &Vec<Field>, from: usize, k: usize, out: Vec<Field>) -> Vec<Field> {
+    let mut o = out;
+    let mut i = 0;
+    while i < k {
+        o.push(f_copy(&st[from + i]));
+        i += 1;
+    }
+    o
+}
+
+/// The sponge after squeezing, and the outputs.
+pub struct Squeezed {
+    pub s: Sponge,
+    pub out: Vec<Field>,
+}
+
+/// The `squeeze_internal` loop from squeeze index `idx` for `n` outputs.
+fn pos_squeeze_loop(cs: &mut Cs, p: &Poseidon, st: Vec<Field>, idx: usize, n: usize, out: Vec<Field>) -> Squeezed {
+    if idx + n <= p.rate {
+        let o = pos_take(&st, 1 + idx, n, out);
+        Squeezed { s: Sponge { st, squeezing: true, index: idx + n }, out: o }
+    } else {
+        let k = p.rate - idx;
+        let o = pos_take(&st, 1 + idx, k, out);
+        let st2 = pos_permute(cs, p, &st);
+        pos_squeeze_loop(cs, p, st2, 0, n - k, o)
+    }
+}
+
+/// `squeeze_internal`.
+pub fn pos_squeeze_internal(cs: &mut Cs, p: &Poseidon, s: Sponge, n: usize) -> Squeezed {
+    if !s.squeezing || s.index == p.rate {
+        let st = pos_permute(cs, p, &s.st);
+        pos_squeeze_loop(cs, p, st, 0, n, Vec::new())
+    } else {
+        pos_squeeze_loop(cs, p, s.st, s.index, n, Vec::new())
+    }
+}
+
+/// `squeeze`: no work for zero outputs.
+pub fn pos_squeeze(cs: &mut Cs, p: &Poseidon, s: Sponge, n: usize) -> Squeezed {
+    if n == 0 {
+        Squeezed { s, out: Vec::new() }
+    } else {
+        pos_squeeze_internal(cs, p, s, n)
+    }
+}
+
+/// HashMany::hash_many.
+pub fn pos_hash_many(cs: &mut Cs, p: &Poseidon, input: &Vec<Field>, n: usize) -> Vec<Field> {
+    let mut pre = Vec::new();
+    pre.push(f_copy(&p.domain));
+    pre.push(f_k(input.len() as i128));
+    while pre.len() < p.rate {
+        pre.push(f_of(lc_zero()));
+    }
+    let mut i = 0;
+    while i < input.len() {
+        pre.push(f_copy(&input[i]));
+        i += 1;
+    }
+    let mut st = Vec::new();
+    let mut j = 0;
+    while j < p.rate + 1 {
+        st.push(f_of(lc_zero()));
+        j += 1;
+    }
+    let s = Sponge { st, squeezing: false, index: 0 };
+    let s2 = pos_absorb(cs, p, s, &pre);
+    pos_squeeze(cs, p, s2, n).out
+}
+
+/// Poseidon with `rate`, `full`, `partial` and alpha 17 on inputs W1..: 0 permute
+/// of a state W1..W(rate+1); 1 hash_many of `nin` inputs to `nout` outputs;
+/// 2 absorb `nin` inputs into a state W1..W(rate+1) in mode (`sq`, `idx`),
+/// then squeeze `nout`; 3 hash_to_scalar of `nin` inputs (hash.rs `hash` is
+/// `hash_many(input, 1)[0]`, then `Scalar::from_field_lossy`); 4 `Inject::new`
+/// (constant parameters, no constraint).
+pub fn h_poseidon(op: u32, rate: usize, full: usize, partial: usize, nin: usize, nout: usize, sq: bool, idx: usize) -> Cs {
+    let mut cs = cs_new();
+    let p = pos_test(rate, full, partial, 17);
+    if op == 0 {
+        let st = in_fields(&mut cs, rate + 1);
+        let _ = pos_permute(&mut cs, &p, &st);
+    } else if op == 1 {
+        let xs = in_fields(&mut cs, nin);
+        let _ = pos_hash_many(&mut cs, &p, &xs, nout);
+    } else if op == 2 {
+        let st = in_fields(&mut cs, rate + 1);
+        let xs = in_fields(&mut cs, nin);
+        let s = Sponge { st, squeezing: sq, index: idx };
+        let s2 = pos_absorb(&mut cs, &p, s, &xs);
+        let _ = pos_squeeze(&mut cs, &p, s2, nout);
+    } else if op == 3 {
+        let xs = in_fields(&mut cs, nin);
+        let h = pos_hash_many(&mut cs, &p, &xs, 1);
+        let bits = f_to_bits_le(&mut cs, &h[0]);
+        let _ = s_from_bits_le(&mut cs, &bits_range(&bits, 0, SCALAR_DATA_BITS));
+    }
+    cs
+}
+
+// ---------------------------------------------------------------------------
+// circuit/algorithms/src/keccak. A lane is the 64 little-endian bits of a
+// U64; U64 `^`, `&` and `!` act bit by bit (types/integers xor.rs, and.rs,
+// not.rs), and `U64::from_bits_le` of 64 bits copies them.
+
+const KECCAK_RC: [u64; 24] = [
+    0x0000000000000001, 0x0000000000008082, 0x800000000000808A, 0x8000000080008000,
+    0x000000000000808B, 0x0000000080000001, 0x8000000080008081, 0x8000000000008009,
+    0x000000000000008A, 0x0000000000000088, 0x0000000080008009, 0x000000008000000A,
+    0x000000008000808B, 0x800000000000008B, 0x8000000000008089, 0x8000000000008003,
+    0x8000000000008002, 0x8000000000000080, 0x000000000000800A, 0x800000008000000A,
+    0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008,
+];
+
+fn lane_xor(cs: &mut Cs, x: &Vec<Boolean>, y: &Vec<Boolean>) -> Vec<Boolean> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < x.len() {
+        out.push(b_xor(cs, &x[i], &y[i]));
+        i += 1;
+    }
+    out
+}
+
+fn lane_and_not(cs: &mut Cs, b: &Vec<Boolean>, c: &Vec<Boolean>) -> Vec<Boolean> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < b.len() {
+        let nb = b_not(&b[i]);
+        out.push(b_and(cs, &nb, &c[i]));
+        i += 1;
+    }
+    out
+}
+
+fn lane_const(k: u64) -> Vec<Boolean> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < 64 {
+        out.push(b_const((k >> i) & 1 == 1));
+        i += 1;
+    }
+    out
+}
+
+/// hash.rs `rotate_left`: `bits_le.rotate_left(n)`.
+pub fn kec_rotate_left(x: &Vec<Boolean>, n: usize) -> Vec<Boolean> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < 64 {
+        out.push(b_copy(&x[(i + n) % 64]));
+        i += 1;
+    }
+    out
+}
+
+/// `rotl_offsets`: the left rotation of lane x + 5y, (64 - (t + 1)(t + 2) / 2)
+/// mod 64 for the lane reached at step t of (x, y) -> (y, 2x + 3y) from (1, 0).
+const KECCAK_ROTL: [usize; 25] = [
+    0, 63, 2, 36, 37, 28, 20, 58, 9, 44, 61, 54, 21, 39, 25, 23, 19, 49, 43, 56, 46, 62, 3, 8, 50,
+];
+
+/// The target lane of pi for the lane `i` = x + 5y: y + 5((2x + 3y) mod 5).
+fn kec_pi_target(i: usize) -> usize {
+    let x = i % 5;
+    let y = i / 5;
+    y + 5 * ((2 * x + 3 * y) % 5)
+}
+
+/// The source lane of pi for the target lane `t`, searched from lane `i`.
+fn kec_pi_source(t: usize, i: usize) -> usize {
+    if i >= 24 || kec_pi_target(i) == t {
+        i
+    } else {
+        kec_pi_source(t, i + 1)
+    }
+}
+
+fn kec_theta_c(cs: &mut Cs, a: &Vec<Vec<Boolean>>, x: usize) -> Vec<Boolean> {
+    let t1 = lane_xor(cs, &a[x], &a[x + 5]);
+    let t2 = lane_xor(cs, &t1, &a[x + 10]);
+    let t3 = lane_xor(cs, &t2, &a[x + 15]);
+    lane_xor(cs, &t3, &a[x + 20])
+}
+
+fn kec_chi_lane(cs: &mut Cs, a2: &Vec<Vec<Boolean>>, x: usize, y: usize) -> Vec<Boolean> {
+    let t = lane_and_not(cs, &a2[(x + 1) % 5 + 5 * y], &a2[(x + 2) % 5 + 5 * y]);
+    lane_xor(cs, &a2[x + 5 * y], &t)
+}
+
+/// hash.rs `round` on 25 lanes with round constant `rc`.
+pub fn kec_round(cs: &mut Cs, a: &Vec<Vec<Boolean>>, rc: u64) -> Vec<Vec<Boolean>> {
+    let mut c = Vec::new();
+    let mut x = 0;
+    while x < 5 {
+        c.push(kec_theta_c(cs, a, x));
+        x += 1;
+    }
+    let mut d = Vec::new();
+    let mut x = 0;
+    while x < 5 {
+        let r = kec_rotate_left(&c[(x + 1) % 5], 63);
+        d.push(lane_xor(cs, &c[(x + 4) % 5], &r));
+        x += 1;
+    }
+    let mut a1 = Vec::new();
+    let mut i = 0;
+    while i < 25 {
+        a1.push(lane_xor(cs, &a[i], &d[i % 5]));
+        i += 1;
+    }
+    let mut a2 = Vec::new();
+    let mut t = 0;
+    while t < 25 {
+        let s = kec_pi_source(t, 0);
+        a2.push(kec_rotate_left(&a1[s], KECCAK_ROTL[s]));
+        t += 1;
+    }
+    let mut a3 = Vec::new();
+    let mut i = 0;
+    while i < 25 {
+        a3.push(kec_chi_lane(cs, &a2, i % 5, i / 5));
+        i += 1;
+    }
+    let first = lane_xor(cs, &a3[0], &lane_const(rc));
+    let mut out = Vec::new();
+    out.push(first);
+    let mut i = 1;
+    while i < 25 {
+        out.push(bits_copy(&a3[i]));
+        i += 1;
+    }
+    out
+}
+
+/// `permutation_f` with the first `rounds` round constants (snarkVM uses 24).
+pub fn kec_permutation(cs: &mut Cs, s: &Vec<Boolean>, rounds: usize) -> Vec<Boolean> {
+    let mut a = Vec::new();
+    let mut i = 0;
+    while i < 25 {
+        a.push(bits_range(s, 64 * i, 64 * i + 64));
+        i += 1;
+    }
+    let mut r = 0;
+    while r < rounds {
+        a = kec_round(cs, &a, KECCAK_RC[r]);
+        r += 1;
+    }
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < 25 {
+        out = bits_append(&out, &a[i]);
+        i += 1;
+    }
+    out
+}
+
+/// hash.rs `pad_keccak` (`sha3` false) and `pad_sha3`: constant bits only.
+pub fn kec_pad(input: &Vec<Boolean>, bitrate: usize, sha3: bool) -> Vec<Vec<Boolean>> {
+    let mut p = bits_append(input, &Vec::new());
+    while p.len() % 8 != 0 {
+        p.push(b_const(false));
+    }
+    if sha3 {
+        p.push(b_const(false));
+        p.push(b_const(true));
+        p.push(b_const(true));
+        p.push(b_const(false));
+    } else {
+        p.push(b_const(true));
+    }
+    while p.len() % bitrate != bitrate - 1 {
+        p.push(b_const(false));
+    }
+    p.push(b_const(true));
+    let mut out = Vec::new();
+    let mut lo = 0;
+    while lo < p.len() {
+        out.push(bits_range(&p, lo, lo + bitrate));
+        lo += bitrate;
+    }
+    out
+}
+
+fn kec_absorb_block(cs: &mut Cs, s: &Vec<Boolean>, block: &Vec<Boolean>) -> Vec<Boolean> {
+    let mut out = Vec::new();
+    let mut j = 0;
+    while j < s.len() {
+        if j < block.len() {
+            out.push(b_xor(cs, &s[j], &block[j]));
+        } else {
+            out.push(b_copy(&s[j]));
+        }
+        j += 1;
+    }
+    kec_permutation(cs, &out, 24)
+}
+
+/// hash.rs `Keccak::<TYPE, VARIANT>::hash` for VARIANT at most the bitrate
+/// (256, 384 and 512), so the squeezing loop never runs.
+pub fn kec_hash(cs: &mut Cs, input: &Vec<Boolean>, variant: usize, sha3: bool) -> Vec<Boolean> {
+    let bitrate = 1600 - 2 * variant;
+    let mut s = Vec::new();
+    let mut i = 0;
+    while i < 1600 {
+        s.push(b_const(false));
+        i += 1;
+    }
+    let blocks = kec_pad(input, bitrate, sha3);
+    let mut k = 0;
+    while k < blocks.len() {
+        s = kec_absorb_block(cs, &s, &blocks[k]);
+        k += 1;
+    }
+    bits_range(&s, 0, variant)
+}
+
+/// collections kary_merkle_tree/helpers/path_hash.rs for Keccak: `hash` of
+/// constant true followed by the children's bits. `arity` children of
+/// `variant` bits W1..W(arity * variant); `sha3` selects SHA-3.
+pub fn h_keccak_hash_children(arity: usize, variant: usize, sha3: bool) -> Cs {
+    let mut cs = cs_new();
+    let children = in_bits(&mut cs, arity * variant);
+    let mut input = Vec::new();
+    input.push(b_const(true));
+    let input2 = bits_append(&input, &children);
+    let _ = kec_hash(&mut cs, &input2, variant, sha3);
+    cs
+}
+
+/// Keccak on a state W1..W1600: 0 `round` with round constant `r`;
+/// 1 `permutation_f` with the first `r` round constants; 2 `pad_keccak` and
+/// 3 `pad_sha3` of the first `r` bits at bitrate 1088.
+pub fn h_keccak(op: u32, r: usize) -> Cs {
+    let mut cs = cs_new();
+    let s = in_bits(&mut cs, 1600);
+    if op >= 2 {
+        let _ = kec_pad(&bits_range(&s, 0, r), 1088, op == 3);
+    } else if op == 0 {
+        let mut a = Vec::new();
+        let mut i = 0;
+        while i < 25 {
+            a.push(bits_range(&s, 64 * i, 64 * i + 64));
+            i += 1;
+        }
+        let _ = kec_round(&mut cs, &a, KECCAK_RC[r]);
+    } else {
+        let _ = kec_permutation(&mut cs, &s, r);
+    }
+    cs
+}
+
 pub fn h_bh_new(variant: usize) -> Cs {
     let mut cs = cs_new();
     let _ = bh_new(&mut cs, variant);
