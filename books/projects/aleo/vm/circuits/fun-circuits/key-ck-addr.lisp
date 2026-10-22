@@ -108,8 +108,8 @@
   "Synthesis of ComputeKey::to_address: (mv out cs vs asg)."
   (declare (xargs :verify-guards nil))
   (b* ((gcs (net-gmul-gadget s rbits rs sts (base-prime)))
-       ((mv sum cs1 vs asg) (hpos-c-gadd pk pr vs asg))
-       ((mv out cs2 vs asg) (hpos-c-gadd sum (key-gmul-wires sts) vs asg)))
+       ((mv sum cs1 vs asg) (hpos-c-gadd pr pk vs asg))
+       ((mv out cs2 vs asg) (hpos-c-gadd (key-gmul-wires sts) sum vs asg)))
     (mv out (append gcs cs1 cs2) vs asg)))
 
 (defmacro key-ck-addr-hyps ()
@@ -153,7 +153,7 @@
                 (hpos-pt-boundp g asg)
                 (ecurve::edwards-bls12-pointp (hpos-pt-eval (cons (nth 4 vs) (nth 5 vs)) asg))
                 (ecurve::edwards-bls12-pointp (hpos-pt-eval g asg)))
-           (hpos-gadd-sound-hyps (cons (nth 4 vs) (nth 5 vs)) g (nthcdr 6 vs) asg))
+           (hpos-gadd-sound-hyps g (cons (nth 4 vs) (nth 5 vs)) (nthcdr 6 vs) asg))
   :use key-take-6-pt-boundp
   :in-theory (e/d (hpos-gadd-sound-hyps) (hpos-pt-boundp hpos-pt-eval take nthcdr)))
 
@@ -179,12 +179,16 @@
   :do-not-induct t
   :use (key-gmul-wires-eval
         key-take-6-pt-boundp
-        (:instance key-gadd-sound (a pk) (b pr))
+        (:instance key-gadd-sound (a pr) (b pk))
+        (:instance hbhp-add-comm (a (hpos-pt-eval pr asg)) (b (hpos-pt-eval pk asg)))
         (:instance key-second-gadd-hyps (g (key-gmul-wires sts)))
         (:instance key-gadd-sound
-                   (a (cons (nth 4 vs) (nth 5 vs)))
-                   (b (key-gmul-wires sts))
+                   (b (cons (nth 4 vs) (nth 5 vs)))
+                   (a (key-gmul-wires sts))
                    (vs (nthcdr 6 vs)))
+        (:instance hbhp-add-comm
+                   (a (hpos-pt-eval (key-gmul-wires sts) asg))
+                   (b (hpos-pt-eval (cons (nth 4 vs) (nth 5 vs)) asg)))
         (:instance ecurve::edwards-bls12-pointp-of-edwards-bls12-add
                    (ecurve::point1 (hpos-pt-eval pk asg))
                    (ecurve::point2 (hpos-pt-eval pr asg)))
@@ -197,9 +201,9 @@
                (:e unary--) fix))
 
 (defruled key-c-ck-to-address-outs
-  (b* (((mv & cs1 vs1 asg1) (hpos-c-gadd pk pr vs asg))
-       ((mv & cs2 vs2 asg2) (hpos-c-gadd (cons (nth 4 vs) (nth 5 vs))
-                                         (key-gmul-wires sts) vs1 asg1)))
+  (b* (((mv & cs1 vs1 asg1) (hpos-c-gadd pr pk vs asg))
+       ((mv & cs2 vs2 asg2) (hpos-c-gadd (key-gmul-wires sts)
+                                         (cons (nth 4 vs) (nth 5 vs)) vs1 asg1)))
     (and (equal (mv-nth 1 (key-c-ck-to-address pk pr s rbits rs sts vs asg))
                 (append (net-gmul-gadget s rbits rs sts (base-prime)) cs1 cs2))
          (equal (mv-nth 2 (key-c-ck-to-address pk pr s rbits rs sts vs asg)) vs2)
@@ -213,8 +217,8 @@
 
 (defruled key-ck-adds-complete
   (b* ((p (base-prime))
-       ((mv & cs1 vs1 asg1) (hpos-c-gadd pk pr vs asg))
-       ((mv & cs2 vs2 asg2) (hpos-c-gadd (cons (nth 4 vs) (nth 5 vs)) g vs1 asg1)))
+       ((mv & cs1 vs1 asg1) (hpos-c-gadd pr pk vs asg))
+       ((mv & cs2 vs2 asg2) (hpos-c-gadd g (cons (nth 4 vs) (nth 5 vs)) vs1 asg1)))
     (implies (and (r1cs::r1cs-valuationp asg p)
                   (hpos-supply-okp vs asg)
                   (<= 12 (len vs))
@@ -225,35 +229,35 @@
                   (ecurve::edwards-bls12-pointp (hpos-pt-eval g asg)))
              (hpos-wit-okp asg vs asg2 vs2 (append cs1 cs2) p)))
   :do-not-induct t
-  :use ((:instance hpos-c-gadd-complete (a pk) (b pr))
+  :use ((:instance hpos-c-gadd-complete (a pr) (b pk))
         (:instance hpos-c-gadd-complete
-                   (a (cons (nth 4 vs) (nth 5 vs))) (b g)
+                   (b (cons (nth 4 vs) (nth 5 vs))) (a g)
                    (vs (nthcdr 6 vs))
-                   (asg (mv-nth 3 (hpos-c-gadd pk pr vs asg))))
+                   (asg (mv-nth 3 (hpos-c-gadd pr pk vs asg))))
         (:instance hpos-wit-okp-append
-                   (asg1 (mv-nth 3 (hpos-c-gadd pk pr vs asg)))
+                   (asg1 (mv-nth 3 (hpos-c-gadd pr pk vs asg)))
                    (vs1 (nthcdr 6 vs))
-                   (cs1 (hpos-gadd-cs pk pr vs))
-                   (asg2 (mv-nth 3 (hpos-c-gadd (cons (nth 4 vs) (nth 5 vs)) g
+                   (cs1 (hpos-gadd-cs pr pk vs))
+                   (asg2 (mv-nth 3 (hpos-c-gadd g (cons (nth 4 vs) (nth 5 vs))
                                                 (nthcdr 6 vs)
-                                                (mv-nth 3 (hpos-c-gadd pk pr vs asg)))))
+                                                (mv-nth 3 (hpos-c-gadd pr pk vs asg)))))
                    (vs2 (nthcdr 6 (nthcdr 6 vs)))
-                   (cs2 (hpos-gadd-cs (cons (nth 4 vs) (nth 5 vs)) g (nthcdr 6 vs)))
+                   (cs2 (hpos-gadd-cs g (cons (nth 4 vs) (nth 5 vs)) (nthcdr 6 vs)))
                    (p (base-prime)))
         (:instance hpos-wit-okp-forward
-                   (asg2 (mv-nth 3 (hpos-c-gadd pk pr vs asg)))
+                   (asg2 (mv-nth 3 (hpos-c-gadd pr pk vs asg)))
                    (vs2 (nthcdr 6 vs))
-                   (cs (hpos-gadd-cs pk pr vs))
+                   (cs (hpos-gadd-cs pr pk vs))
                    (p (base-prime)))
         (:instance hpos-pt-boundp-when-ext-p
-                   (pt g) (old asg) (new (mv-nth 3 (hpos-c-gadd pk pr vs asg))))
+                   (pt g) (old asg) (new (mv-nth 3 (hpos-c-gadd pr pk vs asg))))
         (:instance hpos-pt-eval-when-ext-p
-                   (pt g) (old asg) (new (mv-nth 3 (hpos-c-gadd pk pr vs asg))))
+                   (pt g) (old asg) (new (mv-nth 3 (hpos-c-gadd pr pk vs asg))))
         (:instance hpos-no-duplicatesp-strip-cars-when-valuationp
-                   (asg (mv-nth 3 (hpos-c-gadd pk pr vs asg))) (p (base-prime)))
+                   (asg (mv-nth 3 (hpos-c-gadd pr pk vs asg))) (p (base-prime)))
         (:instance ecurve::edwards-bls12-pointp-of-edwards-bls12-add
-                   (ecurve::point1 (hpos-pt-eval pk asg))
-                   (ecurve::point2 (hpos-pt-eval pr asg))))
+                   (ecurve::point1 (hpos-pt-eval pr asg))
+                   (ecurve::point2 (hpos-pt-eval pk asg))))
   :in-theory '(key-gadd-outs group-add-funspec (:t len) acl2::len-of-nthcdr nfix (:e base-prime) (:e nfix)
                (:e natp) (:e <) (:e binary-+) (:e unary--) fix))
 
@@ -289,9 +293,9 @@
         (:instance hpos-wit-okp-forward
                    (asg2 (mv-nth 3 (key-c-ck-to-address pk pr s rbits rs sts vs asg)))
                    (vs2 (mv-nth 2 (key-c-ck-to-address pk pr s rbits rs sts vs asg)))
-                   (cs (append (hpos-gadd-cs pk pr vs)
-                               (hpos-gadd-cs (cons (nth 4 vs) (nth 5 vs))
-                                             (key-gmul-wires sts) (nthcdr 6 vs))))
+                   (cs (append (hpos-gadd-cs pr pk vs)
+                               (hpos-gadd-cs (key-gmul-wires sts)
+                                             (cons (nth 4 vs) (nth 5 vs)) (nthcdr 6 vs))))
                    (p (base-prime)))
         (:instance hpos-holdp-when-ext-p
                    (old asg)
