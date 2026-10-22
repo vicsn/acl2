@@ -219,3 +219,4 @@
 (include-book "enc-record-sym")
 (include-book "enc-record-enc")
 (include-book "key-ck-addr")
+(include-book "sig-verify")

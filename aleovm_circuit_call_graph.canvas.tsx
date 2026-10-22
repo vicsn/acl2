@@ -43,7 +43,7 @@ const DATA: Raw = {
     ["account","ComputeKey","ToFields","to_fields","111111","","","account/src/compute_key/helpers/to_fields.rs:22"],
     ["account","PrivateKey","","to_compute_key","100000","","","account/src/private_key/to_compute_key.rs:20"],
     ["account","PrivateKey","","to_view_key","100000","","","account/src/private_key/to_view_key.rs:20"],
-    ["account","Signature","","verify","100000","","","account/src/signature/verify.rs:20"],
+    ["account","Signature","","verify","110010","Group::new on pk_sig, pr_sig and the address (points on the curve); allocated wires bound; the hash's placeholder wire unbound","","account/src/signature/verify.rs:20"],
     ["account","Signature","Equal","is_equal","110011","Literal::new signature arm on each operand (literal-signature-new-sound-unconditional: challenge, response, sk_prf scalars; pk_sig, pr_sig in the group)","","account/src/signature/equal.rs:24"],
     ["account","Signature","Equal","is_not_equal","110011","Literal::new signature arm on each operand (literal-signature-new-sound-unconditional: challenge, response, sk_prf scalars; pk_sig, pr_sig in the group)","","account/src/signature/equal.rs:42"],
     ["account","Signature","FromBits","from_bits_be","100000","","","account/src/signature/helpers/from_bits.rs:48"],
