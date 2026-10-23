@@ -224,3 +224,6 @@
 (include-book "sig-verify")
 (include-book "fb3-field-upper-checked")
 (include-book "rec-owner-decrypt")
+(include-book "dec-ciphertext")
+(include-book "dec-record")
+(include-book "dec-record-decrypt")
