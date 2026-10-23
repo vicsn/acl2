@@ -25,31 +25,31 @@ account	Signature	ToBits	write_bits_le	spec	signature-write-bits-le-funspec	proj
 account	Signature	ToFields	to_fields	spec	signature-to-fields-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
 account	ViewKey		from_private_key	spec	view-key-from-private-key-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
 account	ViewKey		to_address	spec	view-key-to-address-funspec	projects/aleo/vm/circuits/fun-specs/curve-account.lisp
-algorithms	BHP	Commit	commit	excluded-hash		
-algorithms	BHP	CommitUncompressed	commit_uncompressed	excluded-hash		
-algorithms	BHP	HashUncompressed	hash_uncompressed	excluded-hash		
-algorithms	BHPHasher	HashUncompressed	hash_uncompressed	excluded-hash		
+algorithms	BHP	Commit	commit	spec	hbhp-bhp-commit	projects/aleo/vm/circuits/fun-specs/hash-bhp.lisp
+algorithms	BHP	CommitUncompressed	commit_uncompressed	spec	hbhp-bhp-commit-uncompressed	projects/aleo/vm/circuits/fun-specs/hash-bhp.lisp
+algorithms	BHP	HashUncompressed	hash_uncompressed	spec	hbhp-hash-uncompressed	projects/aleo/vm/circuits/fun-specs/hash-bhp.lisp
+algorithms	BHPHasher	HashUncompressed	hash_uncompressed	spec	hbhp-hasher-hash-uncompressed	projects/aleo/vm/circuits/fun-specs/hash-bhp.lisp
 algorithms	BHPHasher	Inject	new	excluded-hash		
-algorithms	Elligator2		encode	excluded-hash		
-algorithms	Keccak		pad_keccak	excluded-hash		
-algorithms	Keccak		pad_sha3	excluded-hash		
-algorithms	Keccak		permutation_f	excluded-hash		
-algorithms	Keccak		rotate_left	excluded-hash		
-algorithms	Keccak		round	excluded-hash		
-algorithms	Pedersen	Commit	commit	excluded-hash		
-algorithms	Pedersen	CommitUncompressed	commit_uncompressed	excluded-hash		
-algorithms	Pedersen	HashUncompressed	hash_uncompressed	excluded-hash		
-algorithms	Poseidon		absorb	excluded-hash		
-algorithms	Poseidon		apply_ark	excluded-hash		
-algorithms	Poseidon		apply_mds	excluded-hash		
-algorithms	Poseidon		apply_s_box	excluded-hash		
-algorithms	Poseidon		permute	excluded-hash		
-algorithms	Poseidon		squeeze	excluded-hash		
-algorithms	Poseidon		squeeze_internal	excluded-hash		
-algorithms	Poseidon	HashMany	hash_many	excluded-hash		
-algorithms	Poseidon	HashToGroup	hash_to_group	excluded-hash		
-algorithms	Poseidon	HashToScalar	hash_to_scalar	excluded-hash		
-algorithms	Poseidon	Inject	new	excluded-hash		
+algorithms	Elligator2		encode	spec	hped-elligator2-encode	projects/aleo/vm/circuits/fun-specs/hash-elligator2.lisp
+algorithms	Keccak		pad_keccak	spec	hkec-pad-keccak	projects/aleo/vm/circuits/fun-specs/hash-keccak.lisp
+algorithms	Keccak		pad_sha3	spec	hkec-pad-sha3	projects/aleo/vm/circuits/fun-specs/hash-keccak.lisp
+algorithms	Keccak		permutation_f	spec	hkec-permutation-f	projects/aleo/vm/circuits/fun-specs/hash-keccak.lisp
+algorithms	Keccak		rotate_left	spec	hkec-rotate-left	projects/aleo/vm/circuits/fun-specs/hash-keccak.lisp
+algorithms	Keccak		round	spec	hkec-round	projects/aleo/vm/circuits/fun-specs/hash-keccak.lisp
+algorithms	Pedersen	Commit	commit	spec	hped-pedersen-commit	projects/aleo/vm/circuits/fun-specs/hash-pedersen.lisp
+algorithms	Pedersen	CommitUncompressed	commit_uncompressed	spec	hped-pedersen-commit-uncompressed	projects/aleo/vm/circuits/fun-specs/hash-pedersen.lisp
+algorithms	Pedersen	HashUncompressed	hash_uncompressed	spec	hped-pedersen-hash-uncompressed	projects/aleo/vm/circuits/fun-specs/hash-pedersen.lisp
+algorithms	Poseidon		absorb	spec	hpos-absorb	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
+algorithms	Poseidon		apply_ark	spec	hpos-apply-ark	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
+algorithms	Poseidon		apply_mds	spec	hpos-apply-mds	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
+algorithms	Poseidon		apply_s_box	spec	hpos-apply-s-box	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
+algorithms	Poseidon		permute	spec	hpos-permute	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
+algorithms	Poseidon		squeeze	spec	hpos-squeeze	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
+algorithms	Poseidon		squeeze_internal	spec	hpos-squeeze-internal	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
+algorithms	Poseidon	HashMany	hash_many	spec	hpos-poseidon-hash-many	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
+algorithms	Poseidon	HashToGroup	hash_to_group	spec	hpos-hash-to-group-fields	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
+algorithms	Poseidon	HashToScalar	hash_to_scalar	spec	hpos-hash-to-scalar	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
+algorithms	Poseidon	Inject	new	spec	hpos-aleo-params	projects/aleo/vm/circuits/fun-specs/hash-poseidon.lisp
 collections	<trait default>	PathHash	hash_empty	spec	crypto-kary-merkle-hash-empty	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
 collections	BHP	PathHash	hash_children	spec	crypto-merkle-hash-children	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
 collections	BooleanHash	Equal	is_equal	spec	crypto-boolean-hash-is-equal	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
@@ -61,8 +61,6 @@ collections	KaryMerklePath	Inject	new	spec	crypto-kary-merkle-path-new	projects/
 collections	Keccak	PathHash	hash_children	spec	crypto-merkle-hash-children	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
 collections	MerklePath		verify	spec	crypto-merkle-path-verify	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
 collections	MerkleTree		new	spec	crypto-merkle-tree-new	projects/aleo/vm/circuits/fun-specs/crypto-merkle.lisp
-environment			recursively_replace_self	spec	aleovm::recursively-replace-self-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
-environment			rename_selfs	spec	aleovm::rename-selfs-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
 environment	(t0,ty,*)	Inject	new	spec	aleovm::inject-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
 environment	(t0,ty,+)	ToBits	write_bits_be	spec	aleovm::write-bits-be-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
 environment	(t0,ty,+)	ToBits	write_bits_le	spec	aleovm::write-bits-le-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
@@ -87,68 +85,6 @@ environment	[C]	ToBits	write_bits_be	spec	aleovm::write-bits-be-seq-funspec	proj
 environment	[C]	ToBits	write_bits_le	spec	aleovm::write-bits-le-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
 environment	[C]	ToBitsRaw	write_bits_raw_be	spec	aleovm::write-bits-raw-be-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
 environment	[C]	ToBitsRaw	write_bits_raw_le	spec	aleovm::write-bits-raw-le-seq-funspec	projects/aleo/vm/circuits/fun-specs/primitives-environment.lisp
-network	AleoCanaryV0	Aleo	commit_bhp1024	spec	aleo-commit-bhp1024-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	commit_bhp256	spec	aleo-commit-bhp256-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	commit_bhp512	spec	aleo-commit-bhp512-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	commit_bhp768	spec	aleo-commit-bhp768-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	commit_ped128	spec	aleo-commit-ped128-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	commit_ped64	spec	aleo-commit-ped64-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	commit_to_group_bhp1024	spec	aleo-commit-to-group-bhp1024-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	commit_to_group_bhp256	spec	aleo-commit-to-group-bhp256-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	commit_to_group_bhp512	spec	aleo-commit-to-group-bhp512-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	commit_to_group_bhp768	spec	aleo-commit-to-group-bhp768-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	commit_to_group_ped128	spec	aleo-commit-to-group-ped128-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	commit_to_group_ped64	spec	aleo-commit-to-group-ped64-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	g_scalar_multiply	spec	aleo-g-scalar-multiply-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	hash_many_psd2	spec	aleo-hash-many-psd2-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	hash_many_psd4	spec	aleo-hash-many-psd4-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	hash_many_psd8	spec	aleo-hash-many-psd8-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	hash_to_group_bhp1024	spec	aleo-hash-to-group-bhp1024-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	hash_to_group_bhp256	spec	aleo-hash-to-group-bhp256-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	hash_to_group_bhp512	spec	aleo-hash-to-group-bhp512-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	hash_to_group_bhp768	spec	aleo-hash-to-group-bhp768-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	hash_to_group_ped128	spec	aleo-hash-to-group-ped128-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	hash_to_group_ped64	spec	aleo-hash-to-group-ped64-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	hash_to_group_psd2	spec	aleo-hash-to-group-psd2-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	hash_to_group_psd4	spec	aleo-hash-to-group-psd4-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	hash_to_group_psd8	spec	aleo-hash-to-group-psd8-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	hash_to_scalar_psd2	spec	aleo-hash-to-scalar-psd2-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	hash_to_scalar_psd4	spec	aleo-hash-to-scalar-psd4-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	hash_to_scalar_psd8	spec	aleo-hash-to-scalar-psd8-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	verify_merkle_path_bhp	spec	aleo-verify-merkle-path-bhp-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Aleo	verify_merkle_path_psd	spec	aleo-verify-merkle-path-psd-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoCanaryV0	Environment	enforce	spec	aleo-enforce-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	commit_bhp1024	spec	aleo-commit-bhp1024-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	commit_bhp256	spec	aleo-commit-bhp256-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	commit_bhp512	spec	aleo-commit-bhp512-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	commit_bhp768	spec	aleo-commit-bhp768-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	commit_ped128	spec	aleo-commit-ped128-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	commit_ped64	spec	aleo-commit-ped64-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	commit_to_group_bhp1024	spec	aleo-commit-to-group-bhp1024-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	commit_to_group_bhp256	spec	aleo-commit-to-group-bhp256-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	commit_to_group_bhp512	spec	aleo-commit-to-group-bhp512-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	commit_to_group_bhp768	spec	aleo-commit-to-group-bhp768-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	commit_to_group_ped128	spec	aleo-commit-to-group-ped128-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	commit_to_group_ped64	spec	aleo-commit-to-group-ped64-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	g_scalar_multiply	spec	aleo-g-scalar-multiply-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	hash_many_psd2	spec	aleo-hash-many-psd2-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	hash_many_psd4	spec	aleo-hash-many-psd4-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	hash_many_psd8	spec	aleo-hash-many-psd8-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	hash_to_group_bhp1024	spec	aleo-hash-to-group-bhp1024-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	hash_to_group_bhp256	spec	aleo-hash-to-group-bhp256-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	hash_to_group_bhp512	spec	aleo-hash-to-group-bhp512-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	hash_to_group_bhp768	spec	aleo-hash-to-group-bhp768-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	hash_to_group_ped128	spec	aleo-hash-to-group-ped128-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	hash_to_group_ped64	spec	aleo-hash-to-group-ped64-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	hash_to_group_psd2	spec	aleo-hash-to-group-psd2-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	hash_to_group_psd4	spec	aleo-hash-to-group-psd4-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	hash_to_group_psd8	spec	aleo-hash-to-group-psd8-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	hash_to_scalar_psd2	spec	aleo-hash-to-scalar-psd2-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	hash_to_scalar_psd4	spec	aleo-hash-to-scalar-psd4-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	hash_to_scalar_psd8	spec	aleo-hash-to-scalar-psd8-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	verify_merkle_path_bhp	spec	aleo-verify-merkle-path-bhp-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Aleo	verify_merkle_path_psd	spec	aleo-verify-merkle-path-psd-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
-network	AleoTestnetV0	Environment	enforce	spec	aleo-enforce-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
 network	AleoV0	Aleo	commit_bhp1024	spec	aleo-commit-bhp1024-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
 network	AleoV0	Aleo	commit_bhp256	spec	aleo-commit-bhp256-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
 network	AleoV0	Aleo	commit_bhp512	spec	aleo-commit-bhp512-funspec	projects/aleo/vm/circuits/fun-specs/curve-network.lisp
@@ -230,7 +166,6 @@ program	Future	ToBits	write_bits_le	spec	future-to-bits-le	projects/aleo/vm/circ
 program	Future	ToFields	to_fields	spec	future-to-fields	projects/aleo/vm/circuits/fun-specs/values-value.lisp
 program	HeaderLeaf	ToBits	write_bits_be	spec	header-leaf-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-value.lisp
 program	HeaderLeaf	ToBits	write_bits_le	spec	header-leaf-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-value.lisp
-program	Identifier		public	spec	identifier-public	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	Identifier	Equal	is_equal	spec	identifier-is-equal	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	Identifier	Equal	is_not_equal	spec	identifier-is-not-equal	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	Identifier	FromBits	from_bits_be	spec	identifier-from-bits-be	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
@@ -285,13 +220,11 @@ program	Plaintext	ToBitsRaw	write_bits_raw_le	spec	plaintext-to-bits-raw-le	proj
 program	Plaintext	ToFields	to_fields	spec	plaintext-to-fields	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
 program	Plaintext	ToFieldsRaw	to_fields_raw	spec	plaintext-to-fields-raw	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
 program	Plaintext	Visibility	size_in_fields	spec	plaintext-size-in-fields	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
-program	ProgramID		public	spec	program-id-public	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	ProgramID		to_address	spec	program-id-to-address	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	ProgramID	Equal	is_equal	spec	program-id-is-equal	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	ProgramID	Equal	is_not_equal	spec	program-id-is-not-equal	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	ProgramID	ToBits	write_bits_be	spec	program-id-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	ProgramID	ToBits	write_bits_le	spec	program-id-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
-program	ProgramID	ToFields	to_fields	spec	program-id-to-fields	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	Record		decrypt	spec	crypto-record-decrypt	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
 program	Record		decrypt_symmetric_unchecked	spec	crypto-record-decrypt-symmetric-unchecked	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
 program	Record		decrypt_with_randomizers	spec	crypto-record-decrypt-with-randomizers	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp

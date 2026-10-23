@@ -101,6 +101,26 @@
                            expected-checksum
                            expected-sender-ciphertext))
 
+; OutputID::record with the injected public sender ciphertext as an input.
+; The circuit accepts it when it equals the expected one or is zero (the zero
+; option lets the feature be deactivated), and then the output ID carries it.
+(define crypto-make-output-id-record-with-sender ((expected-commitment fieldp)
+                                                  (expected-checksum fieldp)
+                                                  (expected-sender-ciphertext fieldp)
+                                                  (sender-ciphertext fieldp))
+  :returns (id crypto-output-id-resultp)
+  (if (or (equal sender-ciphertext expected-sender-ciphertext)
+          (equal sender-ciphertext 0))
+      (crypto-output-id-record expected-commitment
+                               expected-checksum
+                               sender-ciphertext)
+    (spec-error))
+  ///
+  (defruled crypto-make-output-id-record-is-with-sender
+    (equal (crypto-make-output-id-record ec ek es)
+           (crypto-make-output-id-record-with-sender ec ek es es))
+    :enable crypto-make-output-id-record))
+
 ; snarkVM circuit/program/src/response/mod.rs: OutputID::external_record.
 (define crypto-make-output-id-external-record ((expected-hash fieldp))
   :returns (id crypto-output-idp)

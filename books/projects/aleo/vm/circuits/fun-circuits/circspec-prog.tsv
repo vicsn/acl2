@@ -1,0 +1,154 @@
+crate	type	trait	function	R1CS-SPEC	PFCS-SPEC	R1CS-SAMPLES	R1CS-SOUND	R1CS-COMPLETE	acl2
+program			compute_function_id	0	0	0	0	0	prog-catalog.lisp: compute-function-id-gadget
+program	Argument	Equal	is_equal	0	0	0	0	0	prog-catalog.lisp: argument-is-equal-gadget
+program	Argument	Equal	is_not_equal	0	0	0	0	0	prog-catalog.lisp: argument-is-not-equal-gadget, argument-is-not-equal-funspecs-match
+program	Argument	Inject	new	0	0	0	0	0	prog-catalog.lisp: argument-new-gadget
+program	Argument	ToBits	write_bits_be	0	0	0	0	0	prog-catalog.lisp: argument-to-bits-be-gadget
+program	Argument	ToBits	write_bits_le	0	0	0	0	0	prog-catalog.lisp: argument-to-bits-le-gadget
+program	Boolean	Cast	cast	0	0	0	0	0	prog-catalog.lisp: boolean-cast-gadget, boolean-cast-funspecs-match
+program	Boolean	CastLossy	cast_lossy	0	0	0	0	0	prog-catalog.lisp: boolean-cast-lossy-gadget
+program	Ciphertext		decrypt_symmetric	0	0	0	0	0	prog-catalog.lisp: crypto-ciphertext-decrypt-symmetric-gadget
+program	Ciphertext		decrypt_with_randomizers	0	0	0	0	0	prog-catalog.lisp: crypto-ciphertext-decrypt-with-randomizers-gadget
+program	Ciphertext	Equal	is_equal	0	0	0	0	0	prog-catalog.lisp: crypto-ciphertext-is-equal-gadget
+program	Ciphertext	Equal	is_not_equal	0	0	0	0	0	prog-catalog.lisp: crypto-ciphertext-is-not-equal-gadget, crypto-ciphertext-is-not-equal-funspecs-match
+program	Ciphertext	Inject	new	0	0	0	0	0	prog-catalog.lisp: crypto-ciphertext-new-gadget
+program	Ciphertext	ToBits	write_bits_be	0	0	0	0	0	prog-catalog.lisp: crypto-ciphertext-write-bits-be-gadget
+program	Ciphertext	ToBits	write_bits_le	0	0	0	0	0	prog-catalog.lisp: crypto-ciphertext-write-bits-le-gadget
+program	DynamicFuture	Equal	is_equal	1	1	1	1	1	prog-equal.lisp: dynamic-future-is-equal-gadget, dynamic-future-is-equal-gadget-sound, dynamic-future-is-equal-gadget-complete, dynamic-future-is-equal-pred-to-funspec, dynamic-future-is-equal-sample-holds
+program	DynamicFuture	Equal	is_not_equal	1	1	1	1	1	prog-equal.lisp: dynamic-future-is-not-equal-gadget, dynamic-future-is-not-equal-gadget-sound, dynamic-future-is-not-equal-gadget-complete, dynamic-future-is-not-equal-pred-to-funspec, dynamic-future-is-not-equal-sample-holds, dynamic-future-is-not-equal-funspecs-match
+program	DynamicFuture	Inject	new	0	0	0	0	0	prog-catalog.lisp: dynamic-future-new-gadget
+program	DynamicFuture	ToBits	write_bits_be	0	0	0	0	0	prog-catalog.lisp: dynamic-future-to-bits-be-gadget
+program	DynamicFuture	ToBits	write_bits_le	0	0	0	0	0	prog-catalog.lisp: dynamic-future-to-bits-le-gadget
+program	DynamicFuture	ToFields	to_fields	0	0	0	0	0	prog-catalog.lisp: dynamic-future-to-fields-gadget
+program	DynamicRecord		find	0	0	0	0	0	prog-catalog.lisp: dynamic-record-find-gadget
+program	DynamicRecord		from_record	0	0	0	0	0	prog-catalog.lisp: dynamic-record-from-record-gadget
+program	DynamicRecord		merkleize_data	0	0	0	0	0	prog-catalog.lisp: dynamic-record-merkleize-data-gadget
+program	DynamicRecord	Equal	is_equal	0	0	0	0	0	prog-catalog.lisp: dynamic-record-is-equal-gadget
+program	DynamicRecord	Equal	is_not_equal	0	0	0	0	0	prog-catalog.lisp: dynamic-record-is-not-equal-gadget, dynamic-record-is-not-equal-funspecs-match
+program	DynamicRecord	Inject	new	0	0	0	0	0	prog-catalog.lisp: dynamic-record-new-gadget
+program	DynamicRecord	ToBits	write_bits_be	0	0	0	0	0	prog-catalog.lisp: dynamic-record-to-bits-be-gadget
+program	DynamicRecord	ToBits	write_bits_le	0	0	0	0	0	prog-catalog.lisp: dynamic-record-to-bits-le-gadget
+program	DynamicRecord	ToFields	to_fields	0	0	0	0	0	prog-catalog.lisp: dynamic-record-to-fields-gadget
+program	Entry		find	0	0	0	0	0	prog-catalog.lisp: entry-find-gadget
+program	Entry		num_randomizers	0	0	0	0	0	prog-catalog.lisp: entry-num-randomizers-gadget
+program	Entry		to_fields_with_visibility_as_mode	0	0	0	0	0	prog-catalog.lisp: entry-to-fields-with-visibility-as-mode-gadget
+program	Entry		write_bits_le_with_visibility_as_mode	0	0	0	0	0	prog-catalog.lisp: entry-write-bits-le-with-visibility-as-mode-gadget
+program	Entry	Equal	is_equal	0	0	0	0	0	prog-catalog.lisp: entry-is-equal-gadget
+program	Entry	Equal	is_not_equal	0	0	0	0	0	prog-catalog.lisp: entry-is-not-equal-gadget, entry-is-not-equal-funspecs-match
+program	Entry	Inject	new	0	0	0	0	0	prog-catalog.lisp: entry-new-gadget
+program	Entry	ToBits	write_bits_be	0	0	0	0	0	prog-catalog.lisp: entry-to-bits-be-gadget
+program	Entry	ToBits	write_bits_le	0	0	0	0	0	prog-catalog.lisp: entry-to-bits-le-gadget
+program	Entry	ToFields	to_fields	0	0	0	0	0	prog-catalog.lisp: entry-to-fields-gadget
+program	Field	Cast	cast	0	0	0	0	0	prog-catalog.lisp: field-cast-gadget nil; boolean destination only: field-cast-to-boolean-gadget, field-cast-to-boolean-gadget-sound, field-cast-to-boolean-gadget-complete, field-cast-to-boolean-pred-to-funspec, field-cast-to-boolean-sample-holds; other destinations not expanded
+program	Field	CastLossy	cast_lossy	0	0	0	0	0	prog-catalog.lisp: field-cast-lossy-gadget
+program	Future	Equal	is_equal	0	0	0	0	0	prog-catalog.lisp: future-is-equal-gadget
+program	Future	Equal	is_not_equal	0	0	0	0	0	prog-catalog.lisp: future-is-not-equal-gadget, future-is-not-equal-funspecs-match
+program	Future	Inject	new	0	0	0	0	0	prog-catalog.lisp: future-new-gadget
+program	Future	ToBits	write_bits_be	0	0	0	0	0	prog-catalog.lisp: future-to-bits-be-gadget
+program	Future	ToBits	write_bits_le	0	0	0	0	0	prog-catalog.lisp: future-to-bits-le-gadget
+program	Future	ToFields	to_fields	0	0	0	0	0	prog-catalog.lisp: future-to-fields-gadget
+program	HeaderLeaf	ToBits	write_bits_be	0	0	0	0	0	prog-catalog.lisp: header-leaf-to-bits-be-gadget
+program	HeaderLeaf	ToBits	write_bits_le	0	0	0	0	0	prog-catalog.lisp: header-leaf-to-bits-le-gadget
+program	Identifier		public	1	1	1	1	1	prog-ids.lisp: identifier-public-gadget, identifier-public-gadget-sound, identifier-public-gadget-complete, identifier-public-pred-to-funspec, identifier-public-sample-holds
+program	Identifier	Equal	is_equal	1	1	1	1	1	prog-equal.lisp: identifier-is-equal-gadget, identifier-is-equal-gadget-sound, identifier-is-equal-gadget-complete, identifier-is-equal-pred-to-funspec, identifier-is-equal-sample-holds
+program	Identifier	Equal	is_not_equal	1	1	1	1	1	prog-equal.lisp: identifier-is-not-equal-gadget, identifier-is-not-equal-gadget-sound, identifier-is-not-equal-gadget-complete, identifier-is-not-equal-pred-to-funspec, identifier-is-not-equal-sample-holds, identifier-is-not-equal-funspecs-match
+program	Identifier	FromBits	from_bits_be	0	0	0	0	0	prog-catalog.lisp: identifier-from-bits-be-gadget, identifier-from-bits-be-funspecs-match
+program	Identifier	FromBits	from_bits_le	0	0	0	0	0	prog-catalog.lisp: identifier-from-bits-le-gadget
+program	Identifier	FromField	from_field	0	0	0	0	0	prog-catalog.lisp: identifier-from-field-gadget, identifier-from-field-funspecs-match
+program	Identifier	ToBits	write_bits_be	0	0	0	0	0	prog-catalog.lisp: identifier-to-bits-be-gadget
+program	Identifier	ToBits	write_bits_le	0	0	0	0	0	prog-catalog.lisp: identifier-to-bits-le-gadget
+program	IdentifierLiteral	Cast	cast	0	0	0	0	0	prog-catalog.lisp: identifier-literal-cast-gadget
+program	InputID	Inject	new	0	0	0	0	0	prog-catalog.lisp: crypto-input-id-new-gadget
+program	Integer	Cast	cast	0	0	0	0	0	prog-catalog.lisp: integer-cast-gadget
+program	Integer	CastLossy	cast_lossy	0	0	0	0	0	prog-catalog.lisp: integer-cast-lossy-gadget
+program	Literal		from_bits_be	0	0	0	0	0	prog-catalog.lisp: literal-from-bits-be-gadget
+program	Literal		from_bits_le	0	0	0	0	0	prog-catalog.lisp: literal-from-bits-le-gadget
+program	Literal	Equal	is_equal	0	0	0	0	0	prog-catalog.lisp: literal-is-equal-gadget
+program	Literal	Equal	is_not_equal	0	0	0	0	0	prog-catalog.lisp: literal-is-not-equal-gadget, literal-is-not-equal-funspecs-match
+program	Literal	ToBits	write_bits_be	0	0	0	0	0	prog-catalog.lisp: literal-to-bits-be-gadget
+program	Literal	ToBits	write_bits_le	0	0	0	0	0	prog-catalog.lisp: literal-to-bits-le-gadget
+program	Literal	ToFields	to_fields	0	0	0	0	0	prog-catalog.lisp: literal-to-fields-gadget
+program	OutputID		dynamic_future	1	1	1	1	1	prog-ids.lisp: crypto-make-output-id-dynamic-future-gadget, crypto-make-output-id-dynamic-future-gadget-sound, crypto-make-output-id-dynamic-future-gadget-complete, crypto-make-output-id-dynamic-future-pred-to-funspec, crypto-make-output-id-dynamic-future-sample-holds
+program	OutputID		dynamic_record	1	1	1	1	1	prog-ids.lisp: crypto-make-output-id-dynamic-record-gadget, crypto-make-output-id-dynamic-record-gadget-sound, crypto-make-output-id-dynamic-record-gadget-complete, crypto-make-output-id-dynamic-record-pred-to-funspec, crypto-make-output-id-dynamic-record-sample-holds
+program	OutputID		external_record	1	1	1	1	1	prog-ids.lisp: crypto-make-output-id-external-record-gadget, crypto-make-output-id-external-record-gadget-sound, crypto-make-output-id-external-record-gadget-complete, crypto-make-output-id-external-record-pred-to-funspec, crypto-make-output-id-external-record-sample-holds
+program	OutputID		future	1	1	1	1	1	prog-ids.lisp: crypto-make-output-id-future-gadget, crypto-make-output-id-future-gadget-sound, crypto-make-output-id-future-gadget-complete, crypto-make-output-id-future-pred-to-funspec, crypto-make-output-id-future-sample-holds
+program	OutputID		private	1	1	1	1	1	prog-ids.lisp: crypto-make-output-id-private-gadget, crypto-make-output-id-private-gadget-sound, crypto-make-output-id-private-gadget-complete, crypto-make-output-id-private-pred-to-funspec, crypto-make-output-id-private-sample-holds
+program	OutputID		public	1	1	1	1	1	prog-ids.lisp: crypto-make-output-id-public-gadget, crypto-make-output-id-public-gadget-sound, crypto-make-output-id-public-gadget-complete, crypto-make-output-id-public-pred-to-funspec, crypto-make-output-id-public-sample-holds
+program	OutputID		record	1	0	1	0	1	prog-ids.lisp: crypto-make-output-id-record-gadget, crypto-make-output-id-record-gadget-complete, crypto-make-output-id-record-sample-holds
+program	Owner		decrypt	0	0	0	0	0	prog-catalog.lisp: crypto-owner-decrypt-gadget
+program	Owner		encrypt	0	0	0	0	0	prog-catalog.lisp: crypto-owner-encrypt-gadget
+program	Owner		to_entry	0	0	0	0	0	prog-catalog.lisp: crypto-owner-to-entry-gadget
+program	Owner	Equal	is_equal	0	0	0	0	0	prog-catalog.lisp: crypto-owner-is-equal-gadget
+program	Owner	Equal	is_not_equal	0	0	0	0	0	prog-catalog.lisp: crypto-owner-is-not-equal-gadget
+program	Owner	Inject	new	0	0	0	0	0	prog-catalog.lisp: crypto-owner-new-gadget
+program	Plaintext		encrypt	0	0	0	0	0	prog-catalog.lisp: plaintext-encrypt-gadget
+program	Plaintext		encrypt_symmetric	0	0	0	0	0	prog-catalog.lisp: plaintext-encrypt-symmetric-gadget
+program	Plaintext		encrypt_with_randomizers	0	0	0	0	0	prog-catalog.lisp: plaintext-encrypt-with-randomizers-gadget
+program	Plaintext		find	0	0	0	0	0	prog-catalog.lisp: plaintext-find-gadget
+program	Plaintext		from_bit_array	0	0	0	0	0	prog-catalog.lisp: plaintext-from-bit-array-gadget
+program	Plaintext		from_bits_be_internal	0	0	0	0	0	prog-catalog.lisp: plaintext-from-bits-be-internal-gadget
+program	Plaintext		from_bits_le_internal	0	0	0	0	0	prog-catalog.lisp: plaintext-from-bits-le-internal-gadget
+program	Plaintext		num_randomizers	0	0	0	0	0	prog-catalog.lisp: plaintext-num-randomizers-gadget, plaintext-num-randomizers-funspecs-match
+program	Plaintext	Equal	is_equal	0	0	0	0	0	prog-catalog.lisp: plaintext-is-equal-gadget
+program	Plaintext	Equal	is_not_equal	0	0	0	0	0	prog-catalog.lisp: plaintext-is-not-equal-gadget, plaintext-is-not-equal-funspecs-match
+program	Plaintext	From	from	0	0	0	0	0	prog-catalog.lisp: plaintext-from-gadget, plaintext-from-funspecs-match
+program	Plaintext	FromBits	from_bits_be	0	0	0	0	0	prog-catalog.lisp: plaintext-from-bits-be-gadget, plaintext-from-bits-be-funspecs-match
+program	Plaintext	FromBits	from_bits_le	0	0	0	0	0	prog-catalog.lisp: plaintext-from-bits-le-gadget, plaintext-from-bits-le-funspecs-match
+program	Plaintext	FromFields	from_fields	0	0	0	0	0	prog-catalog.lisp: plaintext-from-fields-gadget
+program	Plaintext	Inject	new	0	0	0	0	0	prog-catalog.lisp: plaintext-new-gadget
+program	Plaintext	ToBits	write_bits_be	0	0	0	0	0	prog-catalog.lisp: plaintext-to-bits-be-gadget
+program	Plaintext	ToBits	write_bits_le	0	0	0	0	0	prog-catalog.lisp: plaintext-to-bits-le-gadget
+program	Plaintext	ToBitsRaw	write_bits_raw_be	0	0	0	0	0	prog-catalog.lisp: plaintext-to-bits-raw-be-gadget
+program	Plaintext	ToBitsRaw	write_bits_raw_le	0	0	0	0	0	prog-catalog.lisp: plaintext-to-bits-raw-le-gadget
+program	Plaintext	ToFields	to_fields	0	0	0	0	0	prog-catalog.lisp: plaintext-to-fields-gadget
+program	Plaintext	ToFieldsRaw	to_fields_raw	0	0	0	0	0	prog-catalog.lisp: plaintext-to-fields-raw-gadget
+program	Plaintext	Visibility	size_in_fields	0	0	0	0	0	prog-catalog.lisp: plaintext-size-in-fields-gadget
+program	ProgramID		public	1	1	1	1	1	prog-ids.lisp: program-id-public-gadget, program-id-public-gadget-sound, program-id-public-gadget-complete, program-id-public-pred-to-funspec, program-id-public-sample-holds
+program	ProgramID		to_address	1	0	0	0	1	prog-ids.lisp: empty non-hash gadget and completeness only; hash_to_group excluded, soundness not claimed
+program	ProgramID	Equal	is_equal	1	1	1	1	1	prog-equal.lisp: program-id-is-equal-gadget, program-id-is-equal-gadget-sound, program-id-is-equal-gadget-complete, program-id-is-equal-pred-to-funspec, program-id-is-equal-sample-holds
+program	ProgramID	Equal	is_not_equal	1	1	1	1	1	prog-equal.lisp: program-id-is-not-equal-gadget, program-id-is-not-equal-gadget-sound, program-id-is-not-equal-gadget-complete, program-id-is-not-equal-pred-to-funspec, program-id-is-not-equal-sample-holds
+program	ProgramID	ToBits	write_bits_be	0	0	0	0	0	prog-catalog.lisp: program-id-to-bits-be-gadget
+program	ProgramID	ToBits	write_bits_le	0	0	0	0	0	prog-catalog.lisp: program-id-to-bits-le-gadget
+program	ProgramID	ToFields	to_fields	1	1	1	1	1	prog-ids.lisp: program-id-to-fields-gadget, program-id-to-fields-gadget-sound, program-id-to-fields-gadget-complete, program-id-to-fields-pred-to-funspec, program-id-to-fields-sample-holds
+program	Record		decrypt	0	0	0	0	0	prog-catalog.lisp: crypto-record-decrypt-gadget
+program	Record		decrypt_symmetric_unchecked	0	0	0	0	0	prog-catalog.lisp: crypto-record-decrypt-symmetric-unchecked-gadget
+program	Record		decrypt_with_randomizers	0	0	0	0	0	prog-catalog.lisp: crypto-record-decrypt-with-randomizers-gadget
+program	Record		encrypt	0	0	0	0	0	prog-catalog.lisp: crypto-record-encrypt-gadget, crypto-record-encrypt-funspecs-match
+program	Record		encrypt_symmetric	0	0	0	0	0	prog-catalog.lisp: crypto-record-encrypt-symmetric-gadget
+program	Record		encrypt_symmetric_unchecked	0	0	0	0	0	prog-catalog.lisp: crypto-record-encrypt-symmetric-unchecked-gadget
+program	Record		encrypt_with_randomizers	0	0	0	0	0	prog-catalog.lisp: crypto-record-encrypt-with-randomizers-gadget
+program	Record		find	0	0	0	0	0	prog-catalog.lisp: crypto-record-find-gadget
+program	Record		is_hiding	1	1	1	1	1	prog-equal.lisp: crypto-record-is-hiding-gadget, crypto-record-is-hiding-gadget-sound, crypto-record-is-hiding-gadget-complete, crypto-record-is-hiding-pred-to-funspec, crypto-record-is-hiding-sample-holds
+program	Record		num_randomizers	0	0	0	0	0	prog-catalog.lisp: crypto-record-num-randomizers-gadget
+program	Record		serial_number	0	0	0	0	0	prog-catalog.lisp: crypto-record-serial-number-gadget
+program	Record		serial_number_from_gamma	0	0	0	0	0	prog-catalog.lisp: crypto-record-serial-number-from-gamma-gadget
+program	Record		to_commitment	0	0	0	0	0	prog-catalog.lisp: crypto-record-to-commitment-gadget
+program	Record	Equal	is_equal	0	0	0	0	0	prog-catalog.lisp: crypto-record-is-equal-gadget
+program	Record	Equal	is_not_equal	0	0	0	0	0	prog-catalog.lisp: crypto-record-is-not-equal-gadget, crypto-record-is-not-equal-funspecs-match
+program	Record	Inject	new	0	0	0	0	0	prog-catalog.lisp: crypto-record-new-gadget
+program	Record	ToBits	write_bits_be	0	0	0	0	0	prog-catalog.lisp: crypto-record-write-bits-be-gadget
+program	Record	ToBits	write_bits_le	0	0	0	0	0	prog-catalog.lisp: crypto-record-write-bits-le-gadget
+program	Record	ToFields	to_fields	0	0	0	0	0	prog-catalog.lisp: crypto-record-to-fields-gadget
+program	Request		check_input_ids	0	0	0	0	0	prog-catalog.lisp: crypto-request-check-input-ids-gadget
+program	Request		to_tpk	0	0	0	0	0	prog-catalog.lisp: crypto-request-to-tpk-gadget
+program	Request		verify	0	0	0	0	0	prog-catalog.lisp: crypto-request-verify-gadget
+program	Request	Inject	new	0	0	0	0	0	prog-catalog.lisp: crypto-request-new-gadget
+program	Response		from_outputs	0	0	0	0	0	prog-catalog.lisp: crypto-response-from-outputs-gadget
+program	Response		process_outputs_from_callback	0	0	0	0	0	prog-catalog.lisp: crypto-response-process-outputs-from-callback-gadget
+program	Scalar	Cast	cast	0	0	0	0	0	prog-catalog.lisp: scalar-cast-gadget
+program	Scalar	CastLossy	cast_lossy	0	0	0	0	0	prog-catalog.lisp: scalar-cast-lossy-gadget
+program	StatePath		verify	0	0	0	0	0	prog-catalog.lisp: crypto-state-path-verify-gadget
+program	TransactionLeaf	ToBits	write_bits_be	0	0	0	0	0	prog-catalog.lisp: transaction-leaf-to-bits-be-gadget
+program	TransactionLeaf	ToBits	write_bits_le	0	0	0	0	0	prog-catalog.lisp: transaction-leaf-to-bits-le-gadget
+program	TransitionLeaf	ToBits	write_bits_be	0	0	0	0	0	prog-catalog.lisp: transition-leaf-to-bits-be-gadget
+program	TransitionLeaf	ToBits	write_bits_le	0	0	0	0	0	prog-catalog.lisp: transition-leaf-to-bits-le-gadget
+program	Value		find	0	0	0	0	0	prog-catalog.lisp: value-find-gadget
+program	Value	Equal	is_equal	0	0	0	0	0	prog-catalog.lisp: value-is-equal-gadget
+program	Value	Equal	is_not_equal	0	0	0	0	0	prog-catalog.lisp: value-is-not-equal-gadget, value-is-not-equal-funspecs-match
+program	Value	Inject	new	0	0	0	0	0	prog-catalog.lisp: value-new-gadget
+program	Value	ToBits	write_bits_be	0	0	0	0	0	prog-catalog.lisp: value-to-bits-be-gadget
+program	Value	ToBits	write_bits_le	0	0	0	0	0	prog-catalog.lisp: value-to-bits-le-gadget
+program	Value	ToBitsRaw	write_bits_raw_be	0	0	0	0	0	prog-catalog.lisp: value-to-bits-raw-be-gadget
+program	Value	ToBitsRaw	write_bits_raw_le	0	0	0	0	0	prog-catalog.lisp: value-to-bits-raw-le-gadget
+program	Value	ToFields	to_fields	0	0	0	0	0	prog-catalog.lisp: value-to-fields-gadget
+program	Value	ToFieldsRaw	to_fields_raw	0	0	0	0	0	prog-catalog.lisp: value-to-fields-raw-gadget
