@@ -222,7 +222,7 @@ const DATA: Raw = {
     ["program","OutputID","","private","111111","","","program/src/response/mod.rs:94"],
     ["program","OutputID","","public","111111","","","program/src/response/mod.rs:84"],
     ["program","OutputID","","record","110111","","","program/src/response/mod.rs:104"],
-    ["program","Owner","","decrypt","100000","","","program/src/data/record/helpers/owner.rs:145"],
+    ["program","Owner","","decrypt","110010","","","program/src/data/record/helpers/owner.rs:145"],
     ["program","Owner","","encrypt","110001","Address::new on the owner address wires (the point is groupp)","","program/src/data/record/helpers/owner.rs:118"],
     ["program","Owner","","to_entry","110011","Address::new on the owner address","","program/src/data/record/helpers/owner.rs:86"],
     ["program","Owner","Equal","is_equal","110011","Address::new on each owner address","","program/src/data/record/helpers/owner.rs:98"],
