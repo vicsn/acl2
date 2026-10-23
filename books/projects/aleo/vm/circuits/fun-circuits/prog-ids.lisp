@@ -863,9 +863,10 @@
   :rule-classes nil)
 
 (defruled crypto-make-output-id-record-gadget-sound
-  :short "R1CS-SOUND: the output ID carries the expected commitment and
-          checksum, and a sender ciphertext equal to the expected one or
-          zero (the zero option of @('OutputID::record'))."
+  :short "R1CS-SOUND: the output ID is
+          @('crypto-make-output-id-record-with-sender') of the expected
+          values and the injected sender ciphertext, which is not an error,
+          i.e. that ciphertext is the expected one or zero."
   (implies (and (symbolp oc) (symbolp ec)
                 (symbolp ok) (symbolp ek)
                 (symbolp os) (symbolp es)
@@ -889,14 +890,14 @@
                  (crypto-make-output-id-record-gadget
                   oc ec ok ek os es m-eq r-eq m-z r-z or-bit p)
                  asg p))
-           (b* ((id (crypto-output-id-record (lookup-equal oc asg)
-                                             (lookup-equal ok asg)
-                                             (lookup-equal os asg))))
-             (or (equal id (crypto-make-output-id-record
-                            (lookup-equal ec asg) (lookup-equal ek asg)
-                            (lookup-equal es asg)))
-                 (equal id (crypto-make-output-id-record
-                            (lookup-equal ec asg) (lookup-equal ek asg) 0)))))
+           (b* ((id (crypto-make-output-id-record-with-sender
+                     (lookup-equal ec asg) (lookup-equal ek asg)
+                     (lookup-equal es asg) (lookup-equal os asg))))
+             (and (not (reserrp id))
+                  (equal (crypto-output-id-record (lookup-equal oc asg)
+                                                  (lookup-equal ok asg)
+                                                  (lookup-equal os asg))
+                         id))))
   :do-not-induct t
   :use ((:instance prog-ids-zero-test-bit
          (d (pfield::sub (lookup-equal os asg) (lookup-equal es asg) p))
@@ -911,7 +912,7 @@
                    prog-demorgan-or-gadget-to-mul
                    prog-assert-gadget-to-funspec
                    assert-funspec enforce-funspec
-                   crypto-make-output-id-record
+                   crypto-make-output-id-record-with-sender
                    r1cs::r1cs-constraints-holdp-of-append
                    r1cs::fep-of-lookup-equal primep-of-base-prime)
                   ((:e base-prime))))
