@@ -222,3 +222,4 @@
 (include-book "enc-record-enc")
 (include-book "key-ck-addr")
 (include-book "sig-verify")
+(include-book "fb3-field-upper-checked")
