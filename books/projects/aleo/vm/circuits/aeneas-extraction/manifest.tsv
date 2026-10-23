@@ -190,9 +190,9 @@ types/scalar	Scalar	Zero	is_zero	match	scalar-is-zero-extraction
 types/string			is_invalid_digit_offset	not-checked		
 types/string			is_invalid_lowercase_offset	not-checked		
 types/string			is_invalid_uppercase_offset	not-checked		
-types/string			validate_byte	not-checked		validate-byte-gadget has the same constraints in a different order
+types/string			validate_byte	match	validate-byte-extraction	same constraints up to order
 types/string			validate_identifier_bytes	not-checked		validate-identifier-bytes-gadget is a 2-byte instance; snarkVM validates 31 bytes
-types/string			validate_trailing_nulls	not-checked		
+types/string			validate_trailing_nulls	match	validate-trailing-nulls-extraction	
 types/string	ByteValidationData		new	not-checked		
 types/string	IdentifierLiteral	Equal	is_equal	not-checked		
 types/string	IdentifierLiteral	Equal	is_not_equal	not-checked		
@@ -210,19 +210,19 @@ account	Signature	Equal	is_not_equal	match	signature-is-not-equal-extraction	sam
 account	Signature	Ternary	ternary	match	signature-ternary-extraction	
 account	Signature	ToBits	write_bits_be	match	signature-write-bits-extraction	same constraints as write_bits_le
 account	Signature	ToBits	write_bits_le	match	signature-write-bits-extraction	
-algorithms	BHP	Commit	commit	not-checked		the BHP bases are abstract hash-to-curve outputs in the formalisation (hbhp-setup-gens), and the window lookups use 253-bit constants the model's i128 constants cannot hold
-algorithms	BHP	CommitUncompressed	commit_uncompressed	not-checked		the BHP bases are abstract hash-to-curve outputs in the formalisation (hbhp-setup-gens), and the window lookups use 253-bit constants the model's i128 constants cannot hold
-algorithms	BHP	HashUncompressed	hash_uncompressed	not-checked		the BHP bases are abstract hash-to-curve outputs in the formalisation (hbhp-setup-gens), and the window lookups use 253-bit constants the model's i128 constants cannot hold
-algorithms	BHPHasher	HashUncompressed	hash_uncompressed	not-checked		the BHP bases are abstract hash-to-curve outputs in the formalisation (hbhp-setup-gens), and the window lookups use 253-bit constants the model's i128 constants cannot hold
-algorithms	Elligator2		encode	not-checked		the circuit uses the Montgomery and Edwards curve constants and (p - 1) / 2, which do not fit the model's i128 constants
+algorithms	BHP	Commit	commit	not-checked		the BHP bases are abstract hash-to-curve outputs in the formalisation (hbhp-setup-gens)
+algorithms	BHP	CommitUncompressed	commit_uncompressed	not-checked		the BHP bases are abstract hash-to-curve outputs in the formalisation (hbhp-setup-gens)
+algorithms	BHP	HashUncompressed	hash_uncompressed	not-checked		the BHP bases are abstract hash-to-curve outputs in the formalisation (hbhp-setup-gens)
+algorithms	BHPHasher	HashUncompressed	hash_uncompressed	match	bhp-hasher-hash-uncompressed-extraction	instances with 15/14/13 windows of 3/3/2 chunks; the bases are named constants given the hbhp-tab values for bases (n+1)G
+algorithms	Elligator2		encode	match	elligator2-encode-extraction	curve constants and (p - 1) / 2 are folded in the model's constant arena
 algorithms	Keccak		pad_keccak	match	keccak-pad-extraction	no constraints
 algorithms	Keccak		pad_sha3	match	keccak-pad-extraction	no constraints
 algorithms	Keccak		permutation_f	match	keccak-permutation-extraction	all 24 rounds
 algorithms	Keccak		rotate_left	match	keccak-round-extraction	no constraints; covered by round (rho)
 algorithms	Keccak		round	match	keccak-round-extraction	rounds 0, 1 and 23
-algorithms	Pedersen	Commit	commit	not-checked		the Pedersen bases are 253-bit group constants the model's i128 constants cannot hold
-algorithms	Pedersen	CommitUncompressed	commit_uncompressed	not-checked		the Pedersen bases are 253-bit group constants the model's i128 constants cannot hold
-algorithms	Pedersen	HashUncompressed	hash_uncompressed	not-checked		the Pedersen bases are 253-bit group constants the model's i128 constants cannot hold
+algorithms	Pedersen	Commit	commit	not-checked		the Pedersen bases are 253-bit group constants are not extracted yet
+algorithms	Pedersen	CommitUncompressed	commit_uncompressed	not-checked		the Pedersen bases are 253-bit group constants are not extracted yet
+algorithms	Pedersen	HashUncompressed	hash_uncompressed	not-checked		the Pedersen bases are 253-bit group constants are not extracted yet
 algorithms	Poseidon		absorb	match	poseidon-sponge-extraction	test parameters (ark 7i + j + 3, mds i + 2j + 1, alpha 17), as the hpos- generators are generic over the constants; the model cannot hold the network constants
 algorithms	Poseidon		apply_ark	match	poseidon-permute-extraction	no constraints; covered by permute; test parameters (ark 7i + j + 3, mds i + 2j + 1, alpha 17), as the hpos- generators are generic over the constants; the model cannot hold the network constants
 algorithms	Poseidon		apply_mds	match	poseidon-permute-extraction	no constraints; covered by permute; test parameters (ark 7i + j + 3, mds i + 2j + 1, alpha 17), as the hpos- generators are generic over the constants; the model cannot hold the network constants
@@ -230,9 +230,9 @@ algorithms	Poseidon		apply_s_box	match	poseidon-permute-extraction	full and part
 algorithms	Poseidon		permute	match	poseidon-permute-extraction	test parameters (ark 7i + j + 3, mds i + 2j + 1, alpha 17), as the hpos- generators are generic over the constants; the model cannot hold the network constants
 algorithms	Poseidon		squeeze	match	poseidon-sponge-extraction	test parameters (ark 7i + j + 3, mds i + 2j + 1, alpha 17), as the hpos- generators are generic over the constants; the model cannot hold the network constants
 algorithms	Poseidon		squeeze_internal	match	poseidon-sponge-extraction	test parameters (ark 7i + j + 3, mds i + 2j + 1, alpha 17), as the hpos- generators are generic over the constants; the model cannot hold the network constants
-algorithms	Poseidon	HashMany	hash_many	match	poseidon-hash-many-extraction	zero rounds: the first permutation runs on the constant preimage block, which snarkVM folds mod p and the model's i128 constants cannot; the rounds are checked by permute and the sponge; test parameters (ark 7i + j + 3, mds i + 2j + 1, alpha 17), as the hpos- generators are generic over the constants; the model cannot hold the network constants
+algorithms	Poseidon	HashMany	hash_many	match	poseidon-hash-many-extraction	network parameters (rates 2, 4, 8) with full rounds; constants are named and given their values
 algorithms	Poseidon	HashToGroup	hash_to_group	not-checked		Elligator2 on the hash outputs; see Elligator2::encode
-algorithms	Poseidon	HashToScalar	hash_to_scalar	match	poseidon-hash-to-scalar-extraction	zero rounds, as for hash_many; test parameters (ark 7i + j + 3, mds i + 2j + 1, alpha 17), as the hpos- generators are generic over the constants; the model cannot hold the network constants
+algorithms	Poseidon	HashToScalar	hash_to_scalar	match	poseidon-hash-to-scalar-extraction	network parameters (rates 2, 4, 8) with full rounds
 algorithms	Poseidon	Inject	new	match	poseidon-new-extraction	no constraints
 collections	BHP	PathHash	hash_children	not-checked		BHP hash; see the BHP rows
 collections	BooleanHash	Equal	is_equal	match	boolean-hash-is-equal-extraction	same constraints in a different order: the lazy map interleaves each XOR with the AND fold
@@ -306,7 +306,6 @@ program	Owner	Equal	is_equal	match	owner-is-equal-extraction	Owner<Plaintext>, a
 program	Owner	Equal	is_not_equal	match	owner-is-not-equal-extraction	Owner<Plaintext>, all four variant pairs
 program	Owner	Inject	new	match	owner-new-extraction	Address::new; a private Owner<Ciphertext> is Ciphertext::new (ciphertext-new-extraction)
 program	Plaintext		find	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
-program	Plaintext		from_bit_array	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
 program	Plaintext		num_randomizers	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
 program	Plaintext	Equal	is_equal	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
 program	Plaintext	Equal	is_not_equal	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
@@ -342,3 +341,60 @@ program	Value	ToBitsRaw	write_bits_raw_be	not-checked		no concrete gadget: the c
 program	Value	ToBitsRaw	write_bits_raw_le	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
 program	Value	ToFields	to_fields	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
 program	Value	ToFieldsRaw	to_fields_raw	not-checked		no concrete gadget: the circuit is over the mutually recursive Plaintext/Entry/Future/Argument/Record/Value wire trees, whose leaf circuits are abstract (ptx- interface contracts) or not assembled
+account	ComputeKey		to_address	not-checked		composition of network gadgets (g_scalar_multiply, hashes); not extracted yet
+account	ComputeKey	From	from	not-checked		composition of network gadgets (g_scalar_multiply, hashes); not extracted yet
+account	ComputeKey	Inject	new	not-checked		composition of network gadgets (g_scalar_multiply, hashes); not extracted yet
+account	ComputeKey	Ternary	ternary	not-checked		composition of network gadgets (g_scalar_multiply, hashes); not extracted yet
+account	Signature	Inject	new	not-checked		composition of network gadgets (g_scalar_multiply, hashes); not extracted yet
+account	ViewKey		to_address	not-checked		composition of network gadgets (g_scalar_multiply, hashes); not extracted yet
+collections	<trait default>	PathHash	hash_empty	not-checked		composition of BHP/Poseidon hashes; not extracted yet
+collections	MerklePath		verify	not-checked		composition of BHP/Poseidon hashes; not extracted yet
+network	AleoV0	Aleo	commit_bhp1024	not-checked		BHP network instance; only BHPHasher::hash_uncompressed is extracted so far
+network	AleoV0	Aleo	commit_bhp256	not-checked		BHP network instance; only BHPHasher::hash_uncompressed is extracted so far
+network	AleoV0	Aleo	commit_bhp512	not-checked		BHP network instance; only BHPHasher::hash_uncompressed is extracted so far
+network	AleoV0	Aleo	commit_bhp768	not-checked		BHP network instance; only BHPHasher::hash_uncompressed is extracted so far
+network	AleoV0	Aleo	commit_ped128	not-checked		Pedersen network instance; Pedersen is not extracted yet
+network	AleoV0	Aleo	commit_ped64	not-checked		Pedersen network instance; Pedersen is not extracted yet
+network	AleoV0	Aleo	commit_to_group_bhp1024	not-checked		BHP network instance; only BHPHasher::hash_uncompressed is extracted so far
+network	AleoV0	Aleo	commit_to_group_bhp256	not-checked		BHP network instance; only BHPHasher::hash_uncompressed is extracted so far
+network	AleoV0	Aleo	commit_to_group_bhp512	not-checked		BHP network instance; only BHPHasher::hash_uncompressed is extracted so far
+network	AleoV0	Aleo	commit_to_group_bhp768	not-checked		BHP network instance; only BHPHasher::hash_uncompressed is extracted so far
+network	AleoV0	Aleo	commit_to_group_ped128	not-checked		Pedersen network instance; Pedersen is not extracted yet
+network	AleoV0	Aleo	commit_to_group_ped64	not-checked		Pedersen network instance; Pedersen is not extracted yet
+network	AleoV0	Aleo	g_scalar_multiply	not-checked		not extracted yet; the generator powers would be named constants as in record-encrypt-symmetric-extraction
+network	AleoV0	Aleo	hash_many_psd2	match	poseidon-hash-many-extraction	Poseidon2 network instance
+network	AleoV0	Aleo	hash_many_psd4	match	poseidon-hash-many-extraction	Poseidon4 network instance
+network	AleoV0	Aleo	hash_many_psd8	match	poseidon-hash-many-extraction	Poseidon8 network instance
+network	AleoV0	Aleo	hash_to_group_bhp1024	not-checked		BHP network instance; only BHPHasher::hash_uncompressed is extracted so far
+network	AleoV0	Aleo	hash_to_group_bhp256	not-checked		BHP network instance; only BHPHasher::hash_uncompressed is extracted so far
+network	AleoV0	Aleo	hash_to_group_bhp512	not-checked		BHP network instance; only BHPHasher::hash_uncompressed is extracted so far
+network	AleoV0	Aleo	hash_to_group_bhp768	not-checked		BHP network instance; only BHPHasher::hash_uncompressed is extracted so far
+network	AleoV0	Aleo	hash_to_group_ped128	not-checked		Pedersen network instance; Pedersen is not extracted yet
+network	AleoV0	Aleo	hash_to_group_ped64	not-checked		Pedersen network instance; Pedersen is not extracted yet
+network	AleoV0	Aleo	hash_to_group_psd2	not-checked		Poseidon hash_to_group composes Elligator2 and the Edwards cofactor clear; not extracted yet
+network	AleoV0	Aleo	hash_to_group_psd4	not-checked		Poseidon hash_to_group composes Elligator2 and the Edwards cofactor clear; not extracted yet
+network	AleoV0	Aleo	hash_to_group_psd8	not-checked		Poseidon hash_to_group composes Elligator2 and the Edwards cofactor clear; not extracted yet
+network	AleoV0	Aleo	hash_to_scalar_psd2	match	poseidon-hash-to-scalar-extraction	Poseidon2 network instance
+network	AleoV0	Aleo	hash_to_scalar_psd4	match	poseidon-hash-to-scalar-extraction	Poseidon4 network instance
+network	AleoV0	Aleo	hash_to_scalar_psd8	match	poseidon-hash-to-scalar-extraction	Poseidon8 network instance
+network	AleoV0	Aleo	verify_merkle_path_bhp	not-checked		BHP network instance; only BHPHasher::hash_uncompressed is extracted so far
+network	AleoV0	Aleo	verify_merkle_path_psd	not-checked		Merkle path verification over network hashes; see collections MerklePath::verify
+program	OutputID		record	match	output-id-record-extraction	
+program	Owner		encrypt	not-checked		composition over Plaintext/Record wire trees and network gadgets; not extracted yet
+program	Plaintext		encrypt	not-checked		composition over Plaintext/Record wire trees and network gadgets; not extracted yet
+program	Plaintext		encrypt_symmetric	not-checked		composition over Plaintext/Record wire trees and network gadgets; not extracted yet
+program	Plaintext		encrypt_with_randomizers	not-checked		composition over Plaintext/Record wire trees and network gadgets; not extracted yet
+program	ProgramID		to_address	not-checked		composition over Plaintext/Record wire trees and network gadgets; not extracted yet
+program	Record		decrypt	match	record-decrypt-public-extraction	public owner, no entries; compared against a composition of verified gadgets (no single decrypt gadget)
+program	Record		encrypt	not-checked		composition over Plaintext/Record wire trees and network gadgets; not extracted yet
+program	Record		encrypt_symmetric	match	record-encrypt-symmetric-extraction	private and public owner, no entries
+program	Record		encrypt_symmetric_unchecked	not-checked		composition over Plaintext/Record wire trees and network gadgets; not extracted yet
+program	Record		encrypt_with_randomizers	not-checked		composition over Plaintext/Record wire trees and network gadgets; not extracted yet
+types/field	Field		square_roots_flagged_nondeterministic	match	field-square-roots-flagged-extraction	
+types/field	Field		to_non_unique_bits_le	match	field-to-non-unique-bits-le-extraction	
+types/field	Field	DivUnchecked	div_unchecked	match	field-div-unchecked-extraction	
+types/field	Field	ToLowerBits	to_lower_bits_be	match	field-to-lower-bits-be-extraction	
+types/field	Field	ToLowerBits	to_lower_bits_le	match	field-to-lower-bits-le-extraction	
+types/field	Field	ToUpperBits	to_upper_bits_be	match	field-to-upper-bits-be-extraction	pinned snarkVM; upstream later added a range check
+types/field	Field	ToUpperBits	to_upper_bits_le	match	field-to-upper-bits-le-extraction	pinned snarkVM; upstream later added a range check
+types/group	Group		from_x_coordinate_flagged	match	group-from-x-coordinate-flagged-extraction	

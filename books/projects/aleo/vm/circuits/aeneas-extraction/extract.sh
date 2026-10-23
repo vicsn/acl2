@@ -41,14 +41,14 @@ cd /ws
 books/build/cert.pl --include-excludes --acl2 /root/acl2/saved_acl2 -j 3 \
   $EXT/check-boolean $EXT/check-field $EXT/check-integer $EXT/check-scalar \
   $EXT/check-group $EXT/check-address $EXT/check-integer-pow $EXT/check-account \
-  $EXT/check-program $EXT/check-program-data $EXT/check-poseidon $EXT/check-keccak
+  $EXT/check-program $EXT/check-program-data $EXT/check-hash $EXT/check-poseidon $EXT/check-keccak
 "
 
 echo '== manifest'
 python3 - "$REPO/aleovm_circuit_function_formalisation_status.csv" manifest.tsv <<'EOF'
 import csv, re, sys, glob
 key = lambda r: (r['crate'], r['type'], r['trait'], r['function'])
-verified = {key(r) for r in csv.DictReader(open(sys.argv[1])) if r['STATUS'] == 'verified'}
+verified = {key(r) for r in csv.DictReader(open(sys.argv[1])) if r['STATUS'] == 'verified' or r['MANUAL-CONSTRAINTS'] == '1'}
 rows = list(csv.DictReader(open(sys.argv[2]), delimiter='\t'))
 listed = {key(r) for r in rows}
 names = set()
@@ -60,7 +60,11 @@ if verified != listed or bad:
     print('missing:', sorted(verified - listed), 'extra:', sorted(listed - verified),
           'unknown checks:', bad, file=sys.stderr)
     sys.exit(1)
-print(len(rows), 'verified rows listed')
+print(len(rows), 'verified or MANUAL-CONSTRAINTS rows listed')
+manual = [r for r in rows if r['result'] == 'not-checked' and key(r) in {key(c) for c in csv.DictReader(open(sys.argv[1])) if c['MANUAL-CONSTRAINTS'] == '1'}]
+if manual:
+    print('MANUAL-CONSTRAINTS rows not checked:', [key(r) for r in manual], file=sys.stderr)
+    sys.exit(1)
 EOF
 
 echo "extraction matches circuits.lisp and the checks certify"
