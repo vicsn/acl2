@@ -21,6 +21,7 @@
 (include-book "../fun-circuits/rec-dynamic-record")
 (include-book "../fun-circuits/rec-dynamic-record-eq")
 (include-book "../fun-circuits/lit-literal-to-fields")
+(include-book "../fun-circuits/val-string-validate")
 (include-book "../fun-circuits/lit-literal-equal")
 
 (defconst *u* '((u . 1)))
@@ -238,3 +239,34 @@
 (defcheck literal-is-not-equal-mismatch-extraction
   (same-circuit (ext-run (acl2::circuits-h-lit-equal-mismatch *fuel* t))
                 (lit-literal-equal-mismatch-gadget) nil))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; IdentifierLiteral validate_byte on the bits W1..W8. The wires are b4b3 W9,
+; b1b0 W10, the is_not_equal output r W11 and its witness m W12, null W13,
+; lower W14, then the digit, uppercase and lowercase offset wires W15..W20.
+; The first byte adds partial W21, the underscore flag W22 and letter W23.
+; snarkVM emits the null check before the offset helpers.
+
+(defcheck validate-byte-extraction
+  (and (same-circuit-unordered
+        (ext-run (acl2::circuits-h-il *fuel* 0 0 nil))
+        (validate-byte-gadget (wv 1) (wv 2) (wv 3) (wv 4) (wv 5) (wv 6) (wv 7) (wv 8)
+                              (wv 9) (wv 10) (wv 12) (wv 11) (wv 14) (wv 13)
+                              (wv 15) (wv 16) (wv 17) (wv 18) (wv 19) (wv 20)
+                              (base-prime))
+        nil)
+       (same-circuit-unordered
+        (ext-run (acl2::circuits-h-il *fuel* 0 0 t))
+        (validate-first-byte-gadget (wv 1) (wv 2) (wv 3) (wv 4) (wv 5) (wv 6) (wv 7) (wv 8)
+                                    (wv 9) (wv 10) (wv 12) (wv 11) (wv 14) (wv 13)
+                                    (wv 15) (wv 16) (wv 17) (wv 18) (wv 19) (wv 20)
+                                    (wv 21) (wv 22) (wv 23)
+                                    (base-prime))
+        nil)))
+
+; validate_trailing_nulls on the 31 null flags W1..W31.
+(defcheck validate-trailing-nulls-extraction
+  (same-circuit (ext-run (acl2::circuits-h-il *fuel* 7 31 nil))
+                (validate-trailing-nulls-gadget (wvs 1 31) (base-prime))
+                nil))

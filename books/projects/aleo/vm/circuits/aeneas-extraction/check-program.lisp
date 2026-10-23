@@ -282,6 +282,15 @@
 (defcheck output-id-external-record-extraction
   (output-id-check (crypto-make-output-id-external-record-gadget (wv 2) (wv 1))))
 
+; OutputID::record: expected W1..W3, injected W4..W6, the two is_not_equal
+; pairs (r, m) W7, W8 and W9, W10, and the OR W11.
+(defcheck output-id-record-extraction
+  (same-circuit (ext-run (acl2::circuits-h-p-output-id-record *fuel*))
+                (crypto-make-output-id-record-gadget (wv 4) (wv 1) (wv 5) (wv 2) (wv 6) (wv 3)
+                                                     (wv 8) (wv 7) (wv 10) (wv 9) (wv 11)
+                                                     (base-prime))
+                nil))
+
 (defcheck output-id-future-extraction
   (output-id-check (crypto-make-output-id-future-gadget (wv 2) (wv 1))))
 
