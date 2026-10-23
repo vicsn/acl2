@@ -1,4 +1,4 @@
 [submodule "books/projects/aleo/vm/snarkVM"]
 	path = books/projects/aleo/vm/snarkVM
 	url = https://github.com/ProvableHQ/snarkVM.git
-	branch = formal
+	branch = staging
