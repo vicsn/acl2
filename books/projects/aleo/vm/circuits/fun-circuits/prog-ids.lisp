@@ -849,6 +849,73 @@
     (os . 3) (es . 3) (m-eq . 1) (r-eq . 0)
     (m-z . 2) (r-z . 1) (or-bit . 1)))
 
+(defthm prog-ids-zero-test-bit
+  (implies (and (primep p)
+                (pfield::fep d p)
+                (pfield::fep r p)
+                (equal (pfield::mul d m p) r)
+                (equal (pfield::mul d (pfield::sub 1 r p) p) 0))
+           (equal r (if (equal d 0) 0 1)))
+  :hints (("Goal" :do-not-induct t :cases ((equal d 0)))
+          ("Subgoal 1" :in-theory (enable pfield::mul))
+          ("Subgoal 2" :use (:instance pfield::equal-of-0-and-mul
+                                       (x d) (y (pfield::sub 1 r p)))))
+  :rule-classes nil)
+
+(defruled crypto-make-output-id-record-gadget-sound
+  :short "R1CS-SOUND: the output ID carries the expected commitment and
+          checksum, and a sender ciphertext equal to the expected one or
+          zero (the zero option of @('OutputID::record'))."
+  (implies (and (symbolp oc) (symbolp ec)
+                (symbolp ok) (symbolp ek)
+                (symbolp os) (symbolp es)
+                (symbolp m-eq) (symbolp r-eq)
+                (symbolp m-z) (symbolp r-z)
+                (symbolp or-bit)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg oc)
+                (r1cs::valuation-bindsp asg ec)
+                (r1cs::valuation-bindsp asg ok)
+                (r1cs::valuation-bindsp asg ek)
+                (r1cs::valuation-bindsp asg os)
+                (r1cs::valuation-bindsp asg es)
+                (r1cs::valuation-bindsp asg m-eq)
+                (r1cs::valuation-bindsp asg r-eq)
+                (r1cs::valuation-bindsp asg m-z)
+                (r1cs::valuation-bindsp asg r-z)
+                (r1cs::valuation-bindsp asg or-bit)
+                (r1cs::r1cs-constraints-holdp
+                 (crypto-make-output-id-record-gadget
+                  oc ec ok ek os es m-eq r-eq m-z r-z or-bit p)
+                 asg p))
+           (b* ((id (crypto-output-id-record (lookup-equal oc asg)
+                                             (lookup-equal ok asg)
+                                             (lookup-equal os asg))))
+             (or (equal id (crypto-make-output-id-record
+                            (lookup-equal ec asg) (lookup-equal ek asg)
+                            (lookup-equal es asg)))
+                 (equal id (crypto-make-output-id-record
+                            (lookup-equal ec asg) (lookup-equal ek asg) 0)))))
+  :do-not-induct t
+  :use ((:instance prog-ids-zero-test-bit
+         (d (pfield::sub (lookup-equal os asg) (lookup-equal es asg) p))
+         (m (lookup-equal m-eq asg)) (r (lookup-equal r-eq asg)))
+        (:instance prog-ids-zero-test-bit
+         (d (lookup-equal os asg))
+         (m (lookup-equal m-z asg)) (r (lookup-equal r-z asg))))
+  :in-theory (e/d (crypto-make-output-id-record-gadget
+                   prog-assert-eq-gadget-to-equal
+                   prog-field-neq-gadget-to-spec
+                   crypto-record-is-hiding-gadget-to-spec
+                   prog-demorgan-or-gadget-to-mul
+                   prog-assert-gadget-to-funspec
+                   assert-funspec enforce-funspec
+                   crypto-make-output-id-record
+                   r1cs::r1cs-constraints-holdp-of-append
+                   r1cs::fep-of-lookup-equal primep-of-base-prime)
+                  ((:e base-prime))))
+
 (defruled crypto-make-output-id-record-sample-holds
   (r1cs::r1cs-constraints-holdp
    (crypto-make-output-id-record-gadget
