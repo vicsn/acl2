@@ -13,6 +13,8 @@ ownership or generic arguments (e.g. Mul<Field> for Field, Mul<&Field> for
 The component-level task columns come from the hand-maintained ACL2_MODELS map;
 FUN-SPEC is additionally set from aleovm_circuit_function_funspec_map.tsv, which maps
 rows to their specs in books/projects/aleo/vm/circuits/fun-specs. R1CS-SOUND-IF and
+MANUAL-CONSTRAINTS is 1 for
+functions that call a primitive directly. R1CS-SOUND-IF and
 R1CS-COMPLETE-IF are copied from aleovm_circuit_function_circspec_map.tsv. They are not
 0/1 flags. STATUS is "verified" when soundness holds (R1CS-SOUND is 1 or R1CS-SOUND-IF
 is non-empty) and completeness holds (R1CS-COMPLETE is 1 or R1CS-COMPLETE-IF is non-empty).
@@ -387,6 +389,9 @@ CIRC_FLAG_COLS = ["R1CS-SPEC", "PFCS-SPEC", "R1CS-SAMPLES", "R1CS-SOUND", "R1CS-
 # completeness theorem.
 SOUND_IF_COL = "R1CS-SOUND-IF"
 COMPLETE_IF_COL = "R1CS-COMPLETE-IF"
+# 1 when the function body itself calls an Environment constraint primitive (enforce / assert /
+# assert_eq / assert_neq), i.e. writes constraints by hand rather than only through other gadgets.
+MANUAL_COL = "MANUAL-CONSTRAINTS"
 
 
 def load_fun_specs():
@@ -511,7 +516,7 @@ def main(root, out):
     with open(out, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["crate", "type", "trait", "function", "file", "line", "merged_impls",
-                    "constraint_source", "primitives", "via", "FUN-SPEC", "R1CS-SPEC", "PFCS-SPEC",
+                    "constraint_source", MANUAL_COL, "primitives", "via", "FUN-SPEC", "R1CS-SPEC", "PFCS-SPEC",
                     "R1CS-SAMPLES", "R1CS-SOUND", "R1CS-COMPLETE", SOUND_IF_COL, COMPLETE_IF_COL,
                     "STATUS", "acl2_counterpart", "fun_spec"])
         for key in sorted(rows, key=lambda k: (k[0], k[1], k[2], k[3])):
@@ -542,7 +547,7 @@ def main(root, out):
             complete = flags[CIRC_FLAG_COLS.index("R1CS-COMPLETE") + 1] == "1" or bool(complete_if)
             status = "verified" if sound and complete else ""
             w.writerow([key[0], key[1], key[2], key[3], "circuit/" + ds[0]["path"], ds[0]["line"], len(ds),
-                        evidence(ds), " ".join(prims), " ".join(rs[:8]) + (" ..." if len(rs) > 8 else "")]
+                        evidence(ds), "1" if prims else "0", " ".join(prims), " ".join(rs[:8]) + (" ..." if len(rs) > 8 else "")]
                        + flags + [sound_if, complete_if, status, model, fun_spec])
     missing = [k for k in ACL2_MODELS if not any((r[1], r[3]) == k for r in rows)]
     if missing:
