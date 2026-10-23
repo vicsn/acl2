@@ -11,8 +11,10 @@
 //! `Environment` is the explicit `Cs` threaded through `&mut`, operator
 //! traits are plain functions, and vectors are copied term by term.
 //!
-//! A linear combination is a list of terms `c * 2^sh * v`. Wire `0` is the
-//! constant one. As in snarkVM, a linear combination is constant when it has
+//! A linear combination is a list of terms `c * 2^sh * k * v`. Wire `0` is
+//! the constant one. `k` indexes `Cs::ks`, field constants too large for `c`
+//! (named constants and their products, sums and inverses; `0` is the factor
+//! one). The checks evaluate them mod p, so the model never folds them. As in snarkVM, a linear combination is constant when it has
 //! no variable term left after cancellation, and a triple of constants is
 //! checked on the host instead of being emitted.
 //!
@@ -25,6 +27,18 @@ pub struct Term {
     pub c: i128,
     pub sh: u32,
     pub v: u32,
+    pub k: u32,
+}
+
+/// A field constant: `op` 0 is the named constant `a`, 1 the product of
+/// constants `a` and `b`, 2 their sum, 3 the inverse of `a`, 4 `c * 2^sh`.
+#[derive(Clone, Copy)]
+pub struct Konst {
+    pub op: u32,
+    pub a: u32,
+    pub b: u32,
+    pub c: i128,
+    pub sh: u32,
 }
 
 pub struct Constraint {
@@ -36,6 +50,7 @@ pub struct Constraint {
 pub struct Cs {
     pub next: u32,
     pub cs: Vec<Constraint>,
+    pub ks: Vec<Konst>,
 }
 
 /// BLS12-377 scalar field: `p - 1` and `(p - 1) / 2`, little-endian limbs.
@@ -55,11 +70,61 @@ const FIELD_DATA_BITS: usize = 252;
 // Linear combinations
 
 fn tm(c: i128, sh: u32, v: u32) -> Term {
-    Term { c, sh, v }
+    Term { c, sh, v, k: 0 }
+}
+
+fn tm_k(t: Term, c: i128, sh: u32) -> Term {
+    Term { c, sh, v: t.v, k: t.k }
+}
+
+fn same_k(x: Term, y: Term) -> bool {
+    x.k == y.k
+}
+
+fn k_push(cs: &mut Cs, op: u32, a: u32, b: u32, c: i128, sh: u32) -> u32 {
+    cs.ks.push(Konst { op, a, b, c, sh });
+    cs.ks.len() as u32
+}
+
+fn k_mul(cs: &mut Cs, a: u32, b: u32) -> u32 {
+    if a == 0 {
+        b
+    } else if b == 0 {
+        a
+    } else {
+        k_push(cs, 1, a, b, 0, 0)
+    }
+}
+
+/// The product of term `t` and the constant term `k`.
+fn term_mul(cs: &mut Cs, t: Term, k: Term) -> Term {
+    let kk = k_mul(cs, t.k, k.k);
+    Term { c: t.c * k.c, sh: t.sh + k.sh, v: t.v, k: kk }
+}
+
+/// A constant linear combination as one constant.
+fn lc_to_k(cs: &mut Cs, x: &Vec<Term>) -> u32 {
+    let mut acc = k_push(cs, 4, 0, 0, 0, 0);
+    let mut i = 0;
+    while i < x.len() {
+        let n = k_push(cs, 4, 0, 0, x[i].c, x[i].sh);
+        let t = k_mul(cs, n, x[i].k);
+        acc = k_push(cs, 2, acc, t, 0, 0);
+        i += 1;
+    }
+    acc
+}
+
+/// The named constant `name` (an index into the checks' table).
+pub fn f_named(cs: &mut Cs, name: u32) -> Field {
+    let k = k_push(cs, 0, name, 0, 0, 0);
+    let mut lc = Vec::new();
+    lc.push(Term { c: 1, sh: 0, v: 0, k });
+    f_of(lc)
 }
 
 pub fn cs_new() -> Cs {
-    Cs { next: 0, cs: Vec::new() }
+    Cs { next: 0, cs: Vec::new(), ks: Vec::new() }
 }
 
 pub fn new_var(cs: &mut Cs) -> u32 {
@@ -111,7 +176,7 @@ fn term_norm(t: Term) -> Term {
         sh += 1;
         fuel += 1;
     }
-    tm(c, sh, t.v)
+    tm_k(t, c, sh)
 }
 
 /// The sum of two terms on the same wire, when it fits in one term.
@@ -121,11 +186,11 @@ fn term_merge(x: Term, y: Term) -> (bool, Term) {
     } else if y.c == 0 {
         (true, x)
     } else if x.sh == y.sh {
-        (true, term_norm(tm(x.c + y.c, x.sh, x.v)))
+        (true, term_norm(tm_k(x, x.c + y.c, x.sh)))
     } else if small(x.c) && small(y.c) && x.sh < y.sh && y.sh - x.sh < 56 {
-        (true, term_norm(tm(x.c + y.c * pow2(y.sh - x.sh), x.sh, x.v)))
+        (true, term_norm(tm_k(x, x.c + y.c * pow2(y.sh - x.sh), x.sh)))
     } else if small(x.c) && small(y.c) && y.sh < x.sh && x.sh - y.sh < 56 {
-        (true, term_norm(tm(y.c + x.c * pow2(x.sh - y.sh), y.sh, x.v)))
+        (true, term_norm(tm_k(x, y.c + x.c * pow2(x.sh - y.sh), y.sh)))
     } else {
         (false, x)
     }
@@ -156,7 +221,7 @@ fn lc_push(x: Vec<Term>, t: Term) -> Vec<Term> {
     let mut i = 0;
     while i < x.len() {
         let u = x[i];
-        if !merged && u.v == t.v {
+        if !merged && u.v == t.v && same_k(u, t) {
             let (ok, m) = term_merge(u, t);
             if ok {
                 merged = true;
@@ -192,7 +257,7 @@ fn lc_scale(x: &Vec<Term>, c: i128, sh: u32) -> Vec<Term> {
     let mut i = 0;
     while i < x.len() {
         let t = x[i];
-        out = lc_push(out, tm(t.c * c, t.sh + sh, t.v));
+        out = lc_push(out, tm_k(t, t.c * c, t.sh + sh));
         i += 1;
     }
     out
@@ -220,11 +285,16 @@ fn lc_is_const(x: &Vec<Term>) -> bool {
 }
 
 /// The product of a linear combination and a constant one.
-fn lc_mul_const(x: &Vec<Term>, k: &Vec<Term>) -> Vec<Term> {
+fn lc_mul_const(cs: &mut Cs, x: &Vec<Term>, k: &Vec<Term>) -> Vec<Term> {
     let mut out = Vec::new();
     let mut i = 0;
     while i < k.len() {
-        out = lc_add(&out, &lc_scale(x, k[i].c, k[i].sh));
+        let mut j = 0;
+        while j < x.len() {
+            let t = term_mul(cs, x[j], k[i]);
+            out = lc_push(out, t);
+            j += 1;
+        }
         i += 1;
     }
     out
@@ -572,9 +642,9 @@ pub fn f_sub(x: &Field, y: &Field) -> Field {
 /// mul.rs `mul_assign`.
 pub fn f_mul(cs: &mut Cs, x: &Field, y: &Field) -> Field {
     if f_is_const(y) {
-        f_of(lc_mul_const(&x.lc, &y.lc))
+        f_of(lc_mul_const(cs, &x.lc, &y.lc))
     } else if f_is_const(x) {
-        f_of(lc_mul_const(&y.lc, &x.lc))
+        f_of(lc_mul_const(cs, &y.lc, &x.lc))
     } else {
         let out = f_new(cs);
         enforce(cs, lc_copy(&x.lc), lc_copy(&y.lc), lc_copy(&out.lc));
@@ -589,9 +659,17 @@ pub fn f_square(cs: &mut Cs, x: &Field) -> Field {
 
 /// inverse.rs: `(self) * (inverse) = (1)`.
 pub fn f_inverse(cs: &mut Cs, x: &Field) -> Field {
-    let inv = if f_is_const(x) { f_of(lc_zero()) } else { f_new(cs) };
-    enforce(cs, lc_copy(&x.lc), lc_copy(&inv.lc), lc_one());
-    inv
+    if f_is_const(x) {
+        let kx = lc_to_k(cs, &x.lc);
+        let k = k_push(cs, 3, kx, 0, 0, 0);
+        let mut lc = Vec::new();
+        lc.push(Term { c: 1, sh: 0, v: 0, k });
+        f_of(lc)
+    } else {
+        let inv = f_new(cs);
+        enforce(cs, lc_copy(&x.lc), lc_copy(&inv.lc), lc_one());
+        inv
+    }
 }
 
 /// div.rs `div_assign`: `self * other.inverse()`.
@@ -826,6 +904,65 @@ pub fn f_to_lower_bits_le(cs: &mut Cs, x: &Field, k: usize) -> Vec<Boolean> {
     }
     env_assert_eq(cs, &x.lc, &acc.lc);
     bits
+}
+
+/// helpers/to_upper_bits.rs `to_upper_bits_be`: `k` big-endian boolean
+/// witnesses and `assert_eq(self, sum 2^(n-k+i) b_i)` over the reversed bits.
+pub fn f_to_upper_bits_be(cs: &mut Cs, x: &Field, k: usize) -> Vec<Boolean> {
+    let mut bits = Vec::new();
+    let mut i = 0;
+    while i < k {
+        bits.push(b_new(cs));
+        i += 1;
+    }
+    let mut coeff = f_of(lc_one());
+    let mut s = 0;
+    while s < FIELD_BITS - k {
+        coeff = f_add(&coeff, &coeff);
+        s += 1;
+    }
+    let le = bits_rev(&bits);
+    let mut acc = f_of(lc_zero());
+    let mut j = 0;
+    while j < le.len() {
+        let term = f_mul(cs, &f_from_boolean(&le[j]), &coeff);
+        acc = f_add(&acc, &term);
+        coeff = f_add(&coeff, &coeff);
+        j += 1;
+    }
+    env_assert_eq(cs, &x.lc, &acc.lc);
+    bits
+}
+
+/// div_unchecked.rs on two variables: a quotient witness and
+/// `(quotient) * (other) = (self)`.
+pub fn f_div_unchecked(cs: &mut Cs, x: &Field, y: &Field) -> Field {
+    if f_is_const(y) || f_is_const(x) {
+        let inv = f_inverse(cs, y);
+        f_mul(cs, x, &inv)
+    } else {
+        let q = f_new(cs);
+        enforce(cs, lc_copy(&q.lc), lc_copy(&y.lc), lc_copy(&x.lc));
+        q
+    }
+}
+
+/// Field bit helpers on a private input: 0 to_non_unique_bits_le,
+/// 1 to_lower_bits_le(k), 2 to_upper_bits_be(k), 3 div_unchecked.
+pub fn h_f_bits(op: u32, k: usize) -> Cs {
+    let mut cs = cs_new();
+    let x = f_new(&mut cs);
+    if op == 0 {
+        let _ = f_to_non_unique_bits_le(&mut cs, &x);
+    } else if op == 1 {
+        let _ = f_to_lower_bits_le(&mut cs, &x, k);
+    } else if op == 2 {
+        let _ = f_to_upper_bits_be(&mut cs, &x, k);
+    } else {
+        let y = f_new(&mut cs);
+        let _ = f_div_unchecked(&mut cs, &x, &y);
+    }
+    cs
 }
 
 // ---------------------------------------------------------------------------
@@ -1781,7 +1918,7 @@ fn lc_is_zero(x: &Vec<Term>) -> bool {
 }
 
 fn lc_is_one(x: &Vec<Term>) -> bool {
-    x.len() == 1 && x[0].v == 0 && x[0].c == 1 && x[0].sh == 0
+    x.len() == 1 && x[0].v == 0 && x[0].c == 1 && x[0].sh == 0 && x[0].k == 0
 }
 
 /// `self.is_constant() && self.eject_value().is_zero()`.
@@ -2018,6 +2155,63 @@ pub fn g_is_in_group(cs: &mut Cs, g: &Group) -> Boolean {
     let r_be = bools_to_consts(&bools_rev(&r_le));
     let prod = g_mul_bits(cs, g, &r_be);
     g_is_zero(cs, &prod)
+}
+
+pub struct SqrtFlagged {
+    pub first: Field,
+    pub second: Field,
+    pub err: Boolean,
+}
+
+/// square_root.rs `square_roots_flagged_nondeterministic` on a variable.
+pub fn f_square_roots_flagged(cs: &mut Cs, x: &Field) -> SqrtFlagged {
+    let euler = f_pow_const(cs, x, &p_half_bits_be());
+    let is_nonzero_square = f_is_one(cs, &euler);
+    let square = f_ternary(cs, &is_nonzero_square, x, &f_of(lc_zero()));
+    let first = f_new(cs);
+    enforce(cs, lc_copy(&first.lc), lc_copy(&first.lc), lc_copy(&square.lc));
+    let second = f_of(lc_neg(&first.lc));
+    let is_zero = f_is_zero(cs, x);
+    let is_nonzero = b_not(&is_zero);
+    let err = b_and(cs, &is_nonzero, &b_not(&is_nonzero_square));
+    SqrtFlagged { first, second, err }
+}
+
+/// helpers/from_x_coordinate.rs `from_x_coordinate_flagged`.
+pub fn g_from_x_coordinate_flagged(cs: &mut Cs, x: &Field) -> (Group, Boolean) {
+    let a = f_of(lc_const(EDWARDS_A, 0));
+    let d = f_of(lc_const(EDWARDS_D, 0));
+    let xx = f_mul(cs, x, x);
+    let axx = f_mul(cs, &a, &xx);
+    let a_xx_minus_1 = f_sub(&axx, &f_of(lc_one()));
+    let dxx = f_mul(cs, &d, &xx);
+    let d_xx_minus_1 = f_sub(&dxx, &f_of(lc_one()));
+    let yy = f_new(cs);
+    enforce(cs, lc_copy(&yy.lc), lc_copy(&d_xx_minus_1.lc), lc_copy(&a_xx_minus_1.lc));
+    let r = f_square_roots_flagged(cs, &yy);
+    let point1 = Group { x: f_copy(x), y: f_copy(&r.first) };
+    let point2 = Group { x: f_copy(x), y: f_copy(&r.second) };
+    let b1 = g_is_in_group(cs, &point1);
+    let b2 = g_is_in_group(cs, &point2);
+    let y2_or_zero = f_ternary(cs, &b2, &r.second, &f_of(lc_zero()));
+    let y1_or_y2_or_zero = f_ternary(cs, &b1, &r.first, &y2_or_zero);
+    let y = f_ternary(cs, &r.err, &f_of(lc_zero()), &y1_or_y2_or_zero);
+    let neither = b_and(cs, &b_not(&b1), &b_not(&b2));
+    let flag = b_or(cs, &r.err, &neither);
+    (Group { x: f_copy(x), y }, flag)
+}
+
+/// 0 square_roots_flagged_nondeterministic, 1 from_x_coordinate_flagged, on
+/// the private input W1.
+pub fn h_flagged(op: u32) -> Cs {
+    let mut cs = cs_new();
+    let x = f_new(&mut cs);
+    if op == 0 {
+        let _ = f_square_roots_flagged(&mut cs, &x);
+    } else {
+        let _ = g_from_x_coordinate_flagged(&mut cs, &x);
+    }
+    cs
 }
 
 fn bools_rev(x: &Vec<bool>) -> Vec<bool> {
@@ -3077,6 +3271,204 @@ pub fn h_kary_path_new(depth: usize, arity: usize, variant: usize) -> Cs {
 }
 
 // ---------------------------------------------------------------------------
+// circuit/algorithms/src/elligator2. The Montgomery constants are those of
+// the Edwards curve: `A = 2 (a + d) / (a - d)` and `B = 4 / (a - d)`.
+
+fn f_const(c: i128) -> Field {
+    f_of(lc_const(c, 0))
+}
+
+/// encode.rs `Elligator2::encode` on a variable input.
+pub fn ell2_encode(cs: &mut Cs, input: &Field) -> Group {
+    env_assert_neq(cs, &input.lc, &lc_zero());
+    let one = f_of(lc_one());
+    let a_minus_d = f_inverse(cs, &f_const(EDWARDS_A - EDWARDS_D));
+    let montgomery_a = f_mul(cs, &f_const(2 * (EDWARDS_A + EDWARDS_D)), &a_minus_d);
+    let montgomery_b = f_mul(cs, &f_const(4), &a_minus_d);
+    let montgomery_b_inverse = f_inverse(cs, &montgomery_b);
+    let montgomery_b2 = f_square(cs, &montgomery_b);
+    let montgomery_b3 = f_mul(cs, &montgomery_b2, &montgomery_b);
+    let edwards_d = f_const(EDWARDS_D);
+    let a = f_mul(cs, &montgomery_a, &montgomery_b_inverse);
+    let half = f_inverse(cs, &f_const(2));
+    let a_half = f_mul(cs, &a, &half);
+    let b = f_square(cs, &montgomery_b_inverse);
+
+    let input2 = f_square(cs, input);
+    let ur2 = f_mul(cs, &edwards_d, &input2);
+    let one_plus_ur2 = f_add(&one, &ur2);
+    let a2 = f_square(cs, &a);
+    let lhs = f_mul(cs, &a2, &ur2);
+    let opu2 = f_square(cs, &one_plus_ur2);
+    let rhs_neq = f_mul(cs, &b, &opu2);
+    env_assert_neq(cs, &lhs.lc, &rhs_neq.lc);
+    let neg_a = f_of(lc_neg(&a.lc));
+    let v = f_div(cs, &neg_a, &one_plus_ur2);
+    let v2 = f_square(cs, &v);
+    let v3 = f_mul(cs, &v2, &v);
+    let av2 = f_mul(cs, &a, &v2);
+    let bv = f_mul(cs, &b, &v);
+    let g = f_add(&f_add(&v3, &av2), &bv);
+    let e = f_pow_const(cs, &g, &p_half_bits_be());
+    let ev = f_mul(cs, &e, &v);
+    let one_minus_e = f_sub(&one, &e);
+    let t = f_mul(cs, &one_minus_e, &a_half);
+    let x = f_sub(&ev, &t);
+    let x2 = f_square(cs, &x);
+    let x3 = f_mul(cs, &x2, &x);
+    let ax2 = f_mul(cs, &a, &x2);
+    let bx = f_mul(cs, &b, &x);
+    let rhs = f_add(&f_add(&x3, &ax2), &bx);
+    let root = f_new(cs);
+    let root_bits = f_to_bits_be(cs, &root);
+    let lsb = b_not(&root_bits[FIELD_BITS - 1]);
+    env_assert(cs, &lsb.lc);
+    let neg_e = f_of(lc_neg(&e.lc));
+    let y = f_mul(cs, &neg_e, &root);
+    let ve = f_mul(cs, &v, &e);
+    let vex = f_mul(cs, &ve, &x);
+    let vexy = f_mul(cs, &vex, &y);
+    env_assert_neq(cs, &vexy.lc, &lc_zero());
+    let y2 = f_square(cs, &y);
+    env_assert_eq(cs, &y2.lc, &rhs.lc);
+    let u = f_mul(cs, &x, &montgomery_b);
+    let vm = f_mul(cs, &y, &montgomery_b);
+    let u2 = f_mul(cs, &x2, &montgomery_b2);
+    let u3 = f_mul(cs, &x3, &montgomery_b3);
+    let vm2 = f_mul(cs, &y2, &montgomery_b3);
+    let au2 = f_mul(cs, &montgomery_a, &u2);
+    let mont = f_add(&f_add(&u3, &au2), &u);
+    env_assert_eq(cs, &vm2.lc, &mont.lc);
+    let ex = f_div(cs, &u, &vm);
+    let u_minus_one = f_sub(&u, &one);
+    let u_plus_one = f_add(&u, &one);
+    let ey = f_div(cs, &u_minus_one, &u_plus_one);
+    let encoding = Group { x: ex, y: ey };
+    g_enforce_on_curve(cs, &encoding);
+    g_mul_by_cofactor(cs, &encoding)
+}
+
+pub fn p_half_bits_be() -> Vec<bool> {
+    bools_rev(&p_half_bits())
+}
+
+// ---------------------------------------------------------------------------
+// circuit/algorithms/src/bhp/hasher/hash_uncompressed.rs. The base lookups
+// are named constants: entry `k` of the x (`xy` 0) or y (`xy` 1) table of
+// chunk `j` of window `w` is `1 + 8 (w * window_size + j) + 2 k + xy`.
+
+pub struct MontPt {
+    pub x: Field,
+    pub y: Field,
+}
+
+pub struct MontC {
+    pub a: Field,
+    pub b: Field,
+    pub half: Field,
+}
+
+fn mont_c(cs: &mut Cs) -> MontC {
+    let a_minus_d = f_inverse(cs, &f_const(EDWARDS_A - EDWARDS_D));
+    let a = f_mul(cs, &f_const(2 * (EDWARDS_A + EDWARDS_D)), &a_minus_d);
+    let b = f_mul(cs, &f_const(4), &a_minus_d);
+    let half = f_inverse(cs, &f_const(2));
+    MontC { a, b, half }
+}
+
+fn bhp_lookup(cs: &mut Cs, b0: &Field, b1: &Field, b01: &Field, base: u32) -> Field {
+    let t0 = f_named(cs, base);
+    let t1 = f_named(cs, base + 2);
+    let t2 = f_named(cs, base + 4);
+    let t3 = f_named(cs, base + 6);
+    let d1 = f_mul(cs, b0, &f_sub(&t1, &t0));
+    let d2 = f_mul(cs, b1, &f_sub(&t2, &t0));
+    let d3 = f_mul(cs, b01, &f_add(&f_sub(&f_sub(&t3, &t2), &t1), &t0));
+    f_add(&f_add(&f_add(&t0, &d1), &d2), &d3)
+}
+
+/// One chunk: the Montgomery point selected by bits `i..i+3`.
+fn bhp_chunk(cs: &mut Cs, bits: &Vec<Boolean>, i: usize, base: u32, mc: &MontC) -> MontPt {
+    let bit_0 = f_from_boolean(&bits[i]);
+    let bit_1 = f_from_boolean(&bits[i + 1]);
+    let bit_2 = f_from_boolean(&bits[i + 2]);
+    let b01 = b_and(cs, &bits[i], &bits[i + 1]);
+    let bit_0_and_1 = f_from_boolean(&b01);
+    let x = bhp_lookup(cs, &bit_0, &bit_1, &bit_0_and_1, base);
+    let y = bhp_lookup(cs, &bit_0, &bit_1, &bit_0_and_1, base + 1);
+    let my = f_new(cs);
+    let neg_2y = lc_neg(&lc_add(&y.lc, &y.lc));
+    enforce(cs, neg_2y, lc_sub(&bit_2.lc, &mc.half.lc), lc_copy(&my.lc));
+    MontPt { x, y: my }
+}
+
+fn mont_add(cs: &mut Cs, this: &MontPt, that: &MontPt, mc: &MontC) -> MontPt {
+    let lambda = f_new(cs);
+    enforce(cs, lc_sub(&that.x.lc, &this.x.lc), lc_copy(&lambda.lc), lc_sub(&that.y.lc, &this.y.lc));
+    let sum_x = f_new(cs);
+    let b_lambda = f_mul(cs, &mc.b, &lambda);
+    let rhs = f_add(&f_add(&f_add(&mc.a, &this.x), &that.x), &sum_x);
+    enforce(cs, b_lambda.lc, lc_copy(&lambda.lc), rhs.lc);
+    let sum_y = f_new(cs);
+    enforce(cs, lc_sub(&this.x.lc, &sum_x.lc), lc_copy(&lambda.lc), lc_add(&this.y.lc, &sum_y.lc));
+    MontPt { x: sum_x, y: sum_y }
+}
+
+/// The window of bits `lo..hi` (whole chunks) with the bases of window `w`.
+fn bhp_window(cs: &mut Cs, bits: &Vec<Boolean>, lo: usize, hi: usize, w: usize, ws: usize, mc: &MontC) -> Group {
+    let base0 = (1 + 8 * w * ws) as u32;
+    let mut sum = bhp_chunk(cs, bits, lo, base0, mc);
+    let mut j = 1;
+    while lo + 3 * j < hi {
+        let c = bhp_chunk(cs, bits, lo + 3 * j, base0 + 8 * (j as u32), mc);
+        sum = mont_add(cs, &sum, &c, mc);
+        j += 1;
+    }
+    let ex = f_div_unchecked(cs, &sum.x, &sum.y);
+    let num = f_sub(&sum.x, &f_of(lc_one()));
+    let den = f_add(&sum.x, &f_of(lc_one()));
+    let ey = f_div_unchecked(cs, &num, &den);
+    Group { x: ex, y: ey }
+}
+
+/// `BHPHasher::hash_uncompressed` with `ws` chunks per window, on an input
+/// within the parameter size.
+pub fn bhp_hash_uncompressed(cs: &mut Cs, input: &Vec<Boolean>, ws: usize) -> Group {
+    let mut bits = bits_copy(input);
+    while bits.len() % 3 != 0 {
+        bits.push(b_const(false));
+    }
+    let mc = mont_c(cs);
+    let mut acc = g_zero();
+    let mut w = 0;
+    while w * 3 * ws < bits.len() {
+        let lo = w * 3 * ws;
+        let hi = if lo + 3 * ws < bits.len() { lo + 3 * ws } else { bits.len() };
+        let g = bhp_window(cs, &bits, lo, hi, w, ws, &mc);
+        acc = g_add(cs, &acc, &g);
+        w += 1;
+    }
+    acc
+}
+
+/// BHPHasher::hash_uncompressed of the input bits W1..W`n`, `ws` chunks per
+/// window.
+pub fn h_bhp_hash_uncompressed(n: usize, ws: usize) -> Cs {
+    let mut cs = cs_new();
+    let bits = in_bits(&mut cs, n);
+    let _ = bhp_hash_uncompressed(&mut cs, &bits, ws);
+    cs
+}
+
+/// Elligator2::encode on the private input W1.
+pub fn h_ell2_encode() -> Cs {
+    let mut cs = cs_new();
+    let input = f_new(&mut cs);
+    let _ = ell2_encode(&mut cs, &input);
+    cs
+}
+
+// ---------------------------------------------------------------------------
 // circuit/algorithms/src/poseidon, with the parameters as inputs.
 
 /// pow.rs on a constant exponent with big-endian bits `e`: square, then
@@ -3146,6 +3538,37 @@ pub fn pos_test(rate: usize, full: usize, partial: usize, alpha: u64) -> Poseido
         i += 1;
     }
     Poseidon { rate, domain: f_k(5), full, partial, alpha: const_bits_be(alpha), ark, mds }
+}
+
+/// Named parameters: `ark[r][i]` is constant `1 + r (rate + 1) + i`,
+/// `mds[i][j]` is `1 + (full + partial + i) (rate + 1) + j`, and the domain
+/// is `1 + (full + partial + rate + 1) (rate + 1)`.
+pub fn pos_named(cs: &mut Cs, rate: usize, full: usize, partial: usize) -> Poseidon {
+    let n = rate + 1;
+    let mut ark = Vec::new();
+    let mut r = 0;
+    while r < full + partial {
+        ark.push(pos_named_row(cs, 1 + r * n, n));
+        r += 1;
+    }
+    let mut mds = Vec::new();
+    let mut i = 0;
+    while i < n {
+        mds.push(pos_named_row(cs, 1 + (full + partial + i) * n, n));
+        i += 1;
+    }
+    let domain = f_named(cs, (1 + (full + partial + n) * n) as u32);
+    Poseidon { rate, domain, full, partial, alpha: const_bits_be(17), ark, mds }
+}
+
+fn pos_named_row(cs: &mut Cs, base: usize, n: usize) -> Vec<Field> {
+    let mut row = Vec::new();
+    let mut j = 0;
+    while j < n {
+        row.push(f_named(cs, (base + j) as u32));
+        j += 1;
+    }
+    row
 }
 
 /// hash_many.rs `apply_ark`.
@@ -3361,10 +3784,11 @@ pub fn pos_hash_many(cs: &mut Cs, p: &Poseidon, input: &Vec<Field>, n: usize) ->
 /// 2 absorb `nin` inputs into a state W1..W(rate+1) in mode (`sq`, `idx`),
 /// then squeeze `nout`; 3 hash_to_scalar of `nin` inputs (hash.rs `hash` is
 /// `hash_many(input, 1)[0]`, then `Scalar::from_field_lossy`); 4 `Inject::new`
-/// (constant parameters, no constraint).
+/// (constant parameters, no constraint). 5 and 6 are 1 and 3 with the
+/// named parameters of `pos_named`.
 pub fn h_poseidon(op: u32, rate: usize, full: usize, partial: usize, nin: usize, nout: usize, sq: bool, idx: usize) -> Cs {
     let mut cs = cs_new();
-    let p = pos_test(rate, full, partial, 17);
+    let p = if op >= 5 { pos_named(&mut cs, rate, full, partial) } else { pos_test(rate, full, partial, 17) };
     if op == 0 {
         let st = in_fields(&mut cs, rate + 1);
         let _ = pos_permute(&mut cs, &p, &st);
@@ -3377,7 +3801,10 @@ pub fn h_poseidon(op: u32, rate: usize, full: usize, partial: usize, nin: usize,
         let s = Sponge { st, squeezing: sq, index: idx };
         let s2 = pos_absorb(&mut cs, &p, s, &xs);
         let _ = pos_squeeze(&mut cs, &p, s2, nout);
-    } else if op == 3 {
+    } else if op == 5 {
+        let xs = in_fields(&mut cs, nin);
+        let _ = pos_hash_many(&mut cs, &p, &xs, nout);
+    } else if op == 3 || op == 6 {
         let xs = in_fields(&mut cs, nin);
         let h = pos_hash_many(&mut cs, &p, &xs, 1);
         let bits = f_to_bits_le(&mut cs, &h[0]);
@@ -4007,6 +4434,86 @@ pub fn h_p_output_id() -> Cs {
     cs
 }
 
+/// response/mod.rs `OutputID::record`: the expected commitment, checksum and
+/// sender ciphertext W1..W3 and their public injections W4..W6.
+pub fn h_p_output_id_record() -> Cs {
+    let mut cs = cs_new();
+    let ec = f_new(&mut cs);
+    let ek = f_new(&mut cs);
+    let es = f_new(&mut cs);
+    let oc = f_new(&mut cs);
+    let ok = f_new(&mut cs);
+    let os = f_new(&mut cs);
+    env_assert_eq(&mut cs, &oc.lc, &ec.lc);
+    env_assert_eq(&mut cs, &ok.lc, &ek.lc);
+    let is_eq = f_is_equal(&mut cs, &os, &es);
+    let is_zero = f_is_zero(&mut cs, &os);
+    let ok_sender = b_or(&mut cs, &is_eq, &is_zero);
+    env_assert(&mut cs, &ok_sender.lc);
+    cs
+}
+
+/// network/src/v0.rs `g_scalar_multiply` on the scalar bits `bits_le`; the
+/// base `2^i G` has the named coordinates `10000 + 2 i` and `10001 + 2 i`.
+pub fn net_g_scalar_multiply(cs: &mut Cs, bits_le: &Vec<Boolean>) -> Group {
+    let mut acc = g_zero();
+    let mut i = 0;
+    while i < bits_le.len() {
+        let bx = f_named(cs, (10000 + 2 * i) as u32);
+        let by = f_named(cs, (10001 + 2 * i) as u32);
+        let sum = g_add(cs, &acc, &Group { x: bx, y: by });
+        acc = g_ternary(cs, &bits_le[i], &sum, &acc);
+        i += 1;
+    }
+    acc
+}
+
+/// data/record/encrypt.rs `Record::encrypt_symmetric` of a record with no
+/// entries: owner W1, W2, nonce W3, W4 and randomizer W5. The encryption
+/// domain is the named constant 5000 and the Poseidon8 parameters are those
+/// of `pos_named` with `full` and `partial` rounds.
+pub fn h_rec_encrypt_symmetric(private_owner: bool, full: usize, partial: usize) -> Cs {
+    let mut cs = cs_new();
+    let owner = in_group(&mut cs);
+    let nonce = in_group(&mut cs);
+    let randomizer = s_new(&mut cs);
+    let p = pos_named(&mut cs, 8, full, partial);
+    let bits = s_to_bits_le(&mut cs, &randomizer);
+    let g = net_g_scalar_multiply(&mut cs, &bits);
+    env_assert_eq(&mut cs, &nonce.x.lc, &g.x.lc);
+    env_assert_eq(&mut cs, &nonce.y.lc, &g.y.lc);
+    let view = g_mul_bits(&mut cs, &owner, &bits_rev(&bits));
+    let domain = f_named(&mut cs, 5000);
+    let mut inputs = Vec::new();
+    inputs.push(domain);
+    inputs.push(f_copy(&view.x));
+    let n = if private_owner { 1 } else { 0 };
+    let _ = pos_hash_many(&mut cs, &p, &inputs, n);
+    cs
+}
+
+/// data/record/decrypt.rs `Record::decrypt` of a record with a public owner
+/// and no entries: owner W1, W2, nonce W3, W4 and a fresh view key W5, whose
+/// `to_address` reuses the cached scalar bits.
+pub fn h_rec_decrypt_public(full: usize, partial: usize) -> Cs {
+    let mut cs = cs_new();
+    let owner = in_group(&mut cs);
+    let nonce = in_group(&mut cs);
+    let view_key = s_new(&mut cs);
+    let p = pos_named(&mut cs, 8, full, partial);
+    let bits = s_to_bits_le(&mut cs, &view_key);
+    let view = g_mul_bits(&mut cs, &nonce, &bits_rev(&bits));
+    let domain = f_named(&mut cs, 5000);
+    let mut inputs = Vec::new();
+    inputs.push(domain);
+    inputs.push(f_copy(&view.x));
+    let _ = pos_hash_many(&mut cs, &p, &inputs, 0);
+    let address = net_g_scalar_multiply(&mut cs, &bits);
+    env_assert_eq(&mut cs, &address.x.lc, &owner.x.lc);
+    env_assert_eq(&mut cs, &address.y.lc, &owner.y.lc);
+    cs
+}
+
 /// data/literal/mod.rs `Literal::new` in a non-constant mode. `variant`: 0
 /// address, 1 boolean, 2 field, 3 group, 4 integer of width `n`, 5 scalar
 /// (patched), 6 signature without the compute key's hash_to_scalar, 7
@@ -4037,7 +4544,7 @@ pub fn h_p_literal_new(variant: u32, n: usize, signed: bool) -> Cs {
 /// IdentifierLiteral harnesses on input bits W1..W`n`: 0 validate_byte of
 /// one byte (`first`), 1 validate bits, 2 from_bits_le, 3 from_bits_be.
 /// 4 from_field of W1; 5 is_equal and 6 is_not_equal of W1..W248 and
-/// W249..W496.
+/// W249..W496; 7 validate_trailing_nulls of W1..W`n`.
 pub fn h_il(op: u32, n: usize, first: bool) -> Cs {
     let mut cs = cs_new();
     if op == 0 {
@@ -4055,6 +4562,9 @@ pub fn h_il(op: u32, n: usize, first: bool) -> Cs {
     } else if op == 4 {
         let x = f_new(&mut cs);
         let _ = il_from_field(&mut cs, &x);
+    } else if op == 7 {
+        let nulls = in_bits(&mut cs, n);
+        il_validate_trailing_nulls(&mut cs, &nulls);
     } else {
         let a = in_bits(&mut cs, IL_BITS);
         let b = in_bits(&mut cs, IL_BITS);

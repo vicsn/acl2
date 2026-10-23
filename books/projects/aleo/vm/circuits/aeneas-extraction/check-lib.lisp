@@ -52,31 +52,69 @@
 
 ; Extracted constraints as sparse R1CS constraints.
 
-(defun ext-vec (lc)
+;; The constants of Cs::ks, evaluated mod p into a fast alist from index to
+;; value. SYMS maps the index of a named constant to its value.
+(defun ext-pow (b e p)
+  (declare (xargs :measure (nfix e)))
+  (cond ((zp e) (mod 1 p))
+        ((evenp e) (ext-pow (mod (* b b) p) (floor e 2) p))
+        (t (mod (* b (ext-pow b (1- e) p)) p))))
+
+(defun ext-k-val (k vals)
+  (if (zp k) 1 (ifix (cdr (hons-get k vals)))))
+
+(defun ext-ks (ks i syms vals)
+  (declare (xargs :measure (len ks)))
+  (if (atom ks)
+      vals
+    (b* ((n (car ks))
+         (p (base-prime))
+         (op (acl2::circuits-konst->op n))
+         (a (ext-k-val (acl2::circuits-konst->a n) vals))
+         (b (ext-k-val (acl2::circuits-konst->b n) vals))
+         (v (case op
+              (0 (mod (ifix (cdr (assoc (acl2::circuits-konst->a n) syms))) p))
+              (1 (mod (* a b) p))
+              (2 (mod (+ a b) p))
+              (3 (ext-pow (mod a p) (- p 2) p))
+              (t (mod (* (ifix (acl2::circuits-konst->c n))
+                         (expt 2 (nfix (acl2::circuits-konst->sh n))))
+                      p)))))
+      (ext-ks (cdr ks) (1+ i) syms (hons-acons i v vals)))))
+
+(defun ext-vec (lc syms)
   (if (atom lc)
       nil
     (b* ((tm (car lc))
          (v (acl2::circuits-term->v tm)))
       (cons (list (* (ifix (acl2::circuits-term->c tm))
-                     (expt 2 (nfix (acl2::circuits-term->sh tm))))
+                     (expt 2 (nfix (acl2::circuits-term->sh tm)))
+                     (ext-k-val (acl2::circuits-term->k tm) syms))
                   (if (equal v 0) 1 (wv v)))
-            (ext-vec (cdr lc))))))
+            (ext-vec (cdr lc) syms)))))
 
-(defun ext-constraints (cs)
+(defun ext-constraints (cs syms)
   (if (atom cs)
       nil
     (cons (r1cs::make-r1cs-constraint
-           :a (ext-vec (acl2::circuits-constraint->a (car cs)))
-           :b (ext-vec (acl2::circuits-constraint->b (car cs)))
-           :c (ext-vec (acl2::circuits-constraint->c (car cs))))
-          (ext-constraints (cdr cs)))))
+           :a (ext-vec (acl2::circuits-constraint->a (car cs)) syms)
+           :b (ext-vec (acl2::circuits-constraint->b (car cs)) syms)
+           :c (ext-vec (acl2::circuits-constraint->c (car cs)) syms))
+          (ext-constraints (cdr cs) syms))))
 
 ; The constraints of a harness result, or :FAIL when the extracted code
-; returned a Rust error (a panic or running out of fuel).
-(defun ext-run (res)
+; returned a Rust error (a panic or running out of fuel). EXT-RUN-SYMS takes
+; the values of the named constants.
+(defun ext-run-syms (res syms)
   (if (equal (acl2::result-kind res) :ok)
-      (ext-constraints (acl2::circuits-cs->cs (acl2::result-ok->val res)))
+      (b* ((cs (acl2::result-ok->val res))
+           (vals (ext-ks (acl2::circuits-cs->ks cs) 1 syms nil))
+           (out (ext-constraints (acl2::circuits-cs->cs cs) vals)))
+        (prog2$ (fast-alist-free vals) out))
     :fail))
+
+(defun ext-run (res)
+  (ext-run-syms res nil))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
