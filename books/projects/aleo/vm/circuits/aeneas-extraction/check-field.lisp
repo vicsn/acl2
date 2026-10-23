@@ -15,6 +15,7 @@
 (include-book "../r1cs/field-square")
 (include-book "../r1cs/field-inverse")
 (include-book "../r1cs/field-div")
+(include-book "../r1cs/field-div-unchecked")
 (include-book "../r1cs/field-neq-opt")
 (include-book "../r1cs/field-ternary")
 (include-book "../r1cs/field-to-bits")
@@ -232,3 +233,69 @@
                  *u* (base-prime)))
          (not (same-circuit-unordered ext gadget nil))
          (not (contains-circuit ext gadget nil)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Bit helpers on x = W1: the k bits are W2..W(k+1). div_unchecked of x and
+; y = W2 has the quotient W3.
+
+(defcheck field-to-non-unique-bits-le-extraction
+  (same-circuit (ext-run (acl2::circuits-h-f-bits *fuel* 0 0))
+                (fb-field-to-non-unique-bits-le-gadget (wv 1) (wvs 2 253) (base-prime))
+                nil))
+
+(defun field-lower-bits-check (k)
+  (same-circuit (ext-run (acl2::circuits-h-f-bits *fuel* 1 k))
+                (fb-field-to-lower-bits-le-gadget (wv 1) (wvs 2 k) (base-prime))
+                nil))
+
+(defcheck field-to-lower-bits-le-extraction
+  (and (field-lower-bits-check 1)
+       (field-lower-bits-check 8)
+       (field-lower-bits-check 252)))
+
+(defun field-upper-bits-check (k)
+  (same-circuit (ext-run (acl2::circuits-h-f-bits *fuel* 2 k))
+                (fb-field-to-upper-bits-be-gadget (wv 1) (wvs 2 k) k 253 (base-prime))
+                nil))
+
+(defcheck field-to-upper-bits-be-extraction
+  (and (field-upper-bits-check 1)
+       (field-upper-bits-check 8)
+       (field-upper-bits-check 253)))
+
+(defcheck field-div-unchecked-extraction
+  (same-circuit (ext-run (acl2::circuits-h-f-bits *fuel* 3 0))
+                (field-div-unchecked-gadget (wv 1) (wv 2) (wv 3))
+                nil))
+
+; square_roots_flagged_nondeterministic on x = W1; every other wire is
+; renamed. The second root is the linear combination -root.
+(defcheck field-square-roots-flagged-extraction
+  (b* ((e (field-modulus-minus-one-div-two)))
+    (same-circuit-renamed
+     (ext-run (acl2::circuits-h-flagged *fuel* 0))
+     (fb-field-square-roots-flagged-gadget
+      (wv 1) e (gs "S" (field-pow-const-slen e)) (gs "R" (field-pow-const-rlen e))
+      'one-m 'one-r 'square 'root 'zero-m 'zero-r 'err (base-prime))
+     (list (wv 1))
+     nil)))
+
+; to_lower_bits_be and to_upper_bits_le reverse the bits of to_lower_bits_le
+; and to_upper_bits_be, which emits no constraint; the gadgets take the
+; returned order.
+(defcheck field-to-lower-bits-be-extraction
+  (and (same-circuit (ext-run (acl2::circuits-h-f-bits *fuel* 1 8))
+                     (fb-field-to-lower-bits-be-gadget (wv 1) (rev (wvs 2 8)) (base-prime))
+                     nil)
+       (same-circuit (ext-run (acl2::circuits-h-f-bits *fuel* 1 252))
+                     (fb-field-to-lower-bits-be-gadget (wv 1) (rev (wvs 2 252)) (base-prime))
+                     nil)))
+
+(defcheck field-to-upper-bits-le-extraction
+  (and (same-circuit (ext-run (acl2::circuits-h-f-bits *fuel* 2 8))
+                     (fb-field-to-upper-bits-le-gadget (wv 1) (rev (wvs 2 8)) 8 253 (base-prime))
+                     nil)
+       (same-circuit (ext-run (acl2::circuits-h-f-bits *fuel* 2 253))
+                     (fb-field-to-upper-bits-le-gadget (wv 1) (rev (wvs 2 253)) 253 253 (base-prime))
+                     nil)))

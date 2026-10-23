@@ -22,6 +22,7 @@
 (include-book "../fun-circuits/grp-from-bits")
 (include-book "../fun-circuits/grp-is-in-group")
 (include-book "../fun-circuits/grp-mul")
+(include-book "../fun-circuits/grp-from-x-flagged")
 (include-book "../fun-circuits/scalar-write-bits-r1cs")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -217,3 +218,23 @@
                                 (grp-mul-gadget (rev *mul-bits*) 'ox 'oy (gsteps "M" 250 13)
                                                 (wv 1) (wv 2) (base-prime)))
                         (wvs 1 3) nil))
+
+; from_x_coordinate_flagged on x = W1: xx W2, yy W3, the Euler power wires,
+; the is_one pair, square, then the first root. The gadget's y2 is the
+; linear combination -root.
+(defcheck group-from-x-coordinate-flagged-extraction
+  (b* ((e (field-modulus-minus-one-div-two))
+       (sl (field-pow-const-slen e))
+       (rl (field-pow-const-rlen e))
+       (root (wv (+ 7 sl rl)))
+       (k (len (cdr (grp-r-bits)))))
+    (same-circuit-renamed
+     (ext-run (acl2::circuits-h-flagged *fuel* 1))
+     (grp-from-x-flagged-gadget
+      (wv 1) 'xx 'yy (gs "S" sl) (gs "R" rl) 'one-m 'one-r 'square root
+      'zero-m 'zero-r 'nsq 'y2
+      (gsteps "P" k 11) 'mx1 'rx1 'my1 'ry1 'b1
+      (gsteps "Q" k 11) 'mx2 'rx2 'my2 'ry2 'b2
+      't2 't1 'y 'nb 'flag (base-prime))
+     (list (wv 1) root)
+     (list (cons 'y2 (list (list -1 root)))))))
