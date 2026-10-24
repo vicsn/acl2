@@ -105,10 +105,13 @@
 ; The constraints of a harness result, or :FAIL when the extracted code
 ; returned a Rust error (a panic or running out of fuel). EXT-RUN-SYMS takes
 ; the values of the named constants.
+(defun ext-flat (chunks)
+  (if (atom chunks) nil (append (car chunks) (ext-flat (cdr chunks)))))
+
 (defun ext-run-syms (res syms)
   (if (equal (acl2::result-kind res) :ok)
       (b* ((cs (acl2::result-ok->val res))
-           (vals (ext-ks (acl2::circuits-cs->ks cs) 1 syms nil))
+           (vals (ext-ks (ext-flat (acl2::circuits-cs->ks cs)) 1 syms nil))
            (out (ext-constraints (acl2::circuits-cs->cs cs) vals)))
         (prog2$ (fast-alist-free vals) out))
     :fail))

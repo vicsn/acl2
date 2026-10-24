@@ -12,7 +12,8 @@
 //! traits are plain functions, and vectors are copied term by term.
 //!
 //! A linear combination is a list of terms `c * 2^sh * k * v`. Wire `0` is
-//! the constant one. `k` indexes `Cs::ks`, field constants too large for `c`
+//! the constant one. `k` indexes `Cs::ks` (in chunks of 256, as a
+//! push is linear in the length of the list in ACL2), field constants too large for `c`
 //! (named constants and their products, sums and inverses; `0` is the factor
 //! one). The checks evaluate them mod p, so the model never folds them. As in snarkVM, a linear combination is constant when it has
 //! no variable term left after cancellation, and a triple of constants is
@@ -50,7 +51,8 @@ pub struct Constraint {
 pub struct Cs {
     pub next: u32,
     pub cs: Vec<Constraint>,
-    pub ks: Vec<Konst>,
+    pub ks: Vec<Vec<Konst>>,
+    pub nk: u32,
 }
 
 /// BLS12-377 scalar field: `p - 1` and `(p - 1) / 2`, little-endian limbs.
@@ -82,8 +84,13 @@ fn same_k(x: Term, y: Term) -> bool {
 }
 
 fn k_push(cs: &mut Cs, op: u32, a: u32, b: u32, c: i128, sh: u32) -> u32 {
-    cs.ks.push(Konst { op, a, b, c, sh });
-    cs.ks.len() as u32
+    if cs.nk % 256 == 0 {
+        cs.ks.push(Vec::new());
+    }
+    let last = cs.ks.len() - 1;
+    cs.ks[last].push(Konst { op, a, b, c, sh });
+    cs.nk = cs.nk + 1;
+    cs.nk
 }
 
 fn k_mul(cs: &mut Cs, a: u32, b: u32) -> u32 {
@@ -124,7 +131,7 @@ pub fn f_named(cs: &mut Cs, name: u32) -> Field {
 }
 
 pub fn cs_new() -> Cs {
-    Cs { next: 0, cs: Vec::new(), ks: Vec::new() }
+    Cs { next: 0, cs: Vec::new(), ks: Vec::new(), nk: 0 }
 }
 
 pub fn new_var(cs: &mut Cs) -> u32 {
@@ -238,6 +245,64 @@ fn lc_push(x: Vec<Term>, t: Term) -> Vec<Term> {
     }
     if !merged {
         out.push(term_norm(t));
+    }
+    out
+}
+
+/// The constant `c * 2^sh * k` of term `t` as one arena entry.
+fn term_k(cs: &mut Cs, t: Term) -> u32 {
+    let n = k_push(cs, 4, 0, 0, t.c, t.sh);
+    k_mul(cs, n, t.k)
+}
+
+fn lc_find_var(x: &Vec<Term>, v: u32) -> usize {
+    let mut out = x.len();
+    let mut i = 0;
+    while i < x.len() {
+        if out == x.len() && x[i].v == v {
+            out = i;
+        }
+        i += 1;
+    }
+    out
+}
+
+fn lc_replace(x: &Vec<Term>, j: usize, t: Term) -> Vec<Term> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < x.len() {
+        if i == j {
+            out.push(t);
+        } else {
+            out.push(x[i]);
+        }
+        i += 1;
+    }
+    out
+}
+
+fn lc_compact_push(cs: &mut Cs, x: Vec<Term>, t: Term) -> Vec<Term> {
+    let tk = term_k(cs, t);
+    let j = lc_find_var(&x, t.v);
+    if j < x.len() {
+        let k = k_push(cs, 2, x[j].k, tk, 0, 0);
+        lc_replace(&x, j, Term { c: 1, sh: 0, v: t.v, k })
+    } else {
+        let mut out = lc_copy(&x);
+        out.push(Term { c: 1, sh: 0, v: t.v, k: tk });
+        out
+    }
+}
+
+/// One term per wire, its coefficient folded into the arena. Without it,
+/// terms with different constants never merge and the partial rounds of
+/// Poseidon multiply the length of each state element by the width.
+fn lc_compact(cs: &mut Cs, x: &Vec<Term>) -> Vec<Term> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < x.len() {
+        out = lc_compact_push(cs, out, x[i]);
+        i += 1;
     }
     out
 }
@@ -3584,7 +3649,8 @@ pub fn pos_apply_ark(p: &Poseidon, st: &Vec<Field>, round: usize) -> Vec<Field> 
 
 fn pos_s_box_elem(cs: &mut Cs, p: &Poseidon, x: &Field, apply: bool) -> Field {
     if apply {
-        f_pow_const(cs, x, &p.alpha)
+        let c = f_of(lc_compact(cs, &x.lc));
+        f_pow_const(cs, &c, &p.alpha)
     } else {
         f_copy(x)
     }
@@ -3611,7 +3677,7 @@ fn pos_mds_row(cs: &mut Cs, p: &Poseidon, st: &Vec<Field>, i: usize) -> Field {
         acc = f_add(&acc, &t);
         j += 1;
     }
-    acc
+    f_of(lc_compact(cs, &acc.lc))
 }
 
 /// `apply_mds`.
