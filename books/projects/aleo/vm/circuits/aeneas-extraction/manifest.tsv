@@ -385,7 +385,7 @@ program	Plaintext		encrypt	not-checked		composition over Plaintext/Record wire t
 program	Plaintext		encrypt_symmetric	not-checked		composition over Plaintext/Record wire trees and network gadgets; not extracted yet
 program	Plaintext		encrypt_with_randomizers	not-checked		composition over Plaintext/Record wire trees and network gadgets; not extracted yet
 program	ProgramID		to_address	not-checked		composition over Plaintext/Record wire trees and network gadgets; not extracted yet
-program	Record		decrypt	match	record-decrypt-public-extraction	public owner, no entries; compared against a composition of verified gadgets (no single decrypt gadget)
+program	Record		decrypt	match	record-decrypt-public-extraction	public owner, no entries; matches dec-c-rdec up to constraint order (the gadget emits the to_address fold before view_key * nonce)
 program	Record		encrypt	not-checked		composition over Plaintext/Record wire trees and network gadgets; not extracted yet
 program	Record		encrypt_symmetric	match	record-encrypt-symmetric-extraction	private and public owner, no entries
 program	Record		encrypt_symmetric_unchecked	not-checked		composition over Plaintext/Record wire trees and network gadgets; not extracted yet

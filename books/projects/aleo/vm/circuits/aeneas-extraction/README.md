@@ -26,7 +26,9 @@ Constants live in an arena (`Cs::ks`) of named values, products, sums,
 inverses and shifts that `ext-ks` evaluates mod p, so 253-bit constants (the
 Elligator2 curve constants, BHP bases, Poseidon round constants) are passed by
 name and given their values by the check. Poseidon `hash_many` and
-`hash_to_scalar` run the network parameters with full rounds.
+`hash_to_scalar` run the network parameters with full rounds. The record
+checks prove the generator-power gadgets equal to double-and-add copies
+before evaluating them, since `net-gbase` adds G 2^i times.
 The environment sequence rows are proved over an abstract
 element circuit, and the recursive Plaintext, Entry, Future, Argument, Record
 and Value rows (and Literal `write_bits_*`) are over abstract leaf contracts,
