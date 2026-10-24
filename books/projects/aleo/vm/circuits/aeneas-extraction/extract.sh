@@ -53,7 +53,7 @@ rows = list(csv.DictReader(open(sys.argv[2]), delimiter='\t'))
 listed = {key(r) for r in rows}
 names = set()
 for f in glob.glob('check-*.lisp'):
-    names |= set(re.findall(r'^\(defcheck ([a-z0-9-]+)', open(f).read(), re.M))
+    names |= set(re.findall(r'^\((?:defcheck|defthm) ([a-z0-9-]+)', open(f).read(), re.M))
 bad = [r['check'] for r in rows
        if re.fullmatch(r'[a-z0-9-]+', r['check']) and r['check'] not in names]
 if verified != listed or bad:

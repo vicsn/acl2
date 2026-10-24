@@ -18,6 +18,10 @@
 (include-book "check-lib")
 (include-book "../fun-circuits/hpos-hash-to-scalar")
 (include-book "../fun-circuits/enc-record-enc")
+(include-book "../fun-circuits/dec-record-decrypt")
+(include-book "../edwards-order/bls12-points")
+
+(local (include-book "arithmetic-3/top" :dir :system))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -149,18 +153,104 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; net-gbase is 2^i G by edwards-bls12-mul, which adds G 2^i times, so the
+; gadgets that fold the generator powers cannot be evaluated. The fast-
+; copies use double-and-add (te-mul-fast-exec) and are proved equal; the
+; record checks rewrite the gadgets to them before evaluating.
+
+(defun fast-gbase (i)
+  (ecurve::te-mul-fast-exec (expt 2 (nfix i)) (curve-generator-g)
+                            (ecurve::edwards-bls12-curve)))
+
+(defruled curve-generator-g-on-curve
+  (ecurve::point-on-twisted-edwards-p (curve-generator-g)
+                                      (ecurve::edwards-bls12-curve))
+  :use edwards-bls12-pointp-of-curve-generator-g
+  :in-theory '(ecurve::edwards-bls12-pointp))
+
+(defruled net-gbase-is-fast
+  (equal (net-gbase i) (fast-gbase i))
+  :use (curve-generator-g-on-curve
+        (:instance ecurve::twisted-edwards-mul-is-exec
+                   (scalar (expt 2 (nfix i)))
+                   (ecurve::point (curve-generator-g))
+                   (ecurve::curve (ecurve::edwards-bls12-curve))))
+  :in-theory (e/d (net-gbase fast-gbase ecurve::edwards-bls12-mul)
+                  (ecurve::te-mul-fast-exec)))
+
+(defun fast-gfold (bits sts i ax ay p)
+  (if (endp bits)
+      nil
+    (append (net-gstep-gadget ax ay (car bits) (fast-gbase i) (car sts) p)
+            (fast-gfold (cdr bits) (cdr sts) (1+ (lnfix i))
+                        (list (list 1 (nth 3 (car sts))))
+                        (list (list 1 (nth 4 (car sts))))
+                        p))))
+
+(defruled net-gfold-is-fast
+  (equal (net-gfold-gadget bits sts i ax ay p) (fast-gfold bits sts i ax ay p))
+  :induct (fast-gfold bits sts i ax ay p)
+  :in-theory (enable net-gfold-gadget net-gbase-is-fast))
+
+(defun fast-gmul (s rbits rs sts p)
+  (append (scalar-write-bits-le-gadget s rbits rs p)
+          (fast-gfold (cdr rbits) sts 1
+                      (hbhp-tern-x (car rbits) (curve-generator-g))
+                      (hbhp-tern-y (car rbits) (curve-generator-g) p)
+                      p)))
+
+(defruled net-gmul-is-fast
+  (equal (net-gmul-gadget s rbits rs sts p) (fast-gmul s rbits rs sts p))
+  :in-theory (enable net-gmul-gadget net-gfold-is-fast))
+
+(defruled enc-c-rec-sym-is-fast
+  (equal (mv-nth 2 (enc-c-rec-sym pubp og data ng s rbits rs sts steps ox oy vs asg))
+         (append (append (fast-gmul s rbits rs sts (base-prime))
+                         (enc-nonce-gadget (net-gmul-out rbits sts (base-prime)) ng)
+                         (grp-mul-gadget (rev rbits) ox oy steps (nth 0 og) (nth 1 og)
+                                         (base-prime)))
+                 (mv-nth 1 (enc-c-rec-sym-unchecked
+                            pubp data (enc-rec-sym-key rbits ox oy steps) vs asg))))
+  :in-theory (e/d (enc-c-rec-sym enc-rec-sym-prefix net-gmul-is-fast)
+                  ((:e base-prime))))
+
+(defruled dec-c-rdec-is-fast
+  (equal (mv-nth 2 (dec-c-rdec pubp og oc ow data ng s rbits rs sts steps ox oy vs asg))
+         (append (append (fast-gmul s rbits rs sts (base-prime))
+                         (grp-mul-gadget (rev rbits) ox oy steps (nth 0 ng) (nth 1 ng)
+                                         (base-prime)))
+                 (mv-nth 2 (dec-c-crec-sym pubp oc ow data
+                                           (enc-rec-sym-key rbits ox oy steps) vs asg))
+                 (enc-nonce-gadget (net-gmul-out rbits sts (base-prime))
+                                   (if pubp og ow))))
+  :in-theory (e/d (dec-c-rdec dec-rdec-prefix net-gmul-is-fast)
+                  ((:e base-prime))))
+
+; The theory for a record check: evaluation, except of the gadgets that fold
+; the generator powers, which are rewritten to their fast copies.
+(defmacro rec-check-theory (check)
+  `(union-theories
+    '(,check net-gfold-is-fast enc-c-rec-sym-is-fast dec-c-rdec-is-fast)
+    (set-difference-theories
+     (executable-counterpart-theory :here)
+     '((:e ,check) (:e net-gbase) (:e net-gfold-gadget) (:e net-gmul-gadget)
+       (:e enc-c-rec-sym) (:e enc-rec-sym-prefix) (:e dec-c-rdec)
+       (:e dec-rdec-prefix)))))
+
 ; Record::encrypt_symmetric of a record with no entries, with a private or a
 ; public owner: owner W1, W2, nonce W3, W4 and randomizer W5. The named
 ; constants are the Poseidon8 parameters, the encryption domain (5000) and
 ; the generator powers 2^i G (10000 + 2i and 10001 + 2i).
 
-(defun gen-power-syms (i n pt)
+(defun gen-power-syms (i n)
   (declare (xargs :measure (nfix (- (nfix n) (nfix i)))))
   (if (zp (- (nfix n) (nfix i)))
       nil
-    (list* (cons (+ 10000 (* 2 i)) (ecurve::point-finite->x pt))
-           (cons (+ 10001 (* 2 i)) (ecurve::point-finite->y pt))
-           (gen-power-syms (1+ (nfix i)) n (ecurve::edwards-bls12-add pt pt)))))
+    (list* (cons (+ 10000 (* 2 i)) (ecurve::point-finite->x (fast-gbase i)))
+           (cons (+ 10001 (* 2 i)) (ecurve::point-finite->y (fast-gbase i)))
+           (gen-power-syms (1+ (nfix i)) n))))
 
 (defun gsteps2 (prefix k n)
   (if (zp k)
@@ -172,7 +262,7 @@
   (b* ((params (hpos-aleo-params 8))
        (syms (append (pos-aleo-syms 8)
                      (list (cons 5000 (values-encryption-domain)))
-                     (gen-power-syms 0 251 (curve-generator-g))))
+                     (gen-power-syms 0 251)))
        (ext (ext-run-syms (acl2::circuits-h-rec-encrypt-symmetric
                            *fuel* (not pubp) (hpos-params->full params)
                            (hpos-params->partial params))
@@ -184,22 +274,25 @@
                        (gsteps2 "M" 250 13) 'ox 'oy *pos-vs* nil)))
     (same-circuit-renamed ext cs (wvs 1 5) nil)))
 
-(defcheck record-encrypt-symmetric-extraction
+(defthm record-encrypt-symmetric-extraction
   (and (record-encrypt-check nil)
-       (record-encrypt-check t)))
+       (record-encrypt-check t))
+  :hints (("Goal" :in-theory (rec-check-theory record-encrypt-check)))
+  :rule-classes nil)
 
-; Record::decrypt has no assembled gadget (crypto-record-decrypt-gadget is
-; nil), so the extraction is compared with the composition of the verified
-; gadgets it calls, for a public owner W1, W2, nonce W3, W4 and view key W5:
-; Scalar::to_bits_le, the nonce times the view key, hash_many_psd8 of the
-; encryption domain and the record view key (no randomizers), and
-; to_address, which reuses the cached bits, against the owner.
+; Record::decrypt for a public owner W1, W2, nonce W3, W4 and view key W5,
+; with no entries. snarkVM emits Scalar::to_bits_le, the nonce times the view
+; key, hash_many_psd8 of the encryption domain and the record view key, and
+; then to_address, which reuses the cached bits, against the owner.
+; dec-c-rdec emits the to_address fold before the multiplication, so the
+; extraction is compared with the gadgets in snarkVM's order, and that list
+; with dec-c-rdec up to constraint order.
 (defun record-decrypt-public-check ()
   (b* ((p (base-prime))
        (params (hpos-aleo-params 8))
        (syms (append (pos-aleo-syms 8)
                      (list (cons 5000 (values-encryption-domain)))
-                     (gen-power-syms 0 251 (curve-generator-g))))
+                     (gen-power-syms 0 251)))
        (ext (ext-run-syms (acl2::circuits-h-rec-decrypt-public
                            *fuel* (hpos-params->full params) (hpos-params->partial params))
                           syms))
@@ -209,16 +302,22 @@
        (key (car (grp-mul-out (rev bits) 'ox 'oy steps)))
        ((mv & hcs & &)
         (hpos-c-poseidon-hash-many 8 (enc-randomizer-inputs key) 0 *pos-vs* nil))
-       (g (curve-generator-g)))
-    (same-circuit-renamed
-     ext
-     (append (scalar-write-bits-le-gadget (wv 5) bits (gs "RS" 250) p)
+       (g (curve-generator-g))
+       (ordered
+        (append (scalar-write-bits-le-gadget (wv 5) bits (gs "RS" 250) p)
              (grp-mul-gadget (rev bits) 'ox 'oy steps (wv 3) (wv 4) p)
              hcs
              (net-gfold-gadget (cdr bits) sts 1
                                (hbhp-tern-x (car bits) g) (hbhp-tern-y (car bits) g p) p)
-             (enc-nonce-gadget (net-gmul-out bits sts p) (list (wv 1) (wv 2))))
-     (wvs 1 5) nil)))
+             (enc-nonce-gadget (net-gmul-out bits sts p) (list (wv 1) (wv 2)))))
+       ((mv & & dcs & &)
+        (dec-c-rdec t (list (wv 1) (wv 2)) nil nil nil
+                    (append (list (wv 3) (wv 4)) (gs "NG" 12))
+                    (wv 5) bits (gs "RS" 250) sts steps 'ox 'oy *pos-vs* nil)))
+    (and (same-circuit-renamed ext ordered (wvs 1 5) nil)
+         (same-circuit-unordered ordered dcs nil))))
 
-(defcheck record-decrypt-public-extraction
-  (record-decrypt-public-check))
+(defthm record-decrypt-public-extraction
+  (record-decrypt-public-check)
+  :hints (("Goal" :in-theory (rec-check-theory record-decrypt-public-check)))
+  :rule-classes nil)
