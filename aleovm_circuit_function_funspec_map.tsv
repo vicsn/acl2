@@ -124,8 +124,6 @@ program	Argument	ToBits	write_bits_be	spec	argument-to-bits-be	projects/aleo/vm/
 program	Argument	ToBits	write_bits_le	spec	argument-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-value.lisp
 program	Boolean	Cast	cast	spec	boolean-cast	projects/aleo/vm/circuits/fun-specs/values-cast.lisp
 program	Boolean	CastLossy	cast_lossy	spec	boolean-cast-lossy	projects/aleo/vm/circuits/fun-specs/values-cast.lisp
-program	Ciphertext		decrypt_symmetric	spec	crypto-ciphertext-decrypt-symmetric	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
-program	Ciphertext		decrypt_with_randomizers	spec	crypto-ciphertext-decrypt-with-randomizers	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
 program	Ciphertext	Equal	is_equal	spec	crypto-ciphertext-is-equal	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
 program	Ciphertext	Equal	is_not_equal	spec	crypto-ciphertext-is-not-equal	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
 program	Ciphertext	Inject	new	spec	crypto-ciphertext-new	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
@@ -137,7 +135,6 @@ program	DynamicFuture	Inject	new	spec	dynamic-future-new	projects/aleo/vm/circui
 program	DynamicFuture	ToBits	write_bits_be	spec	dynamic-future-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-value.lisp
 program	DynamicFuture	ToBits	write_bits_le	spec	dynamic-future-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-value.lisp
 program	DynamicFuture	ToFields	to_fields	spec	dynamic-future-to-fields	projects/aleo/vm/circuits/fun-specs/values-value.lisp
-program	DynamicRecord		find	spec	dynamic-record-find	projects/aleo/vm/circuits/fun-specs/values-value.lisp
 program	DynamicRecord		from_record	spec	dynamic-record-from-record	projects/aleo/vm/circuits/fun-specs/values-value.lisp
 program	DynamicRecord		merkleize_data	spec	dynamic-record-merkleize-data	projects/aleo/vm/circuits/fun-specs/values-value.lisp
 program	DynamicRecord	Equal	is_equal	spec	dynamic-record-is-equal	projects/aleo/vm/circuits/fun-specs/values-value.lisp
@@ -192,9 +189,7 @@ program	OutputID		future	spec	crypto-make-output-id-future	projects/aleo/vm/circ
 program	OutputID		private	spec	crypto-make-output-id-private	projects/aleo/vm/circuits/fun-specs/crypto-response.lisp
 program	OutputID		public	spec	crypto-make-output-id-public	projects/aleo/vm/circuits/fun-specs/crypto-response.lisp
 program	OutputID		record	spec	crypto-make-output-id-record	projects/aleo/vm/circuits/fun-specs/crypto-response.lisp
-program	Owner		decrypt	spec	crypto-owner-decrypt	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
 program	Owner		encrypt	spec	crypto-owner-encrypt	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
-program	Owner		to_entry	spec	crypto-owner-to-entry	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
 program	Owner	Equal	is_equal	spec	crypto-owner-is-equal	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
 program	Owner	Equal	is_not_equal	spec	crypto-owner-is-not-equal	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
 program	Owner	Inject	new	spec	crypto-owner-new	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
@@ -202,16 +197,9 @@ program	Plaintext		encrypt	spec	plaintext-encrypt	projects/aleo/vm/circuits/fun-
 program	Plaintext		encrypt_symmetric	spec	plaintext-encrypt-symmetric	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
 program	Plaintext		encrypt_with_randomizers	spec	plaintext-encrypt-with-randomizers	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
 program	Plaintext		find	spec	plaintext-find	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
-program	Plaintext		from_bit_array	spec	plaintext-from-bit-array	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
-program	Plaintext		from_bits_be_internal	spec	plaintext-from-bits-be-internal	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
-program	Plaintext		from_bits_le_internal	spec	plaintext-from-bits-le-internal	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
 program	Plaintext		num_randomizers	spec	plaintext-num-randomizers	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
 program	Plaintext	Equal	is_equal	spec	plaintext-is-equal	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
 program	Plaintext	Equal	is_not_equal	spec	plaintext-is-not-equal	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
-program	Plaintext	From	from	spec	plaintext-from	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
-program	Plaintext	FromBits	from_bits_be	spec	plaintext-from-bits-be	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
-program	Plaintext	FromBits	from_bits_le	spec	plaintext-from-bits-le	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
-program	Plaintext	FromFields	from_fields	spec	plaintext-from-fields	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
 program	Plaintext	Inject	new	spec	plaintext-new	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
 program	Plaintext	ToBits	write_bits_be	spec	plaintext-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
 program	Plaintext	ToBits	write_bits_le	spec	plaintext-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-plaintext.lisp
@@ -225,9 +213,6 @@ program	ProgramID	Equal	is_equal	spec	program-id-is-equal	projects/aleo/vm/circu
 program	ProgramID	Equal	is_not_equal	spec	program-id-is-not-equal	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	ProgramID	ToBits	write_bits_be	spec	program-id-to-bits-be	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
 program	ProgramID	ToBits	write_bits_le	spec	program-id-to-bits-le	projects/aleo/vm/circuits/fun-specs/values-literal.lisp
-program	Record		decrypt	spec	crypto-record-decrypt	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
-program	Record		decrypt_symmetric_unchecked	spec	crypto-record-decrypt-symmetric-unchecked	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
-program	Record		decrypt_with_randomizers	spec	crypto-record-decrypt-with-randomizers	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
 program	Record		encrypt	spec	crypto-record-encrypt	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
 program	Record		encrypt_symmetric	spec	crypto-record-encrypt-symmetric	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
 program	Record		encrypt_symmetric_unchecked	spec	crypto-record-encrypt-symmetric-unchecked	projects/aleo/vm/circuits/fun-specs/crypto-record.lisp
