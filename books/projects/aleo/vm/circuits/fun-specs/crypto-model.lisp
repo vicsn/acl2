@@ -16,49 +16,112 @@
 ;     their size (BHP: 256, 512, 768, 1024) or rate (Poseidon: 2, 4, 8).
 ;     A non-network instance (e.g. a Merkle hasher set up with another domain)
 ;     is identified by any other value.
-;   - The generator G and the domain separators of the network
-;     are abstract constants.
+;   - The generator G is curve-generator-g and the domain separators are
+;     snarkVM's constants (Field::new_domain_separator of their strings).
 ;   - Group values are Edwards-BLS12 points;
 ;     operations use ecurve::edwards-bls12-add/-mul.
 
 (in-package "ALEOVM")
 
 (include-book "base")
+(include-book "values-plaintext")
+(include-book "curve-network")
 
 (local (include-book "arithmetic-5/top" :dir :system))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Network parameters (abstract constants).
+;; Network parameters.
 
-; snarkVM console/network/src/lib.rs: Network::g_powers()[0], commitment_domain,
-; encryption_domain, serial_number_domain.
-(encapsulate
-  (((crypto-generator-g) => *)
-   ((crypto-commitment-domain) => *)
-   ((crypto-encryption-domain) => *)
-   ((crypto-serial-number-domain) => *))
+; snarkVM console/network/src/mainnet_v0.rs: Network::g_powers()[0] = G.
+(define crypto-generator-g ()
+  (curve-generator-g))
 
-  (local (defun crypto-generator-g () (ecurve::twisted-edwards-zero)))
-  (local (defun crypto-commitment-domain () 0))
-  (local (defun crypto-encryption-domain () 0))
-  (local (defun crypto-serial-number-domain () 0))
+; snarkVM console/network/src/mainnet_v0.rs:
+; Field::new_domain_separator(s) = Field::from_bytes_le_mod_order(s).
+(define crypto-domain-separator ((s stringp))
+  :returns (f fieldp)
+  (values-lebits-to-field
+   (values-bytes-to-lebits (values-chars-to-bytes (coerce s 'list)))))
 
-  (defrule groupp-of-crypto-generator-g
-    (groupp (crypto-generator-g))
-    :enable (groupp ecurve::edwards-bls12-r-pointp))
+; COMMITMENT_DOMAIN = new_domain_separator("AleoCommitment0").
+(define crypto-commitment-domain ()
+  :returns (f fieldp)
+  (crypto-domain-separator "AleoCommitment0"))
 
-  (defrule fieldp-of-crypto-commitment-domain
-    (fieldp (crypto-commitment-domain))
-    :enable fieldp)
+; ENCRYPTION_DOMAIN = new_domain_separator("AleoSymmetricEncryption0").
+(define crypto-encryption-domain ()
+  :returns (f fieldp)
+  (values-encryption-domain))
 
-  (defrule fieldp-of-crypto-encryption-domain
-    (fieldp (crypto-encryption-domain))
-    :enable fieldp)
+; SERIAL_NUMBER_DOMAIN = new_domain_separator("AleoSerialNumber0").
+(define crypto-serial-number-domain ()
+  :returns (f fieldp)
+  (crypto-domain-separator "AleoSerialNumber0"))
 
-  (defrule fieldp-of-crypto-serial-number-domain
-    (fieldp (crypto-serial-number-domain))
-    :enable fieldp))
+(local (include-book "../edwards-order/basics"))
+(local (include-book "../edwards-order/bls12-points"))
+
+(defruledl crypto-generator-on-curve
+  (ecurve::point-on-twisted-edwards-p (curve-generator-g)
+                                      (ecurve::edwards-bls12-curve))
+  :in-theory '((:e ecurve::point-on-twisted-edwards-p)
+               (:e ecurve::edwards-bls12-curve)
+               (:e curve-generator-g)))
+
+(defruledl crypto-r-kills-generator-exec
+  (equal (ecurve::te-mul-fast-exec (ecurve::edwards-bls12-r) (curve-generator-g)
+                                   (ecurve::edwards-bls12-curve))
+         (ecurve::twisted-edwards-zero))
+  :in-theory '((:e ecurve::te-mul-fast-exec)
+               (:e ecurve::edwards-bls12-r)
+               (:e ecurve::edwards-bls12-curve)
+               (:e curve-generator-g)
+               (:e ecurve::twisted-edwards-zero)))
+
+(defruledl crypto-r-kills-generator
+  (equal (ecurve::twisted-edwards-mul (ecurve::edwards-bls12-r) (curve-generator-g)
+                                      (ecurve::edwards-bls12-curve))
+         (ecurve::twisted-edwards-zero))
+  :use (crypto-r-kills-generator-exec
+        crypto-generator-on-curve
+        (:instance ecurve::twisted-edwards-mul-is-exec
+                   (scalar (ecurve::edwards-bls12-r))
+                   (point (curve-generator-g))
+                   (curve (ecurve::edwards-bls12-curve))))
+  :in-theory '(ecurve::edwards-bls12-curve-completep
+               (:e ecurve::pointp)
+               (:e curve-generator-g)
+               (:e natp) (:e ecurve::edwards-bls12-r)))
+
+(defrule groupp-of-crypto-generator-g
+  (groupp (crypto-generator-g))
+  :use (crypto-r-kills-generator
+        crypto-generator-on-curve
+        (:instance ecurve::twisted-edwards-point-orderp-when-prime-kills
+                   (point (curve-generator-g))
+                   (curve (ecurve::edwards-bls12-curve))
+                   (r (ecurve::edwards-bls12-r))))
+  :in-theory '(groupp crypto-generator-g
+               ecurve::edwards-bls12-r-pointp
+               ecurve::edwards-bls12-pointp
+               ecurve::edwards-bls12-curve-completep
+               ecurve::primep-of-edwards-bls12-r
+               (:e ecurve::pointp)
+               (:e curve-generator-g)
+               (:e ecurve::twisted-edwards-zero)
+               (:e equal)))
+
+(defruled crypto-encryption-domain-is-values-encryption-domain
+  (equal (crypto-encryption-domain) (values-encryption-domain))
+  :enable crypto-encryption-domain)
+
+(defruled crypto-generator-g-is-curve-generator-g
+  (equal (crypto-generator-g) (curve-generator-g))
+  :in-theory '(crypto-generator-g))
+
+(in-theory (disable (:e crypto-generator-g) (:e crypto-commitment-domain)
+                    (:e crypto-encryption-domain) (:e crypto-serial-number-domain)))
 
 ; snarkVM console/network/src/lib.rs: MAX_DATA_SIZE_IN_FIELDS = (128 * 1024 * 8) / 252.
 (define crypto-max-data-size-in-fields ()
@@ -354,7 +417,9 @@
        (hs (crypto-hash-many-psd rate inputs 2))
        (h0 (first hs))
        (h1 (second hs))
-       ((when (or (equal h0 0) (equal h1 0))) (spec-error)))
+       ((unless (and (hped-elligator2-encode-validp h0)
+                     (hped-elligator2-encode-validp h1)))
+        (spec-error)))
     (ecurve::edwards-bls12-add (elligator2-encode h1) (elligator2-encode h0))))
 
 ; snarkVM circuit/algorithms/src/bhp/hash.rs: BHP::hash

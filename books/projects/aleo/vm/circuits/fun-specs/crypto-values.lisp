@@ -217,24 +217,26 @@
         (spec-error)
       fields)))
 
-; snarkVM circuit/program/src/data/plaintext/to_fields.rs: Plaintext::to_fields.
+; snarkVM circuit/program/src/data/plaintext/to_fields.rs: Plaintext::to_fields
+; (the concrete plaintext-to-fields of values-plaintext.lisp).
 (define crypto-plaintext-to-fields ((p plaintextp))
-  :returns (fields (implies (not (reserrp fields)) (values-field-listp fields)))
-  (crypto-bits-to-fields-checked (crypto-plaintext-bits-le p)))
+  :returns (fields (implies (not (reserrp fields)) (values-field-listp fields))
+                   :hints (("Goal" :use (:instance values-field-list-resultp-of-plaintext-to-fields
+                                                   (pt p))
+                                   :in-theory (enable values-field-list-resultp))))
+  (plaintext-to-fields p))
 
 ; snarkVM circuit/program/src/data/plaintext/size_in_fields.rs: Plaintext::size_in_fields
-; (also Plaintext::num_randomizers).
+; (also Plaintext::num_randomizers; the concrete plaintext-size-in-fields).
 (define crypto-plaintext-size-in-fields ((p plaintextp))
-  :returns (n (implies (not (reserrp n)) (natp n)))
-  (b* ((num-bits (+ 1 (len (crypto-plaintext-bits-le p))))
-       (num-fields (ceiling num-bits 252)))
-    (if (> num-fields (crypto-max-data-size-in-fields))
-        (spec-error)
-      num-fields))
+  :returns (n (implies (not (reserrp n)) (natp n))
+              :hints (("Goal" :in-theory (enable plaintext-size-in-fields))))
+  (plaintext-size-in-fields p)
   ///
   (defret crypto-plaintext-size-in-fields-natp-or-consp
     (or (natp n) (consp n))
-    :rule-classes :type-prescription))
+    :rule-classes :type-prescription
+    :hints (("Goal" :in-theory (enable plaintext-size-in-fields spec-error)))))
 
 ; The data bits of field elements: the first 252 bits of each.
 (define crypto-fields-data-bits ((fields values-field-listp))
@@ -253,17 +255,11 @@
         ((equal (car rev-bits) 1) (cdr rev-bits))
         (t (crypto-strip-terminus (cdr rev-bits)))))
 
-; snarkVM circuit/program/src/data/plaintext/from_fields.rs: Plaintext::from_fields.
+; snarkVM circuit/program/src/data/plaintext/from_fields.rs: Plaintext::from_fields
+; (the concrete plaintext-from-fields of values-plaintext.lisp).
 (define crypto-plaintext-from-fields ((fields values-field-listp))
   :returns (p plaintext-resultp)
-  (b* (((when (> (len fields) (crypto-max-data-size-in-fields))) (spec-error))
-       (bits (crypto-fields-data-bits fields))
-       (bits (rev (crypto-strip-terminus (rev bits)))))
-    (crypto-plaintext-from-bits-le bits))
-  :prepwork ((local (include-book "std/lists/rev" :dir :system))
-             (local (defrule bit-listp-of-rev
-                      (implies (bit-listp x) (bit-listp (rev x)))
-                      :enable (rev bit-listp)))))
+  (plaintext-from-fields fields))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

@@ -46,6 +46,7 @@
 (include-book "group-inject-r1cs")
 (include-book "group-inject-sound")
 (include-book "scalar-new-r1cs")
+(include-book "scalar-from-bits-r1cs")
 (include-book "identifier-new-r1cs")
 (include-book "../r1cs/boolean-check")
 (include-book "../fun-specs/values-literal")
@@ -194,6 +195,36 @@
                   (equal (literal-scalar->get lit) s$)
                   (equal (literal-new lit) lit))))
   :use scalar-new-gadget-sound
+  :enable (literal-scalar-new-gadget
+           literal-new-when-not-recomputed))
+
+(defruled literal-scalar-new-complete
+  :short "R1CS-COMPLETE for the scalar arm: the bits of the scalar and the
+          canonical @('bits-lte-const') fold witness satisfy the patched
+          range check."
+  (implies (and (literalp x)
+                (literal-case x :scalar)
+                (symbolp s)
+                (symbol-listp xs)
+                (symbol-listp rs)
+                (equal (len xs) 251)
+                (equal (len rs) 250)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg s)
+                (r1cs::valuation-binds-allp asg xs)
+                (r1cs::valuation-binds-allp asg rs)
+                (equal (lookup-equal s asg) (literal-scalar->get x))
+                (equal (lookup-equal-list xs asg)
+                       (scalar-bits-le (literal-scalar->get x)))
+                (equal (lookup-equal-list rs asg)
+                       (crv-bits-lte-const-witness
+                        (lookup-equal-list xs asg)
+                        (scalar-modulus-minus-one-bits))))
+           (and (r1cs::r1cs-constraints-holdp
+                 (literal-scalar-new-gadget s xs rs p) asg p)
+                (equal (literal-new x) (literal-fix x))))
+  :use (:instance scalar-new-gadget-complete)
   :enable (literal-scalar-new-gadget
            literal-new-when-not-recomputed))
 
@@ -759,6 +790,134 @@
            primep-of-base-prime)
   :disable (literal-scalar-new-gadget
             literal-group-new-gadget))
+
+(defruled literal-signature-new-complete-when-witness
+  :short "R1CS-COMPLETE for the signature arm, given cofactor witnesses for
+          @('pk_sig') and @('pr_sig') as in
+          @(tsee literal-group-new-complete-when-witness).  The two scalars
+          use the canonical witnesses of @(tsee literal-scalar-new-complete).
+          Constructing the cofactor witness is an open TODO."
+  (implies (and (literalp x)
+                (literal-case x :signature)
+                (symbolp c) (symbol-listp cxs) (symbol-listp crs)
+                (symbolp r) (symbol-listp rxs) (symbol-listp rrs)
+                (equal (len cxs) 251) (equal (len crs) 250)
+                (equal (len rxs) 251) (equal (len rrs) 250)
+                (symbolp pkx) (symbolp pky)
+                (symbolp pk-qx) (symbolp pk-qy)
+                (symbolp pk-cx2) (symbolp pk-cy2)
+                (symbolp pk-dxy) (symbolp pk-dx2) (symbolp pk-dy2)
+                (symbolp pk-x3) (symbolp pk-y3)
+                (symbolp pk-exy) (symbolp pk-ex2) (symbolp pk-ey2)
+                (symbolp prx) (symbolp pry)
+                (symbolp pr-qx) (symbolp pr-qy)
+                (symbolp pr-cx2) (symbolp pr-cy2)
+                (symbolp pr-dxy) (symbolp pr-dx2) (symbolp pr-dy2)
+                (symbolp pr-x3) (symbolp pr-y3)
+                (symbolp pr-exy) (symbolp pr-ex2) (symbolp pr-ey2)
+                (equal p (base-prime))
+                (r1cs::r1cs-valuationp asg p)
+                (r1cs::valuation-bindsp asg c)
+                (r1cs::valuation-binds-allp asg cxs)
+                (r1cs::valuation-binds-allp asg crs)
+                (r1cs::valuation-bindsp asg r)
+                (r1cs::valuation-binds-allp asg rxs)
+                (r1cs::valuation-binds-allp asg rrs)
+                (r1cs::valuation-bindsp asg pkx)
+                (r1cs::valuation-bindsp asg pky)
+                (r1cs::valuation-bindsp asg pk-qx)
+                (r1cs::valuation-bindsp asg pk-qy)
+                (r1cs::valuation-bindsp asg pk-cx2)
+                (r1cs::valuation-bindsp asg pk-cy2)
+                (r1cs::valuation-bindsp asg pk-dxy)
+                (r1cs::valuation-bindsp asg pk-dx2)
+                (r1cs::valuation-bindsp asg pk-dy2)
+                (r1cs::valuation-bindsp asg pk-x3)
+                (r1cs::valuation-bindsp asg pk-y3)
+                (r1cs::valuation-bindsp asg pk-exy)
+                (r1cs::valuation-bindsp asg pk-ex2)
+                (r1cs::valuation-bindsp asg pk-ey2)
+                (r1cs::valuation-bindsp asg prx)
+                (r1cs::valuation-bindsp asg pry)
+                (r1cs::valuation-bindsp asg pr-qx)
+                (r1cs::valuation-bindsp asg pr-qy)
+                (r1cs::valuation-bindsp asg pr-cx2)
+                (r1cs::valuation-bindsp asg pr-cy2)
+                (r1cs::valuation-bindsp asg pr-dxy)
+                (r1cs::valuation-bindsp asg pr-dx2)
+                (r1cs::valuation-bindsp asg pr-dy2)
+                (r1cs::valuation-bindsp asg pr-x3)
+                (r1cs::valuation-bindsp asg pr-y3)
+                (r1cs::valuation-bindsp asg pr-exy)
+                (r1cs::valuation-bindsp asg pr-ex2)
+                (r1cs::valuation-bindsp asg pr-ey2)
+                (equal (lookup-equal c asg)
+                       (signature->challenge (literal-signature->get x)))
+                (equal (lookup-equal-list cxs asg)
+                       (scalar-bits-le (lookup-equal c asg)))
+                (equal (lookup-equal-list crs asg)
+                       (crv-bits-lte-const-witness
+                        (lookup-equal-list cxs asg)
+                        (scalar-modulus-minus-one-bits)))
+                (equal (lookup-equal r asg)
+                       (signature->response (literal-signature->get x)))
+                (equal (lookup-equal-list rxs asg)
+                       (scalar-bits-le (lookup-equal r asg)))
+                (equal (lookup-equal-list rrs asg)
+                       (crv-bits-lte-const-witness
+                        (lookup-equal-list rxs asg)
+                        (scalar-modulus-minus-one-bits)))
+                (group-enforce-in-group-equations
+                 (lookup-equal pkx asg) (lookup-equal pky asg)
+                 (lookup-equal pk-qx asg) (lookup-equal pk-qy asg)
+                 (lookup-equal pk-cx2 asg) (lookup-equal pk-cy2 asg)
+                 (lookup-equal pk-dxy asg) (lookup-equal pk-dx2 asg)
+                 (lookup-equal pk-dy2 asg)
+                 (lookup-equal pk-x3 asg) (lookup-equal pk-y3 asg)
+                 (lookup-equal pk-exy asg) (lookup-equal pk-ex2 asg)
+                 (lookup-equal pk-ey2 asg)
+                 p)
+                (group-enforce-in-group-equations
+                 (lookup-equal prx asg) (lookup-equal pry asg)
+                 (lookup-equal pr-qx asg) (lookup-equal pr-qy asg)
+                 (lookup-equal pr-cx2 asg) (lookup-equal pr-cy2 asg)
+                 (lookup-equal pr-dxy asg) (lookup-equal pr-dx2 asg)
+                 (lookup-equal pr-dy2 asg)
+                 (lookup-equal pr-x3 asg) (lookup-equal pr-y3 asg)
+                 (lookup-equal pr-exy asg) (lookup-equal pr-ex2 asg)
+                 (lookup-equal pr-ey2 asg)
+                 p))
+           (r1cs::r1cs-constraints-holdp
+            (literal-signature-new-gadget
+             c cxs crs r rxs rrs
+             pkx pky pk-qx pk-qy pk-cx2 pk-cy2 pk-dxy pk-dx2 pk-dy2
+             pk-x3 pk-y3 pk-exy pk-ex2 pk-ey2
+             prx pry pr-qx pr-qy pr-cx2 pr-cy2 pr-dxy pr-dx2 pr-dy2
+             pr-x3 pr-y3 pr-exy pr-ex2 pr-ey2 p)
+            asg p))
+  :do-not-induct t
+  :use ((:instance scalar-new-gadget-complete (s c) (xs cxs) (rs crs))
+        (:instance scalar-new-gadget-complete (s r) (xs rxs) (rs rrs))
+        (:instance group-enforce-in-group-gadget-to-equations
+                   (x pkx) (y pky)
+                   (qx pk-qx) (qy pk-qy) (cx2 pk-cx2) (cy2 pk-cy2)
+                   (dxy pk-dxy) (dx2 pk-dx2) (dy2 pk-dy2)
+                   (x3 pk-x3) (y3 pk-y3)
+                   (exy pk-exy) (ex2 pk-ex2) (ey2 pk-ey2))
+        (:instance group-enforce-in-group-gadget-to-equations
+                   (x prx) (y pry)
+                   (qx pr-qx) (qy pr-qy) (cx2 pr-cx2) (cy2 pr-cy2)
+                   (dxy pr-dxy) (dx2 pr-dx2) (dy2 pr-dy2)
+                   (x3 pr-x3) (y3 pr-y3)
+                   (exy pr-exy) (ex2 pr-ex2) (ey2 pr-ey2)))
+  :enable (literal-signature-new-gadget
+           literal-scalar-new-gadget
+           literal-group-new-gadget)
+  :disable (scalar-new-gadget-complete
+            group-enforce-in-group-gadget-to-equations
+            scalar-new-gadget
+            group-enforce-in-group-gadget
+            group-enforce-in-group-equations))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

@@ -12,7 +12,12 @@ ownership or generic arguments (e.g. Mul<Field> for Field, Mul<&Field> for
 
 The component-level task columns come from the hand-maintained ACL2_MODELS map;
 FUN-SPEC is additionally set from aleovm_circuit_function_funspec_map.tsv, which maps
-rows to their specs in books/projects/aleo/vm/circuits/fun-specs.
+rows to their specs in books/projects/aleo/vm/circuits/fun-specs. R1CS-SOUND-IF and
+MANUAL-CONSTRAINTS is 1 for
+functions that call a primitive directly. R1CS-SOUND-IF and
+R1CS-COMPLETE-IF are copied from aleovm_circuit_function_circspec_map.tsv. They are not
+0/1 flags. STATUS is "verified" when soundness holds (R1CS-SOUND is 1 or R1CS-SOUND-IF
+is non-empty) and completeness holds (R1CS-COMPLETE is 1 or R1CS-COMPLETE-IF is non-empty).
 
 Usage: python3 aleovm_circuit_functions_scan.py <snarkVM>/circuit aleovm_circuit_function_formalisation_status.csv
 """
@@ -49,6 +54,18 @@ ENV_INFRA_TYPES = {"LinearCombination", "Variable", "R1CS", "Assignment", "Assig
                    "CircuitType", "Converter", "u64", "Circuit", "CanaryCircuit", "TestnetCircuit"}
 CONSOLE_PATH = re.compile(r"\b(console|BaseField|ScalarField|Network|Affine|Projective|snarkvm_console\w*|"
                           r"snarkvm_fields|snarkvm_curves|std|core|alloc|itertools|indexmap)\s*::")
+# Unsupported circuit types, left out of the status table. StringType::new halts on the host when
+# the byte length does not fit in u32 instead of emitting an unsatisfiable R1CS, so it cannot meet
+# R1CS-COMPLETE (books/projects/aleo/vm/circuits/fun-specs/README.md). The AleoCanaryV0 and
+# AleoTestnetV0 networks are out of scope; AleoV0 is the formalised network.
+UNSUPPORTED_TYPES = {"StringType", "AleoCanaryV0", "AleoTestnetV0"}
+# Rows that the syntactic scan flags but that are not circuits. The two proc-macro helpers rewrite
+# Rust syntax at compile time. `public` builds a public Identifier or ProgramID from a host value
+# and emits no constraint. ProgramID is only constant or public, so no circuit constrains the
+# fields `to_fields` reads and its output is fixed by the public input.
+NOT_CIRCUITS = {("environment", "", "", "recursively_replace_self"), ("environment", "", "", "rename_selfs"),
+                ("program", "Identifier", "", "public"), ("program", "ProgramID", "", "public"),
+                ("program", "ProgramID", "ToFields", "to_fields")}
 STD_TYPES = {"F", "Vec", "String", "Box", "Option", "Result", "IndexMap", "IndexSet", "HashMap", "BTreeMap",
               "Rc", "Arc", "RefCell", "OnceCell", "Cow", "Iterator", "PhantomData"}
 
@@ -76,7 +93,7 @@ ACL2_MODELS = {
     ("Field", "inv"): ("111111", "r1cs/field-inverse; pfcs/field-inv-checked; samples/field-inverse"),
     ("Field", "div"): ("111111", "r1cs/field-div (field-div-spec, soundness incl. error); pfcs/field-div-checked; samples/field-div"),
     ("Field", "div_assign"): ("111111", "r1cs/field-div; pfcs/field-div-checked; samples/field-div"),
-    ("Field", "div_unchecked"): ("111011", "r1cs/field-div-unchecked (soundness); pfcs/field-div-unchecked (iff). div_unchecked JSON sample not checked"),
+    ("Field", "div_unchecked"): ("111001", "r1cs/field-div-unchecked (soundness); pfcs/field-div-unchecked (iff). div_unchecked JSON sample not checked"),
     ("Field", "is_not_equal"): ("111111", "r1cs/field-neq (soundness) + samples/field-neq; pfcs/field-neq (sound+complete)"),
     ("Field", "is_equal"): ("111011", "pfcs/field-eq (sound+complete); r1cs via field-neq with negated output. Equal sample not checked"),
     ("Field", "ternary"): ("111111", "r1cs/field-ternary (soundness); pfcs/field-if (iff); samples/field-ternary"),
@@ -89,7 +106,7 @@ ACL2_MODELS = {
     ("Integer", "add_checked"): ("010010", "r1cs/unsigned-small-add(-checked)(-opt), signed-small-add-checked (soundness)"),
     ("Integer", "add_wrapped"): ("010010", "r1cs/unsigned-small-add-wrapped, signed-small-add-wrapped (soundness)"),
     ("Integer", "sub_checked"): ("010010", "r1cs/unsigned-small-sub(-checked)(-opt)(-const-var), signed-small-sub-checked(-const-var) (soundness)"),
-    ("Integer", "sub_wrapped"): ("010010", "r1cs/unsigned-small-sub-wrapped(-const-var), signed-small-sub-wrapped(-const-var) (soundness)"),
+    ("Integer", "sub_wrapped"): ("010000", "r1cs/unsigned-small-sub-wrapped(-const-var), signed-small-sub-wrapped(-const-var) (soundness)"),
     ("Integer", "abs_checked"): ("010010", "r1cs/signed-small-abs-checked (soundness)"),
     ("Integer", "abs_wrapped"): ("010010", "r1cs/signed-small-abs-wrapped (soundness)"),
     ("Integer", "neg"): ("010010", "r1cs/signed-small-neg (soundness)"),
@@ -368,6 +385,13 @@ def crate_of(rel):
 FUN_SPEC_MAP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aleovm_circuit_function_funspec_map.tsv")
 CIRC_SPEC_MAP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aleovm_circuit_function_circspec_map.tsv")
 CIRC_FLAG_COLS = ["R1CS-SPEC", "PFCS-SPEC", "R1CS-SAMPLES", "R1CS-SOUND", "R1CS-COMPLETE"]
+# Not 0/1 flags. Name the prior circuit that discharges a hypothesis of the soundness or
+# completeness theorem.
+SOUND_IF_COL = "R1CS-SOUND-IF"
+COMPLETE_IF_COL = "R1CS-COMPLETE-IF"
+# 1 when the function body itself calls an Environment constraint primitive (enforce / assert /
+# assert_eq / assert_neq), i.e. writes constraints by hand rather than only through other gadgets.
+MANUAL_COL = "MANUAL-CONSTRAINTS"
 
 
 def load_fun_specs():
@@ -475,7 +499,8 @@ def main(root, out):
 
     rows = defaultdict(list)
     for d in defs:
-        if gen[id(d)]:
+        if (gen[id(d)] and d["type"] not in UNSUPPORTED_TYPES
+                and (d["crate"], d["type"], d["trait"], d["name"]) not in NOT_CIRCUITS):
             rows[(d["crate"], d["type"], d["trait"], d["name"])].append(d)
 
     def evidence(ds):
@@ -491,8 +516,9 @@ def main(root, out):
     with open(out, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["crate", "type", "trait", "function", "file", "line", "merged_impls",
-                    "constraint_source", "primitives", "via", "FUN-SPEC", "R1CS-SPEC", "PFCS-SPEC",
-                    "R1CS-SAMPLES", "R1CS-SOUND", "R1CS-COMPLETE", "acl2_counterpart", "fun_spec"])
+                    "constraint_source", MANUAL_COL, "primitives", "via", "FUN-SPEC", "R1CS-SPEC", "PFCS-SPEC",
+                    "R1CS-SAMPLES", "R1CS-SOUND", "R1CS-COMPLETE", SOUND_IF_COL, COMPLETE_IF_COL,
+                    "STATUS", "acl2_counterpart", "fun_spec"])
         for key in sorted(rows, key=lambda k: (k[0], k[1], k[2], k[3])):
             ds = sorted(rows[key], key=lambda x: (x["path"], x["line"]))
             prims = sorted(set().union(*(set(x["direct"]) for x in ds)))
@@ -508,19 +534,25 @@ def main(root, out):
                 flags[0] = "excluded"
                 fun_spec = "hash internals, abstract in fun-specs/base.lisp"
             circ = circ_specs.get(key)
+            sound_if = complete_if = ""
             if circ and flags[0] != "excluded":
                 for i, col in enumerate(CIRC_FLAG_COLS, start=1):
                     if circ.get(col) == "1":
                         flags[i] = "1"
                 if circ.get("acl2"):
                     model = (model + "; " + circ["acl2"]).strip("; ")
+                sound_if = circ.get(SOUND_IF_COL) or ""
+                complete_if = circ.get(COMPLETE_IF_COL) or ""
+            sound = flags[CIRC_FLAG_COLS.index("R1CS-SOUND") + 1] == "1" or bool(sound_if)
+            complete = flags[CIRC_FLAG_COLS.index("R1CS-COMPLETE") + 1] == "1" or bool(complete_if)
+            status = "verified" if sound and complete else ""
             w.writerow([key[0], key[1], key[2], key[3], "circuit/" + ds[0]["path"], ds[0]["line"], len(ds),
-                        evidence(ds), " ".join(prims), " ".join(rs[:8]) + (" ..." if len(rs) > 8 else "")]
-                       + flags + [model, fun_spec])
+                        evidence(ds), "1" if prims else "0", " ".join(prims), " ".join(rs[:8]) + (" ..." if len(rs) > 8 else "")]
+                       + flags + [sound_if, complete_if, status, model, fun_spec])
     missing = [k for k in ACL2_MODELS if not any((r[1], r[3]) == k for r in rows)]
     if missing:
         print("ACL2 models without a matching constraint-generating function:", missing)
-    unmatched = [k for k in fun_specs if k not in rows]
+    unmatched = [k for k in fun_specs if k not in rows and k[1] not in UNSUPPORTED_TYPES]
     if unmatched:
         print("FUN-SPEC map entries without a matching constraint-generating function:", unmatched)
     total = len({(d["crate"], d["type"], d["trait"], d["name"]) for d in defs})

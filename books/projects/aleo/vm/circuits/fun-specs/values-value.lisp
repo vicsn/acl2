@@ -481,14 +481,14 @@
 ; snarkVM circuit/collections/src/merkle_tree/helpers/leaf_hash.rs: Poseidon::hash_leaf.
 (define values-dynamic-record-leaf-hash ((leaf values-field-listp))
   :returns (h fieldp)
-  (car (poseidon-hash-many "DynamicRecordLeafHasher"
+  (car (poseidon-hash-many '("DynamicRecordLeafHasher" . 8)
                            (cons 0 (values-field-list-fix leaf))
                            1)))
 
 ; snarkVM circuit/collections/src/merkle_tree/helpers/path_hash.rs: Poseidon::hash_children.
 (define values-dynamic-record-path-hash ((left fieldp) (right fieldp))
   :returns (h fieldp)
-  (car (poseidon-hash-many "DynamicRecordPathHasher"
+  (car (poseidon-hash-many '("DynamicRecordPathHasher" . 2)
                            (list 1 (values-field-fix left) (values-field-fix right))
                            1)))
 
