@@ -1,0 +1,10 @@
+; AleoVM Library
+;
+; Copyright (C) 2026 Provable Inc.
+;
+; License: See the LICENSE file distributed with this library.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(include-book "../../portcullis")
+(include-book "centaur/fty/portcullis" :dir :system)
