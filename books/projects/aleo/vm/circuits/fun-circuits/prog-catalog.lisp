@@ -105,19 +105,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define crypto-ciphertext-decrypt-symmetric-gadget ()
-  :returns (constrs r1cs::r1cs-constraint-listp)
-  :short "Constraints of this program-crate function are not fully expanded in this book. See bugs-prog.txt."
-  nil)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define crypto-ciphertext-decrypt-with-randomizers-gadget ()
-  :returns (constrs r1cs::r1cs-constraint-listp)
-  :short "Constraints of this program-crate function are not fully expanded in this book. See bugs-prog.txt."
-  nil)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define crypto-ciphertext-is-equal-gadget ()
   :returns (constrs r1cs::r1cs-constraint-listp)
@@ -799,12 +786,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define crypto-owner-decrypt-gadget ()
-  :returns (constrs r1cs::r1cs-constraint-listp)
-  :short "Constraints of this program-crate function are not fully expanded in this book. See bugs-prog.txt."
-  nil)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define crypto-owner-encrypt-gadget ()
   :returns (constrs r1cs::r1cs-constraint-listp)
@@ -876,19 +857,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define plaintext-from-bits-be-internal-gadget ()
-  :returns (constrs r1cs::r1cs-constraint-listp)
-  :short "Same as the little-endian parser, caching the raw big-endian bits. See bugs-prog.txt."
-  nil)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define plaintext-from-bits-le-internal-gadget ()
-  :returns (constrs r1cs::r1cs-constraint-listp)
-  :short "Parses a variant prefix and caches the raw input bits in a OnceCell. See bugs-prog.txt."
-  nil)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define plaintext-num-randomizers-gadget ()
   :returns (constrs r1cs::r1cs-constraint-listp)
@@ -925,45 +893,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define plaintext-from-gadget ()
-  :returns (constrs r1cs::r1cs-constraint-listp)
-  :short "Constraints of this program-crate function are not fully expanded in this book. See bugs-prog.txt."
-  nil)
-
-(defruled plaintext-from-funspecs-match
-  (equal (plaintext-from fields) (plaintext-from-fields fields))
-  :enable plaintext-from)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define plaintext-from-bits-be-gadget ()
-  :returns (constrs r1cs::r1cs-constraint-listp)
-  :short "Constraints of this program-crate function are not fully expanded in this book. See bugs-prog.txt."
-  nil)
-
-(defruled plaintext-from-bits-be-funspecs-match
-  (equal (plaintext-from-bits-be bits) (plaintext-from-bits-be-internal bits 0))
-  :enable plaintext-from-bits-be)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define plaintext-from-bits-le-gadget ()
-  :returns (constrs r1cs::r1cs-constraint-listp)
-  :short "Constraints of this program-crate function are not fully expanded in this book. See bugs-prog.txt."
-  nil)
-
-(defruled plaintext-from-bits-le-funspecs-match
-  (equal (plaintext-from-bits-le bits) (plaintext-from-bits-le-internal bits 0))
-  :enable plaintext-from-bits-le)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define plaintext-from-fields-gadget ()
-  :returns (constrs r1cs::r1cs-constraint-listp)
-  :short "Constraints of this program-crate function are not fully expanded in this book. See bugs-prog.txt."
-  nil)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define plaintext-new-gadget ()
   :returns (constrs r1cs::r1cs-constraint-listp)
@@ -1035,26 +964,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define crypto-record-decrypt-gadget ()
-  :returns (constrs r1cs::r1cs-constraint-listp)
-  :short "Constraints of this program-crate function are not fully expanded in this book. See bugs-prog.txt."
-  nil)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define crypto-record-decrypt-symmetric-unchecked-gadget ()
-  :returns (constrs r1cs::r1cs-constraint-listp)
-  :short "Constraints of this program-crate function are not fully expanded in this book. See bugs-prog.txt."
-  nil)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define crypto-record-decrypt-with-randomizers-gadget ()
-  :returns (constrs r1cs::r1cs-constraint-listp)
-  :short "Constraints of this program-crate function are not fully expanded in this book. See bugs-prog.txt."
-  nil)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define crypto-record-encrypt-gadget ()
   :returns (constrs r1cs::r1cs-constraint-listp)
