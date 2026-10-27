@@ -13,7 +13,7 @@ Do not hand-edit flag columns in the CSV. `aleovm_circuit_functions_scan.py` reg
 python3 aleovm_circuit_functions_scan.py <snarkVM>/circuit aleovm_circuit_function_formalisation_status.csv
 ```
 
-The root argument must be the `circuit/` directory so paths look like `circuit/...`. The tree is snarkVM commit `7dc117d45` (2026-10-14), not the 2023 submodule under `books/projects/aleo/vm/snarkVM`.
+The root argument must be the `circuit/` directory so paths look like `circuit/...`. The tree is the submodule `books/projects/aleo/vm/snarkVM/circuit`, tracking snarkVM `staging` (currently `7c017b188`).
 
 When a circuit task is finished:
 
